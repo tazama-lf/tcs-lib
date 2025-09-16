@@ -1,0 +1,2926 @@
+Tazama Connection Studio– FSD
+FUNCTIONAL SPECIFICATIONS DOCUMENT
+
+Version 0.3 (Final Review Draft)
+14.07.2025
+
+Tazama Connection Studio – FSD
+
+Document Information
+Project
+
+Tazama Development
+
+Document Title
+
+Tazama Connection Studio– FSD
+
+Prepared by
+
+Behjet Ansari – Senior BA @ Paysys Labs
+
+Version Number
+
+0.3
+
+Version Date
+
+14/07/2025
+
+Document Revision History
+Date
+
+Author
+
+Version
+
+Change Reference
+
+05/06/2025
+
+Behjet Ansari
+
+0.2
+
+Baseline version shared with Tazama for review.
+
+14/07/2025
+
+Behjet Ansari
+
+0.3
+
+Updated version with finalized design.
+
+Page | 1
+
+Tazama Connection Studio – FSD
+
+Table of Contents
+Table of Contents ................................................................................................................................................ 2
+Introduction .......................................................................................................................................................... 4
+1.1 Purpose of the Document ........................................................................................................................ 4
+1.2 Scope of the System ................................................................................................................................. 4
+Overall Description .............................................................................................................................................. 5
+2.1 Operating Environment ............................................................................................................................ 5
+System Architecture Overview ......................................................................................................................... 6
+3.1 High-Level Architecture ........................................................................................................................... 6
+3.2 Configuration Flow .................................................................................................................................... 8
+3.3 Transactional Flow..................................................................................................................................... 9
+4. Functional Overview ..................................................................................................................................... 10
+4.1 General Requirements............................................................................................................................. 10
+Decoupled Operation from DEMS Runtime ........................................................................................... 10
+User Types....................................................................................................................................................13
+User Type Responsibilities........................................................................................................................ 14
+Data Enrichment Use Cases ..................................................................................................................... 16
+4.2 API Endpoint Construction and Deployment ...................................................................................... 18
+Auto-generation of API Endpoints .......................................................................................................... 18
+Deployment into DEMS and Data Enrichment Layers ......................................................................... 26
+Custom API Paths ...................................................................................................................................... 26
+Role-Based Access Control via KeyCloak .............................................................................................. 27
+Server-Side Validation .............................................................................................................................. 27
+Endpoint Versioning and Namespace Isolation ..................................................................................... 28
+Deployment into Logical Environments ................................................................................................. 29
+4.3 File-Based Data Enrichment (Pull-Based) ........................................................................................... 30
+Supported File Formats and Conversion Rules .................................................................................... 30
+Field Mapping Utility for Transformation ................................................................................................31
+Supported Source Types (SFTP/HTTP) ..................................................................................................31
+Scheduling and Triggering Options ..........................................................................................................31
+Data Validation and Storage in Postgres ............................................................................................... 34
+Page | 2
+
+Tazama Connection Studio – FSD
+Error Handling and Logging ...................................................................................................................... 35
+Deployment of Pull Jobs to Logical Environments .............................................................................. 36
+4.4 Mapping Utility ......................................................................................................................................... 37
+Field Association and Mapping ................................................................................................................ 37
+One-to-One, One-to-Many, Many-to-One Mapping ........................................................................... 41
+Constant Value Injection........................................................................................................................... 42
+Use of Tazama Message Templates ........................................................................................................ 42
+Output Validation ....................................................................................................................................... 42
+Simulation/Dry-Run Mode ........................................................................................................................ 43
+Versioning and Configuration Management .......................................................................................... 44
+User-specific Actions ................................................................................................................................ 44
+4.5 Data Destination and Storage ............................................................................................................... 44
+Writing to Postgres Collections ............................................................................................................... 44
+Restriction on External Writes................................................................................................................. 45
+Dynamic Collection Creation with Schema Mapping ........................................................................... 45
+Metadata Storage and Management ...................................................................................................... 46
+5. Deployment Environments .......................................................................................................................... 48
+Deployment Across Environments ............................................................................................................. 48
+Additional Considerations .............................................................................................................................51
+Implementation Plan ...................................................................................................................................51
+Package Format ..........................................................................................................................................51
+Securing the Config Package ................................................................................................................... 52
+6. Assumptions and Dependencies ................................................................................................................. 54
+7. Glossary ........................................................................................................................................................... 54
+
+Page | 3
+
+Tazama Connection Studio – FSD
+
+Introduction
+1.1 Purpose of the Document
+This document defines the functional specifications of the Tazama Connection Studio (TCS) for the
+Tazama platform. It translates the business requirements into detailed technical guidance to support
+the development, configuration, and deployment of the TCS. The document outlines how the TCS
+enables data ingestion using schema-driven REST APIs or schedule-based batch jobs. This
+specification serves as a reference for developers, integrators, and stakeholders throughout the
+TCS’s implementation lifecycle.
+
+1.2 Scope of the System
+•
+
+Tazama Connection Studio (TCS) is a standalone integration and enrichment module within
+the Tazama platform.
+
+•
+
+Covers configuration and deployment of REST API endpoints for ingestion of messages.
+
+•
+
+Handles new message types and custom data elements for financial transactions via TCSdefined schemas.
+
+•
+
+Supports mechanisms for both push-based and pull-based data ingestion including filebased enrichment sources.
+
+•
+
+Outlines the mapping utility for source-to-target transformation, including one-to-one,
+one-to-many, and many-to-one relationships.
+
+•
+
+Validation, simulation, and version control of mapping configurations using predefined
+Tazama message templates.
+
+•
+
+Structured storage of enriched and mapped data within Postgres collections as part of the
+Tazama ODS.
+
+•
+
+Establishes role-based access control, versioning, and endpoint isolation features for secure
+TCS operations.
+
+•
+
+New endpoints and schemas are deployed across environments using configuration files.
+
+•
+
+Logging and observability mechanisms with Tazama’s centralized logging framework for
+traceability and operational monitoring.
+
+Page | 4
+
+Tazama Connection Studio – FSD
+
+Overall Description
+2.1 Operating Environment
+Tech stack information:
+•
+
+Frontend: React 18.3 - frontend sessions shall use SameSite=Strict, HttpOnly, Secure
+cookies.
+
+•
+
+Backend: TypeScript (NestJS)
+
+•
+
+Database for Tazama Data Model/TCS: PostgreSQL
+
+•
+
+IAM: Keycloak
+
+•
+
+All components shall be containerized in Docker
+
+Page | 5
+
+Tazama Connection Studio – FSD
+
+System Architecture Overview
+3.1 High-Level Architecture
+The architecture below distinguishes between two key phases in the lifecycle of the Dynamic Event
+Monitoring Service (DEMS): Configuration Runtime and Production Runtime.
+•
+
+Configuration Runtime refers to the administrative process of defining, securing, and
+deploying endpoints. This includes user interactions through the Tazama Connection Studio
+(TCS), authentication via the Auth Service, and persistence of endpoint metadata through
+the Admin Service into the database.
+
+•
+
+Production Runtime, by contrast, represents the live operation phase where external
+entities—such as financial institutions, payment switches, or schemes—send real-time
+messages to the deployed endpoints. These messages are processed by DEMS and routed
+onward to downstream systems like the Event Director.
+
+The diagram provides a high-level view of the services involved in each phase and the interaction
+flows that support secure, auditable, and dynamic ingestion management.
+
+Figure 1. High-level Landscape diagram
+
+Page | 6
+
+Tazama Connection Studio – FSD
+
+Key Components:
+•
+
+Auth Service: A centralized authentication and identity management system (e.g., Keycloak)
+responsible for:
+o
+
+Validating users accessing the TCS Portal
+
+o
+
+Authenticating Admin-Service itself to protect sensitive operations (e.g., writing to
+the DB)
+
+o
+•
+
+Enforcing role-based access control (RBAC) across services.
+
+Tazama Connection Studio (TCS): Frontend portal and orchestration layer for API publishers
+to:
+
+•
+
+•
+
+•
+
+o
+
+Define new ingestion APIs (including schema, enrichment rules, endpoint paths)
+
+o
+
+Submit these configurations to the Admin-Service.
+
+o
+
+View the status of deployed ingestion endpoints.
+
+Admin Service: The backend configuration manager that:
+o
+
+Accepts API definitions from TCS.
+
+o
+
+Persists endpoint metadata, schemas, and enrichment mappings into Postgres.
+
+o
+
+Optionally handles caching or validation workflows.
+
+Postgres: The centralized metadata store that holds:
+o
+
+API definitions
+
+o
+
+Schema mappings
+
+o
+
+Enrichment and transformation logic
+
+o
+
+Configuration version history (if implemented).
+
+o
+
+Exposes APIs for DEMS to pull out the latest deployed configurations.
+
+Entity (FSPs, Switches, Schemes, etc.): An external integrated system (e.g., bank, wallet,
+switch) that;
+
+•
+
+•
+
+o
+
+Sends transaction messages, alerts, logs, or telemetry
+
+o
+
+Authenticates once via Auth Service and includes a valid token with each message
+
+o
+
+Targets DEMS endpoints configured earlier via TCS.
+
+DEMS (Runtime Engine): The execution runtime that;
+o
+
+Hosts all deployed ingestion endpoints
+
+o
+
+Validates and processes inbound messages
+
+o
+
+Performs enrichment, transformation, schema validation, and basic sanitization
+
+o
+
+Stores transactions in Postgres
+
+o
+
+Forwards cleaned events to the Event Director for downstream handling
+
+Event Director: A downstream message router or processor that;
+o
+
+Receives enriched and validated events from DEMS
+
+o
+
+Routes these events to rule processor
+
+Page | 7
+
+Tazama Connection Studio – FSD
+
+3.2 Configuration Flow
+This diagram outlines the end-to-end process of defining and registering a new API endpoint through
+the TCS (Tazama Connection Studio) interface. The flow is initiated by an API Editor, who
+authenticates via the Auth Service and proceeds to define the endpoint configuration.
+
+Figure 2. Endpoint Creation Flow Diagram
+Key points:
+•
+
+TCS acts as the orchestration layer, capturing user input and delegating the creation request
+to the Admin Service.
+
+•
+
+The Admin Service persists the configuration in Postgres and confirms the operation back to
+TCS.
+
+•
+
+Upon successful creation, TCS notifies DEMS that a new endpoint has been published.
+
+•
+
+DEMS fetches API configuration from Postgres database and maintains a runtime cache
+
+This approach ensures clear separation between configuration workflows and runtime behavior, with
+a secure and auditable handoff between services.
+
+Page | 8
+
+Tazama Connection Studio – FSD
+
+3.3 Transactional Flow
+This diagram illustrates the runtime transaction/event flow for entities (such as FSPs,
+switches, or schemes) integrated with the DEMS engine. It distinguishes between the initial
+authentication setup and the repetitive transaction processing loop.
+
+Figure 3. Running Transaction Flow Diagram
+•
+
+Authentication Setup: Prior to initiating transaction requests, each entity must authenticate
+with the Auth Service (e.g., using client credentials, API key, or mutual TLS). The entity
+receives an access token or equivalent credential, which is used for all subsequent API calls.
+This authentication step is performed once per session or token lifecycle, not per transaction.
+Note: For demonstration and testing purposes, authentication can be optionally bypassed by
+setting the AUTHENTICATED=false environment variable — consistent with other Tazama
+APIs.
+
+•
+
+Transaction Flow: Each transaction sent to DEMS includes the previously issued token for
+authorization. DEMS validates the token locally (e.g., verifying a JWT signature) without
+needing to call the Auth Service again.
+
+Upon successful validation:
+•
+
+The transaction is persisted into Postgres for traceability and storage.
+
+•
+
+It is then forwarded to the Event Director component for downstream processing such as
+typology evaluation, alert generation, or analytics.
+
+•
+
+Messages received by an endpoint must be validated against a JSON or XML schema.
+Page | 9
+
+Tazama Connection Studio – FSD
+•
+
+Messages must be mapped or transformed to an internal Tazama JSON payload, the Tazama
+data model, and a cacheable object.
+
+4. Functional Overview
+4.1 General Requirements
+Decoupled Operation from DEMS Runtime
+The Tazama Connection Studio (TCS) is a standalone tool used to configure new data flows into the
+Tazama platform. It allows users to define ingestion endpoints, apply data transformations, and set
+up enrichment logic — all without affecting the live DEMS runtime. The outputs from TCS (such as
+schemas, mappings, and endpoint definitions) are deployed to the DEMS engine, which handles realtime ingestion. This separation allows integration and implementation partners to onboard both
+financial and non-financial data into Tazama’s operational data store (ODS) in a safe and controlled
+manner.
+Feature
+
+Description
+
+Runtime
+
+TCS operates without any runtime dependency on the DEMS engine. No libraries,
+
+Independence
+
+APIs, or processes from the DEMS are required for its core functions.
+TCS-based configurations (Section 4.2 through 4.5), mappings and transformations
+
+Offline Operation (Sections 4.3 and 4.4) can be developed and tested offline or in staging
+environments before being deployed to DEMS endpoints.
+TCS produces artifacts (API definitions (Section 4.2), mapping configurations,
+
+Configuration
+
+collection schemas) that are deployed to the DEMS to be used at runtime — but the
+
+Artifacts
+
+TCS itself does not run in production alongside the DEMS core.
+
+Deployment
+
+All outputs of the TCS (API endpoints, enrichment services, Postgres collections)
+
+Artifacts
+
+are version-controlled and deployable in configuration bundles/packages.
+
+Runtime Separation
+•
+
+DEMS Runtime Scope:
+o
+
+•
+
+Handles real-time transaction execution for dynamic endpoints.
+
+Interfaces with Postgres for populating the ingested and transformed data objects into
+Tazama Collections.
+
+•
+
+TCS Scope:
+o
+
+Manages API schema generation and configuration
+
+o
+
+Handles mapping and data transformation logic creation
+
+o
+
+Connects with enrichment data sources (push/pull)
+
+o
+
+Generates and deploys REST API endpoints under the DEMS framework.
+
+TMS Types
+•
+
+Dynamic Event Monitoring Service (DEMS)
+The DEMS ingests incoming transactions and uses the Catch-all function to retrieve the
+corresponding method and endpoint URL from the cache or database. If a matching entry is
+Page | 10
+
+Tazama Connection Studio – FSD
+found, the transaction proceeds to processing. If not, an error message is returned to the
+client system, prompting the client to configure the required endpoint through the web portal
+UI.
+
+Figure 4. DEMS flow
+
+•
+
+Static TMS
+In the existing static version of the TMS, endpoints are hardcoded. Incoming transactions are
+processed only if their corresponding endpoint is already defined; any new or undefined
+endpoints are ignored. To support new endpoints, users must manually generate them
+through code, making the system less flexible and harder to scale.
+
+Figure 5. Static TMS flow
+
+Deployment Separation
+•
+
+The TCS would be a utility to manage the Dynamic Event Monitoring Service. DEMS would
+be used to configure Transactional Message Ingestion.
+Page | 11
+
+Tazama Connection Studio – FSD
+•
+
+The Dynamic Enrichment API (DEAPI) is expected to largely mirror the functionality of the
+DEMS API, particularly in terms of supporting dynamic endpoints, data transformation, and
+database updates. However, unlike the DEMS API, data ingested through the DEAPI is
+intended for bulk ingestion—regardless of whether it consists of a single record or
+multiple—and is not meant to be processed solely for evaluation purposes.
+
+•
+
+Any deployments to a target environment would be done by packaging artifacts generated
+by TCS (such as REST endpoints, JSON schema validators, mappings) via exportable
+packages.
+
+Usage Workflow
+1.
+
+User launches TCS GUI.
+
+2. Defines a message transformation (e.g., ISO20022 → JSON)
+3. Configures enrichment ingestion (via REST, CSV, etc.)
+4. Generates API endpoint + Postgres collection definition
+5. Performs dry-run or simulation of data flow (refer to Section 4.4 - Simulation/Dry-Run
+mode)
+6. Exports configuration bundle (refer to Section 5 - Deployment Environments)
+7.
+
+Publisher deploys configuration to target environment
+
+8. The DEMS references active schema and enrichment logic for runtime data validation and
+enrichment.
+
+Safeguards
+•
+
+TCS has no permission to modify runtime DEMS components.
+
+•
+
+TCS actions are sandboxed and produce deployable configurations, no changes in the
+configurations can be done at runtime.
+
+Limitations and Exclusions
+•
+
+TCS does not:
+o
+
+Interfere with or hook into live DEMS processes
+
+o
+
+Perform runtime message processing
+
+o
+
+Monitor or consume live data streams (e.g., Kafka, message queues)
+
+Logging & Auditing
+All TCS actions—such as endpoint generation, data mapping configuration, enrichment source setup,
+and deployment operations—shall be logged locally in the TCS ’s configuration repositories, in
+alignment with Tazama’s Logging Framework. Each log entry must include:
+•
+
+Timestamp of action
+
+•
+
+Action type (e.g., "Endpoint Created", "Mapping Updated")
+
+•
+
+Actor identity (user ID or service account)
+
+•
+
+Target component or artifact
+
+•
+
+Outcome status (success/failure) and error trace (if applicable)
+
+In addition to system logs, the TCS shall produce audit logs that capture traceable user and service
+interactions with the system for governance and compliance. These logs must include:
+
+Page | 12
+
+Tazama Connection Studio – FSD
+•
+
+Timestamp of user or service action
+
+•
+
+Actor identity (e.g., user ID or service account)
+
+•
+
+Action performed (e.g., “Configuration Deployed”)
+
+•
+
+Affected entities/fields (e.g., endpoint ID, mapping name)
+
+•
+
+Authentication context (if applicable)
+
+Audit and System logs must be sent over TLS, immutable, securely stored for a set period of time
+before being moved to the Data Warehouse and made accessible for auditing and monitoring
+purposes.
+
+Assumptions
+•
+
+Target environments where TCS deploys its outputs (API layer, Postgres, etc.) must be
+provisioned and reachable
+
+•
+
+DEMS runtime expects well-formed JSON messages and schema-conformant enrichment
+data
+
+Interface Requirements
+•
+
+Inputs: JSON schemas, XML samples, field mappings, CSV files
+
+•
+
+Outputs: REST endpoint specs, Postgres collection definitions, enrichment job configs
+
+•
+
+Deployment Targets: DEMS API layer, Enrichment API layer
+
+User Types
+The Tazama Connection Studio is designed for use by System Integrators, with support for three key
+roles: Editors, Approvers and Publishers. The TCS provides a role-aware interface that tailors access
+to features based on each user's responsibilities and technical proficiency. Editors are responsible for
+creating and configuring endpoints, schemas, and mappings. Approvers, on the other hand, are
+tasked with reviewing these configurations, approving them, and Publishers are tasked to deploy the
+finalized packages to the DEMS deployment zone. This streamlined role model ensures a secure,
+controlled, and auditable integration workflow within the Tazama ecosystem.
+
+Page | 13
+
+Tazama Connection Studio – FSD
+
+Figure 6. User Types, Responsibilities and State Diagram
+
+User Type Responsibilities
+Responsibilities
+Creator
+Define API Schema & Responsible for creating
+Mapping
+new schemas and
+mappings
+CRON Job for
+Creates a CRON Job
+Enrichment
+Run Simulation /
+Runs dry-run and tests
+Validation
+field mappings
+Validate & Approve
+Not Responsible
+Configuration
+Package
+Not Responsible
+Configuration for
+Export (via SFTP)
+Import in Target
+Not Responsible
+Environment
+Deploy to Production Not Responsible
+(Live)
+Observe Logs &
+Not Responsible
+System Feedback
+
+Approver
+Reviews for completeness
+
+Publisher
+Not Involved
+
+Approve a CRON Job
+
+Can schedule CRON
+Jobs
+Not Involved
+
+May request changes
+Explicitly approves the
+configuration
+Exports validated
+configuration (schemas,
+mappings, CRON)
+Not Responsible
+Not Responsible
+Not Responsible
+
+Not Responsible
+Not Involved
+
+Responsible (Importer
+role)
+Triggers publish action,
+logs status
+Monitors simulation
+logs and runtime
+behavior, reviews
+deployment
+success/failure logs,
+maintains deployment
+and infrastructure
+Page | 14
+
+Tazama Connection Studio – FSD
+
+Modify / Replace
+Can initiate updates to
+Existing Endpoint
+endpoint schema or
+maintaining versions mappings
+
+Must approve updated
+configuration before
+redeployment
+
+Manages
+redeployment
+
+System Integrators
+
+1. Expected Skill Level
+•
+
+Intermediate technical background
+
+•
+
+Familiar with API design, schema modeling, transformation logic, and data mapping
+
+•
+
+Experience with infrastructure, deployment, and database structures (e.g., Postgres)
+
+2. Primary Functional Access
+Functionality
+API Endpoint
+
+Access
+
+Full
+
+Generation
+Enrichment Job Setup
+
+Full
+
+Mapping Utility
+
+Full
+
+Postgres Schema
+Configuration
+
+Details
+
+Level
+
+Full
+
+Access Management
+
+Full
+
+Deployment Control
+
+Full
+
+Create, configure, and deploy TCS-generated API endpoints
+into any pre-defined deployment environment.
+Define push and pull-based data enrichment jobs, including
+advanced transformations and scheduling.
+Define complex mappings, transformations (1:1, 1:N, N:1),
+constant value injection, simulation and validation.
+Create new collections, manage schema conformity, assign
+destinations for mapped data.
+Assign and manage Keycloak roles for all TCS-generated
+endpoints.
+Deployment of endpoint/mapping configurations into logical
+environments.
+
+4. Additional Privileges
+•
+
+Modify TCS host configurations
+
+•
+
+Manage deployment environment definitions
+
+UX Considerations per User Type
+Feature
+
+System Integrators
+
+Schema Editor
+
+Advanced + Raw Mode
+
+Mapping Tool
+
+Full access
+
+Endpoint Generator
+
+GUI
+
+Page | 15
+
+Tazama Connection Studio – FSD
+Feature
+
+System Integrators
+
+Simulation Mode
+
+Full (all templates)
+
+Deployment Trigger
+
+All environments
+
+Assumptions
+•
+
+System integrators are responsible for onboarding new message templates and supporting
+DFSP requests for advanced configuration.
+
+Data Enrichment Use Cases
+The Tazama Connection Studio (TCS) supports the enrichment of transactional data across multiple
+integration scenarios. This section details the functional capabilities for the primary use cases
+identified in the BRS.
+
+Use Case 1: Push-Based Data Enrichment via REST APIs
+
+a. Description
+External systems may push enrichment data in bulk to a Data Enrichment Endpoint deployed in the
+Data Enrichment API (DEAPI).
+
+b. Functional Capabilities
+•
+
+TCS allows creation of enrichment-specific REST endpoints.
+
+•
+
+Users can define expected structure via schema or sample message.
+
+•
+
+Endpoint stores validated JSON documents into enrichment collections.
+
+c. Approach
+•
+
+REST endpoints are generated with a custom path (e.g., /TCS
+/v1/tenantId/enrichment/kycInfo).
+
+•
+
+Server-side validation ensures payloads conform to defined schema.
+
+•
+
+Data is stored in designated enrichment collections, with appropriate meta-data. (e.g.,
+source system, timestamp, including version control).
+
+The enrichment ingestion process supports two modes of data handling: append (adding new records
+to existing data) and replace (submitting a new dataset that supersedes the existing one). In "replace"
+mode, the TCS does not delete existing records directly; instead, it performs an archive-and-append,
+retaining the previous dataset as a historical snapshot before ingesting the new data.
+
+d. Preconditions
+•
+
+Enrichment schema must be pre-registered in the TCS .
+
+•
+
+Deployment environment must support enrichment endpoint deployment.
+
+Page | 16
+
+Tazama Connection Studio – FSD
+
+Use Case 2: Pull-Based Data Enrichment via Polling or File-Based Inputs
+
+a. Description
+The TCS should enable enrichment ingestion by pulling data from external systems or files. This
+supports environments where external systems cannot push data directly.
+
+b. Functional Capabilities
+•
+
+Support for:
+o
+
+Pulling from SFTP/FTP using SSH or password
+
+o
+
+Polling public HTTP GET endpoints returning JSON
+
+o
+
+Reading CSV/TSV files convertible to JSON
+
+•
+
+Scheduled ingestion using CRON or manual triggers
+
+•
+
+Data transformation and mapping using column-based utilities
+
+c. Approach
+•
+
+User defines:
+o
+
+Source endpoint (URL, SFTP path)
+
+o
+
+Authentication (key, password)
+
+o
+
+Delimiter and field mapping for CSVs
+
+o
+
+CRON expression or manual mode
+
+•
+
+TCS transforms and validates each ingested file
+
+•
+
+Valid entries are stored in Postgres; failed entries are logged and retained
+
+d. Preconditions
+•
+
+Pull jobs must be pre-configured and tested in non-production environment
+
+•
+
+Source systems must expose readable endpoints or file shares
+
+Page | 17
+
+Tazama Connection Studio – FSD
+
+4.2 API Endpoint Construction and Deployment
+The Tazama Connection Studio (TCS) is responsible for generating, validating, and deploying REST
+API endpoints that serve as ingress points for transactional messages and enrichment data. These
+endpoints are structured around user-defined schemas and enforce data validation, access control,
+and logical environment separation. This section provides a breakdown of how endpoints are built,
+secured, and managed across the platform.
+
+Auto-generation of API Endpoints
+The TCS supports auto-generation of REST endpoints using either:
+•
+
+A sample payload (JSON, XML or CSV), or
+
+•
+
+A JSON schema definition.
+
+Use Case 1: Create New Connection
+
+Step 1: View Connections Queue
+The user begins on the Dynamic Endpoint Monitoring Service screen, which is a dashboard for
+creating and monitoring dynamic API connections. It allows users to search, view, and take actions
+on various connection configurations, displaying key details such as endpoint path, tenant ID, status
+(e.g., Ready for Approval, In-Progress, Suspended), and creation time. Users can create new
+connections, view validation logs, and perform actions on each endpoint, making it a centralized
+interface for tracking the lifecycle and readiness of integration endpoints.
+Note: Links to the prototypes are in the Glossary.
+
+Figure 7. Dynamic Endpoints queue
+
+Page | 18
+
+Tazama Connection Studio – FSD
+
+Step 2: Create New Connection and Provide Sample Payload
+Upon creating or editing a connection, the user is presented with a form where they input a custom
+API path and a sample JSON/XML payload. This sample defines the expected structure of incoming
+data and forms the basis for schema generation.
+
+Figure 8. New API Endpoints schema generation
+
+Step 3: Configure Mapping and Send for Deployment
+After entering the sample payload, the user clicks "Generate Schema" to let the TCS automatically
+parse and infer field keys, data types, and required flags. The resulting schema is displayed, allowing
+manual adjustments to data types and marking required fields.
+
+Page | 19
+
+Tazama Connection Studio – FSD
+
+Figure 9. API Endpoints field configurations
+
+Next, the user navigates to the Mapping Utility and uses the option “Add Data Model Extension” to
+add a new source field in the Data Model which did not exist before, so that mapping can be carried
+out seamlessly.
+
+Page | 20
+
+Tazama Connection Studio – FSD
+Now the user shalldefine all field mappings between the source structure and Tazama's
+operational model.
+
+Next, the user runs a simulation on a test payload to verify that the configuration and mapping work
+as expected.
+
+Page | 21
+
+Tazama Connection Studio – FSD
+
+Once the connection configuration is reviewed and finalized, the user clicks "Send to Approver" to
+then initiate the review of the configuration on the Approvers end, before the configuration package
+is deployed on the target environment via SFTP.
+
+Page | 22
+
+Tazama Connection Studio – FSD
+
+Next Steps:
+•
+
+The schema is submitted via TCS GUI.
+
+•
+
+Upon approval and deployment of the schema, below will be auto-generated:
+o
+
+Ingest endpoint
+
+o
+
+Server-side validation logic
+
+o
+
+Corresponding Postgres collection in a database. It should be configurable in the
+TCS backend that which database the collection needs to be created in. For now,
+this is transactionHistory, but in the future this may be changed. This collection will
+serve as the initial "persist-as-received" storage layer for incoming messages.
+Additionally, new messages will be integrated into the new data model also known
+as Pseudonyms database.
+
+Use Case 2: Cloning and Modifying Previously Created Connection
+This involves enhancing a message already supported by DEMS with additional data fields or
+metadata.
+
+Page | 23
+
+Tazama Connection Studio – FSD
+
+Step 1: Select and Clone
+The user selects an existing connection (e.g., /v1/evaluate/tenantId/iso20022/pacs.008.001.011payments) from the DEMS queue.
+
+Step 2: Modification
+Upon cloning the connection, a new connection with the status “Cloned” shall be created, indicating
+an updated version in the endpoint path. Once the user begins editing the cloned connection, the
+status changes from “Cloned” to “Modify”, and the user will be able to make edits as needed.
+To save and send the new version for deployment, the same steps as detailed in Step 3 of Use Case
+1 shall be followed.
+
+Page | 24
+
+Tazama Connection Studio – FSD
+
+Supported Formats
+•
+
+Input: JSON schema, XML samples
+
+•
+
+Output: OpenAPI 3.0 YAML/JSON, JSON schema validator, JSON-to-Arango mapping
+
+Restrictions
+•
+
+Only structured data payloads are supported
+
+•
+
+Schemas must not contain recursive definitions or unsupported types (e.g., binary)
+
+Message Pre-validation:
+Prior to message ingestion, the DEMS performs attribute-level validation on each incoming
+message. Specifically, it checks for the presence of three key attributes: Debtor, Creditor, and
+Amount. This is to create a transaction relationship of the incoming message in the existing data
+model. The DEMS is configured to allow messages that contain at least one or two of these
+attributes. Messages containing these identifiers are permitted to pass through for further
+processing, while those containing none of the identifiers shall be stored in a separate, unrelated
+data model.
+
+Page | 25
+
+Tazama Connection Studio – FSD
+
+Deployment into DEMS and Data Enrichment Layers
+TCS distinguishes between two deployment targets:
+
+a. DEMS
+•
+
+Used for ingesting financial and non-financial transaction messages such as Pain.001 or
+Acmt.023.
+
+•
+
+Used to change current endpoint for an existing message to add new field.
+
+These endpoints:
+•
+
+Are deployed to the main DEMS API gateway
+
+•
+
+Trigger downstream processing in the Event Director, with the decision to trigger an
+evaluation being left to the Event Director. To initiate the evaluation, the message must
+include a "TxTp" field with a unique value (e.g., "TxTp": "pacs.008.001.10"), which is
+used by the Event Director to look up the relevant network map and determine how the
+message should be routed for evaluation.
+
+•
+
+Enforce strict schema validation and mapping to operational collections
+
+b. Enrichment Layer(DEAPI)
+Used for ingesting enrichment data (e.g., KYC info, risk scores). These:
+•
+
+Do not invoke real-time transaction flows
+
+•
+
+Write to enrichment-specific Postgres database
+
+•
+
+Are typically called via scheduled batch systems or CRON jobs, However, functionality will
+also be provided for manual or system-driven execution where applicable.
+
+These artifacts:
+1.
+
+Are generated by TCS to be sent to the DEAPI.
+
+2. Artifacts are published to:
+o
+
+API gateway routing config
+
+o
+
+Postgres schema registry
+
+o
+
+Deployment logs and endpoint metadata registry
+
+All deployments require that target environments are pre-provisioned and reachable.
+
+Custom API Paths
+Users may define the URL path structure of generated endpoints at creation time. TCS validates and
+enforces naming conventions.
+
+Structure
+Example path:v1/dfsp/{dfsp_id}/pacs009/incoming
+
+Constraints
+•
+
+Must begin with /TCS/v{version}/
+
+•
+
+Must not conflict with existing system APIs or reserved paths
+Page | 26
+
+Tazama Connection Studio – FSD
+•
+
+Paths are validated against registry and normalized (lowercase, kebab-case enforced
+
+Path Storage
+Custom paths are stored as part of the endpoint configuration artifact and versioned. Endpoint
+invocation logs use the path for audit traceability.
+
+Role-Based Access Control via KeyCloak
+The Tazama Connection Studio (TCS) integrates with Keycloak as its identity and access
+management (IAM) system to enforce secure role-based access to all features, APIs, and endpoints
+deployed. This integration enables fine-grained access control across users and environments.
+
+Supported Role Types
+•
+
+internal_admin — Full control and access
+
+Realm-Based Structure and Environment Isolation
+Each deployment environment (e.g., Development, UAT, Production) shall be integrated with
+Keycloak. Due to security and configuration specificity, Keycloak configuration must be performed
+manually per environment.
+
+Internal Admin Role and Institutional Configuration
+The Internal Admin Role is typically granted to trusted system integrators or administrators. They
+have administrative access to perform the following operations:
+•
+
+Create and manage tenants (DFSPs)
+
+•
+
+Create users for the system integration roles
+
+•
+
+Define tenant-specific roles like: editor, approver and publisher
+
+•
+
+Assign access scopes by mapping roles to UI features and backend permissions
+
+Server-Side Validation
+Each generated endpoint includes a schema validation layer that enforces payload structure, types,
+and required fields before processing.
+
+Validation Engine
+•
+
+JSON: Uses a compiled JSON schema validator (e.g., ajv, jsonschema, z-schema)
+
+•
+
+XML: Converted to JSON and validated post-transformation
+
+Validation Rules Enforced
+•
+
+Field presence (required)
+
+•
+
+Content type of the payload (XML, JSON, CSV)
+
+•
+
+Type constraints (string, integer, array, etc.)
+
+•
+
+Format constraints (e.g., date-time, regex patterns)
+Page | 27
+
+Tazama Connection Studio – FSD
+•
+
+Enum values
+
+•
+
+Nested object structure validation
+
+•
+
+Size limit for incoming payloads (e.g. >200MB)
+
+Error Handling
+•
+
+Invalid input results in:
+o
+
+HTTP 400 Bad Request
+
+o
+
+JSON body: {"error": "Validation failed", "details": [...]}
+
+Logging
+•
+
+Payloads failing validation are logged with timestamp, endpoint, and validation error stack
+
+•
+
+Logs can be reviewed via TCS GUI or exported as audit reports
+
+Figure 19. API Endpoints validation logs
+
+Endpoint Versioning and Namespace Isolation
+To avoid schema conflicts and enable parallel development, endpoints are versioned and isolated by
+namespace.
+
+Versioning
+•
+
+API version embedded in path: /TCS/v1/..., /TCS/v2/...
+
+•
+
+Config artifacts tagged with v1, v2, etc.
+
+•
+
+Backward compatibility maintained by preserving older endpoint versions
+
+Namespace Isolation
+•
+
+DFSP-specific endpoints are deployed under /TCS/v1/dfsp/{dfsp_code}/...
+Page | 28
+
+Tazama Connection Studio – FSD
+•
+
+Sytem integrators may use /TCS/v1/integrator/... or /TCS/v1/admin/...
+
+•
+
+Enforced at deployment time and validated in routing table
+
+Artifact Management
+•
+
+Each version of an endpoint includes:
+o
+
+OpenAPI spec
+
+o
+
+Mapping logic
+
+o
+
+Role binding
+
+o
+
+Deployment history (timestamp, user, target environment)
+
+Deployment into Logical Environments
+TCS supports deployment into multiple logical environments, each representing a distinct phase of
+the development lifecycle.
+
+Available Environments
+•
+
+DEV — Used for local/integration testing
+
+•
+
+QA/UAT — Used for validation and acceptance testing
+
+•
+
+PROD — Live production ingestion
+
+Deployment Mechanics
+•
+•
+
+User creates configuration package for export
+Publisher/ Deployer validates and deploys package on the target environment (Dev, QA,
+Production)
+
+•
+
+TCS performs endpoint registration
+
+•
+
+Deployment outcome (success/failure) is logged
+
+Deployment Logging
+•
+
+Logs include:
+o
+
+User ID
+
+o
+
+Timestamp
+
+o
+
+Endpoint path
+
+o
+
+Version
+
+o
+
+Target environment
+
+o
+
+Deployment result
+
+Page | 29
+
+Tazama Connection Studio – FSD
+
+4.3 File-Based Data Enrichment (Pull-Based)
+The TCS supports ingesting enrichment data via REST API through pull-based mechanisms. This
+functionality is used to onboard structured data (such as customer profiles, blacklist entries, KYC
+metadata, or geo-tagged risk data) that augments fraud and risk monitoring.
+
+Supported File Formats and Conversion Rules
+The TCS supports ingestion of structured text files that either:
+•
+
+Are already in valid JSON format
+
+•
+
+Can be transformed into JSON from tabular formats (e.g., CSV, TSV)
+
+Sample CSV Input:
+
+Sample Output JSON:
+
+Page | 30
+
+Tazama Connection Studio – FSD
+
+Field Mapping Utility for Transformation
+To ingest tabular files, TCSprovides a GUI utility to configure column-to-field mappings.
+
+User Configuration Options
+•
+
+Column-to-JSON field mapping
+
+•
+
+Delimiter selection (comma, tab, pipe)
+
+•
+
+Default values for missing fields
+
+•
+
+Field transformation rules, e.g.:
+o
+
+Concatenate: firstName + " " + lastName → fullName
+
+Supported Source Types (SFTP/HTTP)
+TCS supports pulling files from the following source types:
+
+A. SFTP/FTP Servers
+•
+
+Auth via password or SSH key
+
+•
+
+Configurable remote path and filename pattern (e.g., daily_*_kyc.csv)
+
+B. HTTPS GET Endpoints
+•
+
+Used when partner exposes a file or JSON data at a public or protected URL
+
+Note: Checksum shall be performed for ensuring that the files are not tampered with.
+
+Scheduling and Triggering Options
+Data ingestion can be triggered in two modes:
+
+A. Scheduled (CRON)
+•
+
+CRON expressions define execution interval
+
+Page | 31
+
+Tazama Connection Studio – FSD
+
+•
+•
+
+•
+
+Examples:
+o
+
+0 */30 * * * * → Every 30 minutes
+
+o
+
+0 0 2 * * * → Daily at 2:00 AM
+
+TCS generates a CRON-based job runner script per pull job
+
+The user can also set up a scheduler job from UI. User can select the department, the time period,
+and other details to help schedule a push-based activity:
+
+Figure 21. CRON Job scheduler
+
+•
+•
+
+Job Name
+•
+
+Purpose:
+
+User-defined
+
+identifier
+
+for
+
+the
+
+CRON
+
+job
+
+(e.g.,
+
+DailyDataPull,
+
+WeeklyReportSync).
+Feature: Validation to ensure uniqueness; support for naming conventions. Start Time
+•
+
+Purpose: Defines when the CRON job should start executing.
+
+Page | 32
+
+Tazama Connection Studio – FSD
+•
+
+Description: A date-time picker field that allows users to specify the starting date and time
+for the job’s first execution.
+
+•
+
+Expected Values: Date-time format (e.g., 2025-04-30 14:00).
+
+•
+
+Behavior: Once set, the CRON job will begin running at the specified start time based on the
+CRON expression.
+
+•
+
+No. Of Iterations
+
+•
+
+Purpose: Limits how many times the job should run.
+
+•
+
+Feature: Useful for temporary or trial runs; mutually exclusive with End Time.
+
+End Time
+•
+
+Purpose: The date/time after which the job should stop running. This is auto-calculated
+based on Start Time and Number of Iterations.
+
+•
+
+Feature: Optional field; may default to ‘no end’ if left blank. Becomes read-only once CRON
+and iteration count are provided. Automatically computes the date/time of the final
+scheduled run.
+
+•
+
+B. CRON Job Management
+CRON jobs within the TCS are managed through a centralized management interface.
+
+Figure 22. CRON Job management
+The following functionalities are supported for managing CRON jobs:
+
+Viewing Existing CRON Jobs
+•
+
+Description: Users can view all the CRON jobs they have created in a list format. Each job’s
+details, including its execution schedule, status, and next run time, are displayed in the table.
+Page | 33
+
+Tazama Connection Studio – FSD
+•
+
+Behavior: The CRON job list is sortable by different fields such as Job Name, Next Run Time,
+or Status. Users can filter or search through the list to find specific jobs.
+
+Viewing Job History
+•
+
+Description: A history panel shows past executions of the CRON job, including their results,
+duration, and any errors encountered during execution.
+
+•
+
+•
+
+Displayed Fields:
+o
+
+Execution Timestamp
+
+o
+
+Job Name
+
+o
+
+Execution Duration
+
+o
+
+Status (Success, Failure)
+
+o
+
+Error Logs (if any)
+
+Behavior: Users can click on any historical job entry to view detailed logs of the job
+execution. Logs include step-by-step execution details and any failure messages.
+
+Managing Jobs (Edit / Delete)
+•
+
+Description: Users can manage their CRON jobs by editing or deleting them.
+o
+
+Edit: Clicking the edit button brings up the job configuration screen, where users can
+modify the CRON expression, job type, or schedule.
+
+o
+
+Delete: Clicking the delete button will remove the job from the system. A
+confirmation dialog ensures that this action is intentional. Only the Admin shall have
+this privilege.
+
+C. CRON Job Security and Access Control
+•
+
+Role-Based Access: CRON job management is restricted by user roles defined in Keycloak.
+Only users with the appropriate permissions (e.g., Integrator role) can create, edit, or delete
+jobs.
+
+•
+
+All CRON job SFTP credentials shall be encrypted and stored in Postgres.
+
+Audit Logging: All actions related to CRON job creation, editing, deletion, and execution are logged
+for auditing purposes. This includes who created the job, when it was executed, and whether it
+succeeded or failed.
+
+D. Manual Trigger
+•
+
+GUI button to run ingestion ad hoc
+
+•
+
+Useful for testing, dry runs, or one-time uploads
+
+Data Validation and Storage in Postgres
+After transformation, each JSON record is validated and stored.
+Page | 34
+
+Tazama Connection Studio – FSD
+
+Validation Process
+•
+
+Field types, formats, and required keys are enforced via a JSON schema
+
+•
+
+Optionally allows soft schema (warnings logged, but not rejected)
+
+Storage Behavior
+•
+
+All validated entries are inserted into a the relevant Postgres collection, with the following
+configurable options:
+o
+
+Replace/Overwrite: Update existing records with matching keys.
+
+o
+
+Append: Add new records without modifying existing ones.
+
+o
+
+Purge and Write: Clear the collection before inserting new records.
+
+o
+
+Archive and Write: Archive the existing record in the collection and write a new
+one.
+
+•
+
+Collection is auto-created by TCS if not found
+
+•
+
+Each entry includes metadata fields:
+
+Error Handling and Logging
+TCS includes robust error management to handle and surface issues during ingestion.
+
+File-Level Errors
+•
+
+Connection refused
+
+•
+
+Auth failure
+
+•
+
+File not found
+
+•
+
+Invalid format
+
+→ Result: Job is marked as failed, file is retained, and error is logged.
+
+Record-Level Errors
+•
+
+It will be kept configurable at the job configuration level that whether in this case file level
+errors need to be logged or record level errors need to be logged.
+
+•
+
+Malformed lines
+
+•
+
+Schema validation failure
+
+•
+
+Transformation error (e.g., invalid date format)
+
+→ Result:
+Page | 35
+
+Tazama Connection Studio – FSD
+•
+
+Invalid rows skipped, logged with reason and line number
+
+•
+
+Valid records still inserted
+
+Deployment of Pull Jobs to Logical Environments
+Each pull job is deployable to a specific logical environment: e.g. DEV, UAT, or PROD.
+
+Deployment Behavior
+•
+
+A job can only run in environments where:
+o
+
+Its source config exists
+
+o
+
+The target Postgres is reachable and compatible with the source environment
+
+Access Restrictions
+•
+
+System integrators can export configuration package from one environment through
+configuration packages for them to be imported in the destination environment (refer to
+Section 5 – Deployment Environments)
+
+Page | 36
+
+Tazama Connection Studio – FSD
+
+4.4 Mapping Utility
+Mapping Utility is a core component of the Tazama Connection Studio responsible for transforming
+incoming data into Tazama-compliant message formats.
+
+It enables users (system integrators,
+
+editors) to define how fields from an incoming message payload (source) should be associated with
+the expected format (destination), based on standardized message templates (e.g., ISO 20022, ISO
+8583). This configuration governs how transaction data is normalized, validated, and persisted within
+the Tazama operational data store.
+
+Field Association and Mapping
+
+Functional Behavior:
+•
+
+Users interact with a GUI-based interface to define mappings between source payload fields
+and destination message fields.
+
+•
+
+Source fields are extracted from the payload's hierarchical structure (JSON paths, XML tag
+hierarchy if applicable).
+
+•
+
+Destination fields are selected from previously created data model stored within Tazama.
+Below is an extract from the possible Tazama Data elements derived from existing rules in
+the system, on which the fields from the API shall be mapped. A possible destination the
+user can map source fields to is the Valkey cache.
+
+•
+
+Users must be able to define new target data structures and specify the corresponding
+Postgres collections for storing mapped data, in addition to using existing message
+templates.
+
+Page | 37
+
+Figure 23. Tazama Conceptual Data Elements
+
+Technical Design:
+•
+
+Support for nested structures using JSONPath notation or XPath (in the case of XML).
+
+•
+
+UI shall display a hierarchical view of both source and destination schemas.
+
+•
+
+Field mapping must support basic type compatibility (e.g., number-to-string coercion, date format alignment).
+
+Source File Loading and Display
+•
+
+The user begins by uploading a sample input message in JSON format (or XML if applicable).
+
+•
+
+The system parses the payload and automatically renders the list of inferred source fields on the interface.
+
+•
+
+Field paths are generated and displayed using JSONPath notation (e.g., $.Transaction.Amount.Value) or XPath for XML.
+
+DATA INTEGRATION SDK – FSD
+
+•
+
+Users can expand/collapse hierarchical fields and select nested elements or entire branches for mapping.
+
+Destination Format
+•
+
+The Mapping Utility shall map to the predefined internal Tazama templates, including the existing Tazama data model along with the updates to
+the model that come with integrations. Upon selecting the destination schema, the interface shall allow the selection and rendering of multiple
+destination structures for field-level mapping. A single incoming message (e.g., pacs.008) may be mapped to multiple destination collections—
+some of which may be used more than once (e.g., debtor and creditor both mapping to the entity collection). Users shall be able to dynamically
+add new destinations as needed for comprehensive message decomposition.
+
+Mapping Creation Experience
+•
+
+•
+
+Users can create mappings:
+o
+
+By selecting field(s) from the source panel and selecting destination field(s) to map it with.
+
+o
+
+Users may use a dropdown menu to specify any function they may want to apply between the fields (merge or split).
+
+For each mapping, a tooltip shows data type compatibility, transformation options (e.g., concatenating), and mapping status (valid/invalid).
+Page | 39
+
+DATA INTEGRATION SDK – FSD
+
+Validation:
+•
+
+Type mismatches will be flagged during the mapping creation phase.
+
+Page | 40
+
+One-to-One, One-to-Many, Many-to-One Mapping
+
+Functional Behavior:
+•
+
+One-to-One: Direct value transfer (e.g., source.amount → destination.transactionAmount).
+
+•
+
+One-to-Many: One field split into multiple target fields across multiple destinations (e.g.,
+full name into first and last names of debtor and creditor both mapping to the entity
+collection).
+
+•
+
+Many-to-One: Multiple fields merged into one (e.g., customer ID and ID type → customer
+key).
+
+Figure 24. API Endpoint one-to-one field mapping
+
+Technical Design:
+•
+
+Transformation logic defined via a visual interface or mapping script DSL (Domain-Specific
+Language).
+
+•
+
+Support for string concatenation, substring extraction, date formatting (format: YYYY-MMDDT00:00:00.000Z), conditional value composition.
+
+•
+
+Predefined transformation functions should include:
+o
+
+concat(), split(), etc.
+
+Edge Case Handling:
+•
+
+If one optional source field is missing in a many-to-one relationship, fallback or null-value
+handling logic must be configurable.
+
+TAZAMA CONNECTION STUDIO– FSD
+
+•
+
+If one mandatory source field/ destination field is missing in a many- to- one relationship, it
+should result in message rejection. Therefore, a mechanism for flagging fields as mandatory
+must be supported in the schema or configuration.
+
+Constant Value Injection
+
+Functional Behavior:
+•
+
+Enables users to assign static/default values to destination fields that are:
+o
+
+Not present in the source payload.
+
+o
+
+Mandated by Tazama templates.
+
+Technical Design:
+•
+
+Constants can be string, numeric, boolean, or date types.
+
+•
+
+Optional usage of variables (e.g., @currentTimestamp) or system-level tokens (e.g.,
+@sourceDFSP) and Tenant ID.
+
+Use Cases:
+•
+
+Injecting default currency codes, system version tags, hardcoded message origins, etc.
+
+Use of Tazama Message Templates
+
+Functional Behavior:
+•
+
+Mapping destination is defined based on standardized message templates available within
+Tazama:
+o
+
+e.g., Pain.001, Pain.013, Pacs.008, Pacs.002, etc.
+
+Technical Design:
+•
+
+Templates are stored as JSON Schemas or XSDs and loaded at runtime.
+
+•
+
+The TCS allows switching between templates to reuse mappings or create variants.
+
+Template Management:
+•
+
+Templates can be versioned and extended via TCS configuration.
+
+Dynamic Fields:
+•
+
+Some fields are computed at runtime, others may be optional depending on use case profile
+(e.g., cross-border, high-value, etc.).
+
+Output Validation
+
+Functional Behavior:
+•
+
+After mapping, the generated output is validated against the selected Tazama message
+template.
+
+Validation Logic Includes:
+•
+
+Schema compliance (field presence, data types, structure).
+
+•
+
+Format constraints (e.g., ISO date, regex patterns, enumerations).
+
+•
+
+Conditional constraints (e.g., if remittanceInfo exists, amountType must also be present).
+Page | 42
+
+TAZAMA CONNECTION STUDIO– FSD
+
+Technical Implementation:
+•
+•
+
+Validation is executed pre-deployment and optionally during simulation (see 4.4.6).
+TCS must include built-in validators compliant with JSON Schema Draft 7 (or higher) and
+custom business rule validators.
+
+Simulation/Dry-Run Mode
+
+Functional Behavior:
+•
+
+Users can execute a “dry-run” of the transformation pipeline with test payloads.
+
+•
+
+Output is generated, validated, and displayed/logged without persisting or deploying the
+result.
+
+Use Cases:
+•
+
+Verifying mapping logic before publishing to production.
+
+•
+
+Testing different variants of source data to evaluate mapping behavior.
+
+Features:
+•
+
+Output preview with highlighting of mapped values and transformed structures.
+
+•
+
+Side-by-side comparison of source vs. transformed message.
+
+•
+
+Display of validation errors/warnings if applicable.
+
+Page | 43
+
+TAZAMA CONNECTION STUDIO– FSD
+
+Versioning and Configuration Management
+
+Functional Behavior:
+•
+
+All mapping configurations are stored as version-controlled artifacts.
+
+Capabilities:
+•
+
+Version tracking: Users can view, tag, compare, and rollback mapping versions.
+
+•
+
+Change logs and metadata (author, timestamp, description) must be recorded.
+
+•
+
+Mappings tied to specific Tazama template versions to ensure forward/backward
+compatibility.
+
+Importability and Exportability:
+•
+
+Stored in a dedicated configuration store within the TCS host environment.
+
+•
+
+Indexed by mapping ID, template name, version, creation date, and status (active/inactive).
+
+Deployment Lifecycle:
+•
+
+Mappings must be explicitly activated and bound to API endpoints after validation and
+approval.
+
+•
+
+Support for staging environments prior to production deployment.
+
+User-specific Actions
+
+System Integrators
+•
+
+Granted full access to the mapping utility, including:
+o
+
+One-to-one, one-to-many, many-to-one field relationships
+
+o
+
+Transformation logic using merging, splitting, and conditional rules
+
+o
+
+Constant injection, null-handling strategies, and use of external transformation
+functions
+
+•
+
+Option to save mappings for reuse, clone, rollback, and apply to multiple templates.
+
+•
+
+Have access to all message templates (standard and custom) for simulation.
+
+•
+
+Can upload sample payloads and view both transformation output and validation logs.
+
+4.5 Data Destination and Storage
+The Tazama Connection Studio (TCS) configures the final storage of all transformed, validated, and
+enriched data within the Tazama ecosystem. The designated storage mechanism is the Postgres
+database, forming the Operational Data Store (ODS) for downstream consumption. This section
+outlines how and where data is stored, including rules, restrictions, and metadata handling.
+
+Writing to Postgres Collections
+
+Functional Behavior:
+•
+
+All validated and mapped payloads processed through the TCS are written to specific
+collections within Postgres (best practices for writing to Postgres shall be followed).
+
+•
+
+These collections act as the authoritative source of ingested data using Tazama services
+such as fraud detection, transaction scoring, and audit trail generation.
+Page | 44
+
+TAZAMA CONNECTION STUDIO– FSD
+
+Technical Implementation:
+•
+
+The TCS must connect to Postgres via a configured host URL, port, credentials, and target
+database name.
+
+•
+
+Collections are defined by mapping configuration and linked to the endpoint or message
+type.
+
+•
+
+Data is stored in document format (JSON), preserving the hierarchical structure of the
+mapped message.
+
+Operational Features:
+•
+
+Write operations must use bulk inserts for high-throughput scenarios in the enrichment
+layer.
+
+•
+
+Indexed fields (e.g., transactionId, timestamp, dfspId) must be configured for each collection
+to enable efficient querying.
+
+•
+
+Each stored document must include metadata such as:
+o
+
+ingestedAt (timestamp)
+
+o
+
+sourceSystem
+
+o
+
+MessageTemplateVersion
+
+Restriction on External Writes
+
+Functional Behavior:
+•
+
+The TCS is explicitly restricted from writing data to any external runtime systems or
+databases outside of Postgres
+
+Enforced Limitations:
+•
+
+No integration or direct communication with:
+o
+
+Payment processors
+
+o
+
+Transaction management systems (at DEMS runtime)
+
+o
+
+External data lakes or third-party APIs
+
+Dynamic Collection Creation with Schema Mapping
+
+Functional Behavior:
+•
+
+The TCS dynamically creates indexed Postgres collections if they don’t exist at the time of
+endpoint deployment or message ingestion, for storing the message as received, and
+storing the updated transformed version of it as well.
+
+Collection Naming Convention:
+•
+
+Collection names follow a strict pattern:
+<tenantId>_<msgName>_<version>
+Page | 45
+
+TAZAMA CONNECTION STUDIO– FSD
+
+e.g., tenant01_ ingest_pain.001.01.011_v2
+
+Schema Enforcement:
+•
+
+The TCS uses the defined mapping schema to:
+o
+
+Infer the expected structure of the document.
+
+o
+
+Configure indexed fields for optimized access.
+
+o
+
+Apply validation rules during creation (e.g., presence of mandatory fields).
+
+Collision Handling:
+•
+
+If a collection with the same name already exists, warn user and abort creation unless
+override is explicitly allowed.
+
+•
+
+Anyfield deletions from existing collections is prohibited without admin approval.
+
+Internal Management:
+•
+
+Created collections are registered in a metadata registry for traceability and lifecycle
+management.
+
+•
+
+Each connection should store its required collections within its configuration to ensure
+independence and idempotency in database schema creation—i.e., it should be able to
+create its own database elements if they don't already exist. Since multiple connections
+may rely on the same database elements, the system must eventually consolidate all
+connection requirements into a unified and complete schema that supports all active
+connections.
+
+Metadata Storage and Management
+
+Functional Behavior:
+•
+
+All configurations, mappings, endpoint and database definitions are treated as TCS artifacts
+and stored for traceability and version control.
+
+•
+
+Delete and update operations on configuration artifacts shall be restricted; changes must
+be handled through version-controlled updates to ensure auditability and traceability.
+
+Stored Metadata Includes:
+•
+
+•
+
+Mapping Configurations:
+o
+
+Source-to-destination mappings
+
+o
+
+Constant injections
+
+o
+
+Transformation rules
+
+Endpoint Definitions:
+o
+
+API path
+
+o
+
+Associated permissions for roles (RBAC)
+Page | 46
+
+TAZAMA CONNECTION STUDIO– FSD
+
+•
+
+o
+
+JSON schema
+
+o
+
+Message template linkage
+
+Enrichment Source Configuration:
+o
+
+File path or URL
+
+o
+
+Ingestion schedule
+
+o
+
+Column-to-field mappings
+
+Technical Implementation:
+•
+
+Metadata is stored in embedded databases within the TCS host environment (Postgres.
+
+•
+
+File format: JSON or YAML, organized by entity type and timestamp/version.
+
+•
+
+Each artifact includes metadata tags:
+o
+
+createdBy, createdOn, lastModified, version, status
+
+Security & Backup:
+•
+
+•
+
+Configuration files should be:
+o
+
+Backed up immediately.
+
+o
+
+Encrypted or access-restricted if sensitive data is present.
+
+TCS provides API commands for:
+o
+
+Listing artifacts
+
+o
+
+Exporting configurations
+
+o
+
+Importing/redeploying artifacts to another instance
+
+Audit Trail:
+•
+
+All changes to mappings or endpoints must be audit-logged and system-logged.
+
+•
+
+Optional integration with a centralized logging system (e.g., Graylog, ELK) can be configured
+for governance.
+
+Page | 47
+
+TAZAMA CONNECTION STUDIO– FSD
+
+5. Deployment Environments
+Deployment of configurations, mappings, and API endpoints through the Tazama Connection Studio
+(TCS) follows a strict, role-based, and environment-aware workflow to ensure compliance with the
+Tazama multi-environment architecture.
+
+Deployment Across Environments
+Deployments across environments (e.g., from Development to Production) are executed using
+configuration packages transferred via a secured SFTP server. In the Development Environment, the
+Exporter defines endpoint configurations, schemas, and mappings, which are stored in Postgres
+through the Admin-Service. Once finalized, these configurations are exported as a versioned
+configuration package and uploaded to the SFTP server.
+In the Production Environment, the Importer retrieves the package from the SFTP, verifies its
+integrity, and pushes it through the Admin-Service to be sanitized and saved into the Production
+Postgres instance, ensuring controlled, auditable, and environment-agnostic deployment of runtime
+configurations.
+Users Can Deploy Across Environments:
+•
+
+Editor – Prepares and sends the configuration package to the Approver in the source envi-
+
+ronment.
+•
+
+Approver – Validates and approves the configuration package, and sends it to the SFTP
+
+server for deployment.
+•
+
+Publisher – A separate authorized role in the target environment (e.g., Production) respon-
+
+sible for publishing the received package.
+
+Page | 48
+
+TAZAMA CONNECTION STUDIO– FSD
+
+Page | 49
+
+TAZAMA CONNECTION STUDIO– FSD
+
+Figure 26. Deployment via SFTP
+Workflow:
+1.
+
+The Editor finalizes and sends the configuration package from the source environment (e.g.,
+
+UAT).
+a.
+
+The export package may include schema, field mappings, enrichment settings,
+
+metadata, templates and a readme file.
+b. The package is signed and version-tagged for integrity and traceability.
+2. The Approver validates the config package, approves it, and sends it to the SFTP server for
+deployment.
+3.The exported file is securely transferred to the target environment (via SFTP).
+4. The Publisher opens the TCS and imports the configuration package and publishes the
+configuration to the production instance.
+a.
+
+The endpoint becomes live within the production DEMS API Layer.
+
+b. All associated schemas and mappings are loaded into the designated production
+Postgres collections.
+c.
+
+A cache of that endpoint is also maintained in DEMS Valkey cache.
+
+d.
+5. Once deployed, the new or updated endpoint is cached by the DEMS API and becomes available
+for transaction ingestion and routing in the target environment.
+Page | 50
+
+TAZAMA CONNECTION STUDIO– FSD
+
+Caching:
+The DEMS API shall cache configuration data (e.g., endpoint definitions, schemas, and mappings)
+in memory using node-cache. The cache is loaded on startup and may be refreshed manually or
+on a scheduled interval. Invalidation mechanisms shall be provided to ensure the cache remains
+consistent with the latest configurations stored in Postgres.
+A single instance of Valkey shall be used for caching inter-message data and runtime context
+objects (e.g., session metadata, enrichment references) required during transaction processing.
+Governance Enforcement:
+•
+
+The users Exporter and Importer must not overlap within the same environment to ensure
+
+separation of duties.
+•
+
+Each action—export, import, publish—is logged for audit purposes with full traceability
+
+across environments.
+
+Additional Considerations
+Implementation Plan
+The deployment is plan is open-ended, and two options are currently under consideration:
+•
+
+Centralized TCS across environments – where a single, centrally managed deployment will
+be designed.
+
+•
+
+Distributed TCS across environments – where configuration sharing between
+environments may be facilitated via an SFTP-based approach.
+The specific implementation details will be finalized during the execution phase.
+
+Package Format
+Config packages are structured as versioned JSON/YAML artifacts. The format for the JSON
+package for Tazama would be;
+{
+"meta": {
+"exportedAt": "2025-06-20T12:00:00Z",
+"exportedBy": "hasan",
+"version": "v1.0",
+"environment": "UAT"
+},
+"endpoint": {
+"path": "/transactions/pacs009",
+"method": "POST",
+"version": "1.0",
+"type": "MONITORING",
+"status": "DEVELOPMENT",
+"description": "Pacs.009 ingestion endpoint"
+},
+"message": {
+"name": "pacs009",
+"schema": { /* JSON schema here */ },
+Page | 51
+
+TAZAMA CONNECTION STUDIO– FSD
+
+"type": "INITIATOR"
+},
+"messageRelation": {
+"credtrId": "Cdtr.Nm",
+"debtrId": "Dbtr.Nm",
+"credtrAccId": "CdtrAcct.Id.IBAN",
+"debtrAccId": "DbtrAcct.Id.IBAN",
+"TxTp": "CreditTransfer",
+"MsgId": "GrpHdr.MsgId",
+"CreDtTm": "GrpHdr.CreDtTm",
+"Amt": "IntrBkSttlmAmt.#text",
+"Ccy": "IntrBkSttlmAmt.@_Ccy",
+"PmtInfId": null,
+"EndToEndId": "CdtTrfTxInf.PmtId.EndToEndId",
+"TxSts": null
+},
+"cron": {
+"name": "pacs009 poll",
+"expression": "0 */5 * * *",
+"timezone": "UTC",
+"isActive": "ACTIVE"
+},
+"enrichment": {
+"type": "PULL",
+"schema": { /* enrichment schema JSON here */ }
+},
+"authMeta": {
+"type": "API_KEY",
+"credentials": {
+"apiKey": "YOUR_API_KEY"
+}
+}
+}
+
+Securing the Config Package
+To ensure the integrity and authenticity of configuration packages being imported or exported
+across environments (Development, QA, Production), cryptographic hashes or checksums will
+be used, depending on the level of assurance required.
+1. Hash Validation
+•
+
+Generation on Export
+When a configuration package is exported from an environment (e.g., Dev), a cryptographic hash (e.g., SHA-256) should be computed on the full contents of the package
+archive (e.g., .tar.gz or .zip). The generated hash value must be:
+o
+
+Appended to a separate file (e.g., package.hash)
+
+o
+
+Digitally signed (optional) if required for secure provenance
+
+This ensures any post-export modification of the package can be detected before import.
+•
+
+Verification on Import
+Prior to importing a configuration package into a target environment:
+o
+
+The system should recompute the hash of the received package
+Page | 52
+
+TAZAMA CONNECTION STUDIO– FSD
+
+o
+
+Compare the computed value against the one provided in package.hash
+
+If the values do not match, the import must be rejected and logged as a potential integrity violation.
+The
+
+package
+
+hash
+
+file
+
+would
+
+be:
+
+SHA256 (endpoint-config-export.json)= <computed hash>
+2. Checksum Validation
+•
+
+•
+
+Export:
+o
+
+Generate a simple checksum (e.g., CRC32, Adler-32) of the config package.
+
+o
+
+Save it in a file (e.g., config-package.checksum).
+
+Import:
+o
+
+Recalculate the checksum on the received file.
+
+o
+
+Match it against the original value.
+
+o
+
+Reject if mismatched, indicating potential file corruption.
+
+3. Optional Signing for Trust Validation
+In environments where trust must be guaranteed between systems or teams, the exported hash
+file can be signed using a private key (e.g., PGP or JWT-based signing). The importing environment would then validate the signature using the corresponding public key to ensure the source
+is trusted.
+4. Enforcement and Audit
+•
+
+All package imports must undergo mandatory hash validation before processing.
+
+•
+
+All validation results (pass/fail) must be logged, timestamped, and auditable.
+
+•
+
+Failed attempts should trigger alerts to the deployment and security teams.
+
+Page | 53
+
+TAZAMA CONNECTION STUDIO– FSD
+
+6. Assumptions and Dependencies
+•
+
+All messages intended for ingestion and evaluation by the DEMS API shall be pushed into TCS
+generated REST API endpoints by upstream systems. The TCS shall not poll Kafka topics,
+message queues, or any system-specific transport layers.
+
+•
+
+All deployment environments (e.g., Dev, UAT, Prod) into which the TCS deploys API endpoints
+or data pulling services must be pre-provisioned and exist before deployment.
+
+•
+
+The TCS shall only support ingestion of structured, text-based files (e.g., CSV, TSV) where a
+column-to-field mapping can be defined.
+
+•
+
+TCS shall allow XML ingestion only if it includes transformation into a DEMS-compatible JSON
+structure. It assumes XML messages are structured and mappable.
+
+•
+
+For file-based ingestion (e.g., SFTP), required credentials, access permissions, and network
+availability must be provisioned externally.
+
+•
+
+The TCS assumes that enrichment data is structurally clean and semantically valid for mapping
+and lookup.
+
+•
+
+All transformations and message mappings rely on the availability of either a:
+o
+
+JSON schema
+
+o
+
+Existing template from a prior endpoint (e.g., Pain.001, Pacs.008)
+
+•
+
+The TCS assumes these are provided and will not generate schemas from unstructured input.
+
+•
+
+Any integration with payment schemes, core banking systems, or message switches shall be
+handled by separate components if needed (e.g., implementation-specific layers).
+
+7. Glossary
+•
+
+Tazama Connection Studio (TCS): A tool to design, configure, and deploy data ingestion
+setups like APIs and mappings.
+
+•
+
+Connection: A complete setup (API, schema, mapping) created in TCS and deployed for data
+intake.
+
+•
+
+API (Traditional): A standard way for external systems to access internal services.
+
+•
+
+Configured API: A TCS-built custom API used for data ingestion — more than just a standard
+API.
+
+•
+
+DEMS: The engine that runs live APIs, validates data, and forwards it for processing.
+
+•
+
+Admin Service: Stores all TCS-created setups in the database but doesn't run them.
+
+•
+
+Publisher: The person who sends the approved setup to go live.
+
+•
+
+Editor: The person who creates and configures the connection.
+
+•
+
+Approver: The person who reviews and approves the setup before it goes live.
+
+•
+
+Connection Lifecycle: The steps a connection goes through — from creation to deployment.
+
+•
+
+Postgres: The database where all setups, rules, and data are saved.
+
+•
+
+Configuration Runtime: The setup phase — creating and preparing connections.
+
+•
+
+Production Runtime: The live phase — when DEMS runs the deployed connections.
+
+•
+
+Configuration Package: A bundle of all setup files (API, mappings, etc.) for deployment.
+
+•
+
+Dynamic Endpoint: A flexible API created in TCS, not hardcoded — ready for different data
+flows.
+Page | 54
+
+TAZAMA CONNECTION STUDIO– FSD
+
+•
+
+Deployment Environment: Where a connection runs — like Dev, UAT, or Production.
+
+•
+
+Valkey Cache: A fast memory-based store used during live data processing.
+
+•
+
+Enrichment Layer (DEAPI): A layer for uploading supporting data (e.g., KYC) — not for
+transactions.
+
+•
+
+Pull Job: A scheduled task that fetches data from other systems.
+
+•
+
+Push Job: A setup that waits for other systems to send data to it.
+
+•
+
+Simulation Mode: A way to test if your connection works before going live.
+
+•
+
+Mapping Utility: A tool to link fields from incoming data to the internal format.
+
+•
+
+Schema: A blueprint that defines what structure the incoming data should follow.
+
+Link to Prototypes:
+Editor View: https://project-api-endpoint-manager-dashboard-370.magicpatterns.app/dashboard
+Approver View: https://project-api-endpoint-manager-dashboard-creator-view609.magicpatterns.app/login
+Publisher View: https://project-api-endpoint-manager-dashboard-approver-view937.magicpatterns.app/login
+
+Page | 55
+
+TAZAMA CONNECTION STUDIO– FSD
+
+Page | 56
+
+

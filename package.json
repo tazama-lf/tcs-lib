@@ -1,0 +1,42 @@
+{
+  "name": "tcs-lib",
+  "version": "1.0.0",
+  "description": "Tazama connection studio library",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tazama-lf/tcs-lib.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/tazama-lf/tcs-lib/issues"
+  },
+  "homepage": "https://github.com/tazama-lf/tcs-lib#readme",
+  "devDependencies": {
+    "@types/node": "^24.5.0",
+    "@types/uuid": "^10.0.0",
+    "husky": "^9.1.7",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "uuid": "^13.0.0"
+  }
+}

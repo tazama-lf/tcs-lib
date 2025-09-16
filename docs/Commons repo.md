@@ -1,7 +1,3 @@
-# tcs-lib
-
-Tazama connection studio library
-
 So to summarize what we are building:
 
 - **TCS-Lib (Commons Repo)**

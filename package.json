@@ -78,5 +78,11 @@
     "jest": "^30.2.0",
     "ts-jest": "^29.4.5",
     "typescript": "^5.0.0"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }

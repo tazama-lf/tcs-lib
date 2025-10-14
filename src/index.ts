@@ -18,3 +18,6 @@ export * from './services/payload-parsing.service';
 // Utility Services
 export { AuditService } from './audit/audit.service';
 export { JSONSchemaConverterService } from './schemas/json-schema-converter.service';
+
+// TCS Dryrun Simulation
+export * from './tcs-dryrun-simulation';

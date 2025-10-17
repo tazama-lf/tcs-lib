@@ -10,6 +10,8 @@ export * from './interfaces/core.interfaces';
 export * from './interfaces/schema.interfaces';
 export * from './interfaces/json-schema.interfaces';
 export * from './interfaces/multi-field-mapping.interfaces';
+export * from './interfaces/iMappingConfiguration';
+export * from './interfaces/iMappingResult';
 
 // Services
 export * from './services/file-parsing.service';

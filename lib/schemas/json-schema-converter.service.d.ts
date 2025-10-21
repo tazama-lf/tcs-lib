@@ -1,3 +1,1 @@
-export declare class JSONSchemaConverterService {
-    convertToJSONSchema(fields: any[], title: string): any;
-}
+export declare const convertToJSONSchema: (fields: any[], title: string) => any;

@@ -1,5 +1,3 @@
-export * from './database/database.module';
-export * from './database/database.service';
 export * from './dtos/endpoint.dto';
 export * from './dtos/file-upload.dto';
 export * from './dtos/schema-workflow.dto';
@@ -13,5 +11,5 @@ export * from './interfaces/Endpoint';
 export * from './services/file-parsing.service';
 export * from './services/payload-parsing.service';
 export { AuditService } from './audit/audit.service';
-export { JSONSchemaConverterService } from './schemas/json-schema-converter.service';
+export { convertToJSONSchema } from './schemas/json-schema-converter.service';
 export * from './tcs-dryrun-simulation';

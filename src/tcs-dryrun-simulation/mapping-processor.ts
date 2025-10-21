@@ -1,6 +1,6 @@
-import { iMappingConfiguration } from 'interfaces/iMappingConfiguration';
-import { iMappingResult } from 'interfaces/iMappingResult';
-import { getValueByPath } from 'services/utils';
+import { iMappingConfiguration } from '../interfaces/iMappingConfiguration';
+import { iMappingResult } from '../interfaces/iMappingResult';
+import { getValueByPath } from '../services/utils';
 
 /**
  * Processes configured mappings to extract data cache and transaction relationship data

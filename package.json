@@ -2,19 +2,19 @@
   "name": "@tazama-lf/tcs-lib",
   "version": "1.0.0",
   "description": "A TypeScript package containing interfaces and Data Transfer Objects (DTOs).",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "type": "commonjs",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./lib/index.js",
+      "require": "./lib/index.js",
+      "types": "./lib/index.d.ts"
     }
   },
   "scripts": {
     "build": "nest build",
-    "clean": "rimraf dist",
+    "clean": "rimraf lib",
     "prepublishOnly": "npm run build",
     "publish:private": "npm publish --access restricted",
     "prepare": "husky",
@@ -46,6 +46,7 @@
   ],
   "license": "Apache-2.0",
   "dependencies": {
+    "@nestjs/config": "^4.0.2",
     "@nestjs/mapped-types": "^2.1.0",
     "@types/multer": "^2.0.0",
     "class-transformer": "^0.5.1",
@@ -53,7 +54,9 @@
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
+    "joi": "^18.0.1",
     "multer": "^2.0.2",
+    "pg": "^8.16.3",
     "reflect-metadata": "^0.1.13",
     "xml2js": "^0.6.2"
   },
@@ -68,6 +71,7 @@
     "@types/express": "^5.0.3",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
+    "@types/pg": "^8.15.5",
     "@types/xml2js": "^0.4.14",
     "@typescript-eslint/eslint-plugin": "^8.46.0",
     "@typescript-eslint/parser": "^8.46.0",

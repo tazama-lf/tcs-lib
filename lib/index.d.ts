@@ -8,6 +8,7 @@ export * from './interfaces/multi-field-mapping.interfaces';
 export * from './interfaces/iMappingConfiguration';
 export * from './interfaces/iMappingResult';
 export * from './interfaces/Endpoint';
+export * from './interfaces/enrichment.interface';
 export * from './services/file-parsing.service';
 export * from './services/payload-parsing.service';
 export { AuditService } from './audit/audit.service';

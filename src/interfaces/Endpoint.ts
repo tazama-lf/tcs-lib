@@ -9,7 +9,8 @@ export interface CreateConfigDto {
   transactionType: TransactionType;
   version?: string;
   contentType?: ContentType;
-  payload?: string;
+  payload?: string | any; // Accept both string and object for convenience
+  endpointPath?: string; // Generated endpoint path
   mapping?: FieldMapping[];
   functions?: FunctionDefinition[];
   fieldAdjustments?: AdjustFieldDto[];
@@ -46,24 +47,30 @@ export interface UpdateConfigDto {
 
 export interface FunctionDefinition {
   params: string[]; // Array of parameter names
-  functionName: 'addAccountHolder' | 'addEntity' | 'addAccount'; // Only these three functions are allowed
+  functionName: AllowedFunctionName;
 }
 
-export type AllowedFunctionName = 'addAccountHolder' | 'addEntity' | 'addAccount';
+export type AllowedFunctionName =
+  | 'addAccountHolder'
+  | 'addEntity'
+  | 'addAccount'
+  | 'transactionRelationship';
 
 // export enum ContentType {
 //   JSON = 'application/json',
 //   XML = 'application/xml',
 // }
 // export type TransactionType = string;
+/* eslint-disable no-unused-vars */
 export enum ConfigStatus {
-  IN_PROGRESS = 'inprogress',
-  UNDER_REVIEW = 'under_review',
-  APPROVED = 'approved',
-  DEPLOYED = 'deployed',
-  REJECTED = 'rejected',
-  CHANGES_REQUESTED = 'changes_requested',
+  IN_PROGRESS = 'IN_PROGRESS',
+  UNDER_REVIEW = 'UNDER_REVIEW',
+  APPROVED = 'APPROVED',
+  DEPLOYED = 'DEPLOYED',
+  REJECTED = 'REJECTED',
+  CHANGES_REQUESTED = 'CHANGES_REQUESTED',
 }
+/* eslint-enable no-unused-vars */
 export interface MappingSource {
   field: string; // Field path in source schema
 }
@@ -91,7 +98,12 @@ export interface AddMappingDto {
   destination?: string;
   destinations?: string[];
   sources?: string[];
+  sumFields?: string[];
   delimiter?: string;
+  constantValue?: any;
+  prefix?: string;
+  transformation?: 'NONE' | 'CONCAT' | 'SUM' | 'SPLIT' | 'CONSTANT' | 'MATH';
+  operator?: 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'DIVIDE';
 }
 
 export interface AddFunctionDto {
@@ -168,7 +180,7 @@ export type WorkflowAction =
   | 'deploy'
   | 'return_to_progress';
 
-export interface AuditLogEntry {
+export interface ConfigAuditLogEntry {
   configId: number;
   action: string;
   userId: string;

@@ -15,10 +15,14 @@ export * from './interfaces/Endpoint';
 // Services
 export * from './services/file-parsing.service';
 export * from './services/payload-parsing.service';
+export * from './services/payload-parsing-class.service';
+export * from './services/file-parsing-class.service';
+export { DatabaseService } from './services/database.service';
+export { DatabaseFactory } from './database/databaseFactory';
 
-// Utility Services
+export type { AuditLogEntry as DbAuditLogEntry, DatabaseConfig } from './services/database.service';
+
 export { AuditService } from './audit/audit.service';
 export { convertToJSONSchema } from './schemas/json-schema-converter.service';
 
-// TCS Dryrun Simulation
 export * from './tcs-dryrun-simulation';

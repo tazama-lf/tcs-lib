@@ -1,8 +1,5 @@
 /* eslint-disable no-unused-vars */
-export enum TransactionType {
-  TRANSFERS = 'Transfers',
-  PAYMENTS = 'Payments',
-}
+export type TransactionType = string;
 
 export enum HttpMethod {
   GET = 'GET',

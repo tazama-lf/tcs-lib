@@ -2,6 +2,7 @@ import { ContentType } from '../interfaces/core.interfaces';
 import { ParsedFileResult } from '../dtos/file-upload.dto';
 
 export const parseUploadedFile = (
+  // eslint-disable-next-line no-undef
   file: Express.Multer.File,
   expectedContentType: ContentType,
 ): ParsedFileResult => {
@@ -23,6 +24,7 @@ export const parseUploadedFile = (
 };
 
 export const validateFileType = (
+  // eslint-disable-next-line no-undef
   file: Express.Multer.File,
   expectedContentType: ContentType,
   content: string,
@@ -64,6 +66,7 @@ export const validateFileType = (
   return { isValid: true };
 };
 
+// eslint-disable-next-line no-undef
 export const detectContentType = (file: Express.Multer.File): ContentType => {
   const filename = file.originalname.toLowerCase();
   const content = file.buffer.toString('utf8').trim();

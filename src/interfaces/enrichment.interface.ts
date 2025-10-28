@@ -51,7 +51,9 @@ interface Schedule {
     schedule_status: ScheduleStatus;
     next_time: string | null;
     cron: string;
-    status: JobStatus
+    status: JobStatus,
+    start_date: Date,
+    end_date?: Date
 }
 
 interface HTTPConnection {

@@ -30,11 +30,15 @@ enum AuthType {
 }
 
 enum JobStatus {
-    PENDING = 'pending',
-    APPROVED = 'approved',
     INPROGRESS = 'in-progress',
+    REVIEW = 'under-review',
+    APPROVED = 'approved',
     REJECTED = 'rejected',
+    EXPORTED = 'exported',
+    READY = 'ready-for-deployment',
+    DEPLOYED = 'deployed'
 }
+
 interface ISuccess {
     success: boolean;
     message: string;
@@ -58,7 +62,7 @@ interface HTTPConnection {
 interface SFTPConnection {
     host: string;
     port: number;
-    auth_type: AuthType;
+    auth_type?: AuthType;
     user_name: string;
     password?: string;
     private_key?: string;
@@ -81,6 +85,7 @@ interface Job {
     job_status: JobStatus;
     mode?: IngestMode;
     schedule?: Schedule;
+    record_status?: ScheduleStatus;
 }
 
 interface Enrichment {

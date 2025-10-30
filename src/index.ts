@@ -11,6 +11,7 @@ export * from './interfaces/multi-field-mapping.interfaces';
 export * from './interfaces/iMappingConfiguration';
 export * from './interfaces/iMappingResult';
 export * from './interfaces/Endpoint';
+export * from './interfaces/enrichment.interface';
 
 // Services
 export * from './services/file-parsing.service';

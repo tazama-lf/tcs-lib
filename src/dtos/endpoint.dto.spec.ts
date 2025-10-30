@@ -1,6 +1,6 @@
 import { validate } from 'class-validator';
 import { CreateEndpointDto } from './endpoint.dto';
-import { HttpMethod, ContentType, TransactionType } from '../interfaces/core.interfaces';
+import { HttpMethod, ContentType } from '../interfaces/core.interfaces';
 
 describe('CreateEndpointDto', () => {
   it('should create a valid endpoint DTO', () => {
@@ -8,7 +8,7 @@ describe('CreateEndpointDto', () => {
     dto.path = '/api/test';
     dto.method = HttpMethod.POST;
     dto.contentType = ContentType.JSON;
-    dto.transactionType = TransactionType.PAYMENTS;
+    dto.transactionType = 'Payments';
     dto.version = '1.0.0';
     dto.samplePayload = '{"test": "data"}';
 
@@ -29,7 +29,7 @@ describe('CreateEndpointDto', () => {
     dto.path = '/api/test';
     dto.method = HttpMethod.GET;
     dto.contentType = ContentType.JSON;
-    dto.transactionType = TransactionType.TRANSFERS;
+    dto.transactionType = 'Transfers';
     dto.version = '1.0.0';
     dto.samplePayload = '{"test": "data"}';
 
@@ -42,7 +42,7 @@ describe('CreateEndpointDto', () => {
     dto.path = '/api/test';
     dto.method = HttpMethod.POST;
     dto.contentType = ContentType.JSON;
-    dto.transactionType = TransactionType.PAYMENTS;
+    dto.transactionType = 'Payments';
     dto.version = '1.0.0';
     dto.samplePayload = '{"test": "data"}';
     dto.description = 'Test description';

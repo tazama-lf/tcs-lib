@@ -1,5 +1,6 @@
 import { IsString, IsEnum, IsOptional, IsNotEmpty } from 'class-validator';
-import { TransactionType, HttpMethod, ContentType } from '../interfaces/core.interfaces';
+import type { TransactionType } from '../interfaces/core.interfaces';
+import { HttpMethod, ContentType } from '../interfaces/core.interfaces';
 
 export class CreateEndpointDto {
   @IsString()
@@ -13,7 +14,8 @@ export class CreateEndpointDto {
   @IsNotEmpty()
   version!: string;
 
-  @IsEnum(TransactionType)
+  @IsString()
+  @IsNotEmpty()
   transactionType!: TransactionType;
 
   @IsOptional()

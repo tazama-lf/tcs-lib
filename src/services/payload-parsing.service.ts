@@ -48,13 +48,8 @@ export const parsePayloadToSchema = async (
       metadata,
       validation,
     };
-  } catch (error) {
-    let errorMessage = 'Unknown error';
-    let errorStack = '';
-    if (error instanceof Error) {
-      errorMessage = error.message;
-      errorStack = error.stack || '';
-    }
+  } catch {
+    // Error handling - silently fail for invalid content
   }
 };
 

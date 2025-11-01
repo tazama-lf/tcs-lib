@@ -65,13 +65,14 @@ export type AllowedFunctionName =
 // export type TransactionType = string;
 /* eslint-disable no-unused-vars */
 export enum ConfigStatus {
-  IN_PROGRESS = 'in_progress',
-  UNDER_REVIEW = 'under_review',
-  APPROVED = 'approved',
-  EXPORTED = 'exported',
-  DEPLOYED = 'deployed',
-  REJECTED = 'rejected',
-  CHANGES_REQUESTED = 'changes_requested',
+  IN_PROGRESS = 'STATUS_01_IN_PROGRESS',
+  SUSPENDED = 'STATUS_02_SUSPENDED',
+  UNDER_REVIEW = 'STATUS_03_UNDER_REVIEW',
+  APPROVED = 'STATUS_04_APPROVED',
+  REJECTED = 'STATUS_05_REJECTED',
+  EXPORTED = 'STATUS_06_EXPORTED',
+  READY_FOR_DEPLOYMENT = 'STATUS_07_READY_FOR_DEPLOYMENT',
+  DEPLOYED = 'STATUS_08_DEPLOYED',
 }
 /* eslint-enable no-unused-vars */
 export interface MappingSource {

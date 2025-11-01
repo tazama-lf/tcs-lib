@@ -77,17 +77,22 @@ type FileSettings =
 
 interface Job {
     id: string;
-    schedule_id: number;
+    tenant_id: string;
     endpoint_name: string;
     source_type: SourceType;
     description: string;
     connection: HTTPConnection | SFTPConnection;
     file: FileSettings;
     table_name: string;
-    job_status: JobStatus;
     mode?: IngestMode;
-    schedule?: Schedule;
+    version: string;
+    status: JobStatus;
     record_status?: ScheduleStatus;
+    schedule_id: string,
+    cron: string,
+    start_date: Date,
+    end_date: Date,
+    iterations?: number
 }
 
 interface Enrichment {

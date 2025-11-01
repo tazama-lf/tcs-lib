@@ -35,6 +35,8 @@ export interface UpdateConfigDto {
   mapping?: FieldMapping[];
   functions?: FunctionDefinition[];
   fieldAdjustments?: AdjustFieldDto[];
+  status?: ConfigStatus; // Allow status updates with proper enum type
+  comments?: string; // Comments from approvers to editors (CHANGES_REQUESTED)
 }
 // export interface FieldMapping {
 //   source?: string | string[]; // Optional when using constants
@@ -63,12 +65,13 @@ export type AllowedFunctionName =
 // export type TransactionType = string;
 /* eslint-disable no-unused-vars */
 export enum ConfigStatus {
-  IN_PROGRESS = 'IN_PROGRESS',
-  UNDER_REVIEW = 'UNDER_REVIEW',
-  APPROVED = 'APPROVED',
-  DEPLOYED = 'DEPLOYED',
-  REJECTED = 'REJECTED',
-  CHANGES_REQUESTED = 'CHANGES_REQUESTED',
+  IN_PROGRESS = 'in_progress',
+  UNDER_REVIEW = 'under_review',
+  APPROVED = 'approved',
+  EXPORTED = 'exported',
+  DEPLOYED = 'deployed',
+  REJECTED = 'rejected',
+  CHANGES_REQUESTED = 'changes_requested',
 }
 /* eslint-enable no-unused-vars */
 export interface MappingSource {
@@ -92,6 +95,7 @@ export interface Config {
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
+  comments?: string; // Comments from approvers to editors (CHANGES_REQUESTED status)
 }
 export interface AddMappingDto {
   source?: string;
@@ -159,6 +163,7 @@ export interface WorkflowValidationResult {
   canApprove: boolean;
   canReject: boolean;
   canRequestChanges: boolean;
+  canExport: boolean;
   canDeploy: boolean;
   canReturnToProgress: boolean;
   reason?: string;
@@ -177,10 +182,11 @@ export type WorkflowAction =
   | 'approve'
   | 'reject'
   | 'request_changes'
+  | 'export'
   | 'deploy'
   | 'return_to_progress';
 
-export interface ConfigAuditLogEntry {
+export interface AuditLogEntry {
   configId: number;
   action: string;
   userId: string;

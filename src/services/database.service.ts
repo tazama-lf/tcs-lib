@@ -5,12 +5,14 @@ import { JSONSchema } from '../interfaces/json-schema.interfaces';
 import { FieldMapping } from '../interfaces/schema.interfaces';
 import { FunctionDefinition } from '../interfaces/Endpoint';
 import { randomUUID } from 'crypto';
+import { userEmailCache } from './user-email-cache.service';
 
 export interface AuditLogEntry {
   action: string;
   entityType: string;
   entityId?: string;
   actor: string;
+  actorEmail?: string;
   tenantId: string;
   endpointName?: string;
   mappingName?: string;
@@ -211,6 +213,7 @@ export class DatabaseService {
       mapping?: FieldMapping[];
       functions?: FunctionDefinition[];
       status?: string;
+      comments?: string; // Comments from approvers to editors (CHANGES_REQUESTED)
     },
   ): Promise<void> {
     const updateFields: string[] = [];
@@ -253,6 +256,10 @@ export class DatabaseService {
       updateFields.push(`status = $${paramIndex++}`);
       values.push(updates.status);
     }
+    if (updates.comments !== undefined) {
+      updateFields.push(`comments = $${paramIndex++}`);
+      values.push(updates.comments);
+    }
 
     updateFields.push('updated_at = CURRENT_TIMESTAMP');
     values.push(id, tenantId);
@@ -277,10 +284,10 @@ export class DatabaseService {
   async logAction(entry: AuditLogEntry): Promise<void> {
     const query = `
       INSERT INTO audit_logs (
-        id, action, entity_type, entity_id, actor, endpoint_name, 
+        id, action, entity_type, entity_id, actor, actor_email, endpoint_name, 
         mapping_name, version, tenant_id, details, old_values, new_values,
         ip_address, user_agent, session_id, severity, status, error_message, timestamp
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
     `;
 
     const values = [
@@ -289,6 +296,7 @@ export class DatabaseService {
       entry.entityType,
       entry.entityId || null,
       entry.actor,
+      entry.actorEmail || null,
       entry.endpointName || entry.mappingName || 'UNKNOWN',
       entry.mappingName || null,
       entry.version || null,
@@ -367,6 +375,102 @@ export class DatabaseService {
     `;
     const result = await this.dbClient.query(query, [name, tenantId, limit]);
     return result.rows;
+  }
+
+  // ==================== EMAIL CACHING FOR NOTIFICATIONS ====================
+
+  /**
+   * Cache or update user email from JWT token (called on login/auth)
+   * This is non-blocking and should be called asynchronously
+   * Uses in-memory cache (not database)
+   */
+  async cacheUserEmail(
+    tenantId: string,
+    userId: string,
+    email: string,
+    roles: string[],
+    fullName?: string,
+  ): Promise<void> {
+    try {
+      userEmailCache.cacheUser(tenantId, userId, email, roles, fullName);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to cache user email:', error);
+    }
+  }
+
+  /**
+   * Get all emails of users with a specific role in a tenant
+   * Used for: Finding all approvers when editor submits for approval
+   * Uses in-memory cache (not database)
+   */
+  async getEmailsByRole(tenantId: string, role: string): Promise<string[]> {
+    return userEmailCache.getEmailsByRole(tenantId, role);
+  }
+
+  /**
+   * Get email for a specific user by userId
+   * Used for: Finding editor's email when approver requests changes
+   * Uses in-memory cache (not database)
+   */
+  async getEmailByUserId(tenantId: string, userId: string): Promise<string | null> {
+    return userEmailCache.getEmail(tenantId, userId);
+  }
+
+  /**
+   * Get editor email from audit logs (find who created/last edited the config)
+   * Used for: Finding the editor when approver requests changes
+   */
+  async getConfigEditorEmail(configId: number, tenantId: string): Promise<string | null> {
+    // First try to find from audit logs with actor_email
+    const auditQuery = `
+      SELECT actor_email 
+      FROM audit_logs 
+      WHERE entity_id = $1 
+        AND entity_type = 'config' 
+        AND tenant_id = $2
+        AND actor_email IS NOT NULL
+        AND action IN ('create_config', 'update_config', 'submit_for_approval')
+      ORDER BY timestamp DESC 
+      LIMIT 1
+    `;
+
+    const auditResult = await this.dbClient.query(auditQuery, [configId.toString(), tenantId]);
+    if (auditResult.rows.length > 0 && auditResult.rows[0].actor_email) {
+      return auditResult.rows[0].actor_email;
+    }
+
+    // Fallback: Find from actor userId in audit logs, then lookup in user_emails
+    const actorQuery = `
+      SELECT actor 
+      FROM audit_logs 
+      WHERE entity_id = $1 
+        AND entity_type = 'config' 
+        AND tenant_id = $2
+        AND action IN ('create_config', 'update_config', 'submit_for_approval')
+      ORDER BY timestamp DESC 
+      LIMIT 1
+    `;
+
+    const actorResult = await this.dbClient.query(actorQuery, [configId.toString(), tenantId]);
+    if (actorResult.rows.length > 0) {
+      const actor = actorResult.rows[0].actor;
+      return await this.getEmailByUserId(tenantId, actor);
+    }
+
+    return null;
+  }
+
+  /**
+   * Clean up stale user emails (users who haven't logged in for X days)
+   * Optional maintenance task
+   */
+  /**
+   * Cleanup stale cached users (not seen in X days)
+   * Uses in-memory cache (not database)
+   */
+  async cleanupStaleUsers(daysInactive: number = 90): Promise<number> {
+    return userEmailCache.cleanupStale(daysInactive);
   }
 
   private mapRowToConfig(row: any): Config {

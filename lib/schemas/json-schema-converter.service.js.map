@@ -1,1 +1,0 @@
-{"version":3,"file":"json-schema-converter.service.js","sourceRoot":"","sources":["../../src/schemas/json-schema-converter.service.ts"],"names":[],"mappings":";;;AAAO,MAAM,mBAAmB,GAAG,CAAC,MAAa,EAAE,KAAa,EAAO,EAAE;IACvE,OAAO;QACL,OAAO,EAAE,8CAA8C;QACvD,KAAK;QACL,IAAI,EAAE,QAAQ;QACd,UAAU,EAAE,EAAE;QACd,oBAAoB,EAAE,KAAK;KAC5B,CAAC;AACJ,CAAC,CAAC;AARW,QAAA,mBAAmB,uBAQ9B"}

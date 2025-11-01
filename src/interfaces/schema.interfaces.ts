@@ -11,14 +11,13 @@ export interface SchemaField {
 }
 
 export interface FieldMapping {
-  source?: string | string[]; // Optional when using constants
+  source?: string[]; // Always an array for consistency, optional when using constants
   destination: string | string[];
   transformation?: 'NONE' | 'CONCAT' | 'SUM' | 'SPLIT' | 'CONSTANT' | 'MATH';
   delimiter?: string; // Used for one-to-many mapping to split source value
-  constants?: any;
-  constantValue?: any; // Fixed value to map to destination
+  constantValue?: any; // Fixed value to map to destination (replaces constants)
   operator?: 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'DIVIDE'; // Mathematical operators for MATH transformation
-  prefix?: string; // Prefix to add to the value
+  prefix?: string;
 }
 
 export type TransformationType = 'NONE' | 'CONCAT' | 'SUM' | 'SPLIT';

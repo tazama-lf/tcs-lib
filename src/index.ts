@@ -20,6 +20,7 @@ export * from './services/payload-parsing-class.service';
 export * from './services/file-parsing-class.service';
 export { DatabaseService } from './services/database.service';
 export { DatabaseFactory } from './database/databaseFactory';
+export { userEmailCache } from './services/user-email-cache.service';
 
 export type { AuditLogEntry as DbAuditLogEntry, DatabaseConfig } from './services/database.service';
 

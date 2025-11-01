@@ -60,6 +60,16 @@ export class DatabaseService {
     return await this.dbClient.connect();
   }
 
+  /**
+   * Execute a raw SQL query (USE WITH CAUTION)
+   * @param query - The SQL query to execute
+   * @param values - Optional array of query parameter values
+   * @returns Query result
+   */
+  async executeRawQuery(query: string, values?: any[]): Promise<any> {
+    return await this.dbClient.query(query, values);
+  }
+
   // ==================== CONFIG CRUD OPERATIONS ====================
 
   /**

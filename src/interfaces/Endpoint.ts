@@ -3,7 +3,6 @@ import { JSONSchema } from './json-schema.interfaces';
 import { AdjustFieldDto } from 'src/dtos/schema-workflow.dto';
 import { FieldMapping } from './schema.interfaces';
 // import { JSONSchema, AdjustFieldDto } from './SchemaValidation';
-
 export interface CreateConfigDto {
   msgFam?: string;
   transactionType: TransactionType;
@@ -15,7 +14,6 @@ export interface CreateConfigDto {
   functions?: FunctionDefinition[];
   fieldAdjustments?: AdjustFieldDto[];
 }
-
 export interface CloneConfigDto {
   sourceConfigId: number;
   newTransactionType: TransactionType;
@@ -24,7 +22,6 @@ export interface CloneConfigDto {
   functions?: FunctionDefinition[];
   fieldAdjustments?: AdjustFieldDto[];
 }
-
 export interface UpdateConfigDto {
   msgFam?: string;
   transactionType?: TransactionType;
@@ -46,19 +43,16 @@ export interface UpdateConfigDto {
 //   constantValue?: any; // Fixed value to map to destination (replaces constants)
 //   operator?: 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'DIVIDE'; // Mathematical operators for MATH transformation
 // }
-
 export interface FunctionDefinition {
   params: string[]; // Array of parameter names
   functionName: AllowedFunctionName;
 }
-
 export type AllowedFunctionName =
-  | 'saveTransactionDetails'
   | 'addAccountHolder'
   | 'addEntity'
   | 'addAccount'
+  | 'saveTransactionDetails'
   | 'transactionRelationship';
-
 // export enum ContentType {
 //   JSON = 'application/json',
 //   XML = 'application/xml',
@@ -66,14 +60,15 @@ export type AllowedFunctionName =
 // export type TransactionType = string;
 /* eslint-disable no-unused-vars */
 export enum ConfigStatus {
-  IN_PROGRESS = 'STATUS_01_IN_PROGRESS',
-  SUSPENDED = 'STATUS_02_SUSPENDED',
-  UNDER_REVIEW = 'STATUS_03_UNDER_REVIEW',
-  APPROVED = 'STATUS_04_APPROVED',
-  REJECTED = 'STATUS_05_REJECTED',
-  EXPORTED = 'STATUS_06_EXPORTED',
-  READY_FOR_DEPLOYMENT = 'STATUS_07_READY_FOR_DEPLOYMENT',
-  DEPLOYED = 'STATUS_08_DEPLOYED',
+  IN_PROGRESS = 'in_progress',
+  UNDER_REVIEW = 'under_review',
+  APPROVED = 'approved',
+  EXPORTED = 'exported',
+  READY_FOR_DEPLOYMENT = 'ready_for_deployment',
+  DEPLOYED = 'deployed',
+  REJECTED = 'rejected',
+  CHANGES_REQUESTED = 'changes_requested',
+  SUSPENDED = 'suspended',
 }
 /* eslint-enable no-unused-vars */
 export interface MappingSource {
@@ -111,7 +106,6 @@ export interface AddMappingDto {
   transformation?: 'NONE' | 'CONCAT' | 'SUM' | 'SPLIT' | 'CONSTANT' | 'MATH';
   operator?: 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'DIVIDE';
 }
-
 export interface AddFunctionDto {
   params: string[];
   functionName: AllowedFunctionName;
@@ -126,39 +120,32 @@ export interface ConfigResponseDto {
     warnings: string[];
   };
 }
-
 export interface StatusTransitionDto {
   userId: string;
   userRole: string;
   comment?: string;
   metadata?: Record<string, any>;
 }
-
 export interface SubmitForApprovalDto extends StatusTransitionDto {
   configId: number;
 }
-
 export interface ApprovalDto extends StatusTransitionDto {
   configId: number;
   approvalNotes?: string;
 }
-
 export interface RejectionDto extends StatusTransitionDto {
   configId: number;
   rejectionReason: string;
 }
-
 export interface ChangeRequestDto extends StatusTransitionDto {
   configId: number;
   requestedChanges: string;
 }
-
 export interface DeploymentDto extends StatusTransitionDto {
   configId: number;
   deploymentEnvironment?: string;
   deploymentNotes?: string;
 }
-
 export interface WorkflowValidationResult {
   canEdit: boolean;
   canSubmit: boolean;
@@ -170,7 +157,6 @@ export interface WorkflowValidationResult {
   canReturnToProgress: boolean;
   reason?: string;
 }
-
 export interface StatusTransitionValidation {
   isValid: boolean;
   currentStatus: ConfigStatus;
@@ -178,7 +164,6 @@ export interface StatusTransitionValidation {
   allowedNextStatuses: ConfigStatus[];
   reason?: string;
 }
-
 export type WorkflowAction =
   | 'submit_for_approval'
   | 'approve'
@@ -187,7 +172,6 @@ export type WorkflowAction =
   | 'export'
   | 'deploy'
   | 'return_to_progress';
-
 export interface AuditLogEntry {
   configId: number;
   action: string;

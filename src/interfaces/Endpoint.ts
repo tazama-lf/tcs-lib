@@ -53,6 +53,7 @@ export interface FunctionDefinition {
 }
 
 export type AllowedFunctionName =
+  | 'saveTransactionDetails'
   | 'addAccountHolder'
   | 'addEntity'
   | 'addAccount'

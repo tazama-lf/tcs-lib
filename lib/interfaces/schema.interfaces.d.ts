@@ -9,11 +9,10 @@ export interface SchemaField {
     arrayElementType?: FieldType;
 }
 export interface FieldMapping {
-    source?: string | string[];
+    source?: string[];
     destination: string | string[];
     transformation?: 'NONE' | 'CONCAT' | 'SUM' | 'SPLIT' | 'CONSTANT' | 'MATH';
     delimiter?: string;
-    constants?: any;
     constantValue?: any;
     operator?: 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'DIVIDE';
     prefix?: string;

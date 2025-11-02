@@ -35,6 +35,7 @@ export declare class DatabaseService {
     constructor(config?: DatabaseConfig);
     getPool(): Pool;
     getClient(): Promise<PoolClient>;
+    executeRawQuery(query: string, values?: any[]): Promise<any>;
     createConfig(config: Omit<Config, 'id' | 'createdAt' | 'updatedAt'>): Promise<number>;
     findConfigById(id: number, tenantId: string): Promise<Config | null>;
     findConfigByEndpoint(endpointPath: string, version: string, tenantId: string): Promise<Config | null>;

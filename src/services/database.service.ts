@@ -201,14 +201,26 @@ export class DatabaseService {
   }
 
   async findConfigsByStatus(status: ConfigStatus, tenantId: string): Promise<Config[]> {
+    // Create a mapping from ConfigStatus enum to potential database values
+    const statusMappings: Record<string, string[]> = {
+      [ConfigStatus.IN_PROGRESS]: [ConfigStatus.IN_PROGRESS, 'STATUS_01_IN_PROGRESS'],
+      [ConfigStatus.UNDER_REVIEW]: [ConfigStatus.UNDER_REVIEW, 'STATUS_03_UNDER_REVIEW'],
+      [ConfigStatus.APPROVED]: [ConfigStatus.APPROVED, 'STATUS_04_APPROVED'],
+      [ConfigStatus.REJECTED]: [ConfigStatus.REJECTED, 'STATUS_05_REJECTED'],
+      [ConfigStatus.EXPORTED]: [ConfigStatus.EXPORTED, 'STATUS_06_EXPORTED'],
+      [ConfigStatus.DEPLOYED]: [ConfigStatus.DEPLOYED, 'STATUS_07_DEPLOYED'],
+    };
+    const possibleValues = statusMappings[status] || [status];
+    const placeholders = possibleValues.map((_, index) => `$${index + 1}`).join(', ');
     const query = `
-      SELECT * FROM config 
-      WHERE status = $1 AND tenant_id = $2 
+      SELECT * FROM config
+      WHERE status IN (${placeholders}) AND tenant_id = $${possibleValues.length + 1}
       ORDER BY created_at DESC
     `;
-    const result = await this.dbClient.query(query, [status, tenantId]);
+    const result = await this.dbClient.query(query, [...possibleValues, tenantId]);
     return result.rows.map((row) => this.mapRowToConfig(row));
   }
+
 
   async updateConfig(
     id: number,
@@ -482,6 +494,29 @@ export class DatabaseService {
   async cleanupStaleUsers(daysInactive: number = 90): Promise<number> {
     return userEmailCache.cleanupStale(daysInactive);
   }
+  private normalizeStatusFromDatabase(dbStatus: string): ConfigStatus {
+    // Normalize STATUS_XX_NAME format to ConfigStatus enum value
+    if (dbStatus && dbStatus.startsWith('STATUS_')) {
+      const parts = dbStatus.split('_');
+      if (parts.length >= 3) {
+        const statusName = parts.slice(2).join('_').toLowerCase();
+        // Map to ConfigStatus enum values
+        const statusMap: Record<string, ConfigStatus> = {
+          'in_progress': ConfigStatus.IN_PROGRESS,
+          'under_review': ConfigStatus.UNDER_REVIEW,
+          'approved': ConfigStatus.APPROVED,
+          'rejected': ConfigStatus.REJECTED,
+          'exported': ConfigStatus.EXPORTED,
+          'deployed': ConfigStatus.DEPLOYED,
+        };
+        return statusMap[statusName] || (dbStatus as ConfigStatus);
+      }
+    }
+    // Return as-is if it's already in the expected format
+    return dbStatus as ConfigStatus;
+  }
+
+
 
   private mapRowToConfig(row: any): Config {
     return {
@@ -504,7 +539,7 @@ export class DatabaseService {
           : typeof row.functions === 'string'
             ? JSON.parse(row.functions)
             : row.functions,
-      status: row.status as ConfigStatus,
+      status: this.normalizeStatusFromDatabase(row.status),
       tenantId: row.tenant_id,
       createdBy: row.created_by,
       createdAt: row.created_at,

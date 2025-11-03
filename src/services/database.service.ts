@@ -191,27 +191,14 @@ export class DatabaseService {
   }
 
   async findConfigsByStatus(status: ConfigStatus, tenantId: string): Promise<Config[]> {
-    // Create a mapping from ConfigStatus enum to potential database values
-    const statusMappings: Record<string, string[]> = {
-      [ConfigStatus.IN_PROGRESS]: [ConfigStatus.IN_PROGRESS, 'STATUS_01_IN_PROGRESS'],
-      [ConfigStatus.UNDER_REVIEW]: [ConfigStatus.UNDER_REVIEW, 'STATUS_03_UNDER_REVIEW'], 
-      [ConfigStatus.APPROVED]: [ConfigStatus.APPROVED, 'STATUS_04_APPROVED'],
-      [ConfigStatus.REJECTED]: [ConfigStatus.REJECTED, 'STATUS_05_REJECTED'],
-      [ConfigStatus.EXPORTED]: [ConfigStatus.EXPORTED, 'STATUS_06_EXPORTED'],
-      [ConfigStatus.DEPLOYED]: [ConfigStatus.DEPLOYED, 'STATUS_07_DEPLOYED'],
-      [ConfigStatus.CHANGES_REQUESTED]: [ConfigStatus.CHANGES_REQUESTED, 'STATUS_08_CHANGES_REQUESTED']
-    };
-
-    const possibleValues = statusMappings[status] || [status];
-    const placeholders = possibleValues.map((_, index) => `$${index + 1}`).join(', ');
-    
+    // The enum values are already in STATUS_XX_NAME format
     const query = `
       SELECT * FROM config 
-      WHERE status IN (${placeholders}) AND tenant_id = $${possibleValues.length + 1}
+      WHERE status = $1 AND tenant_id = $2
       ORDER BY created_at DESC
     `;
     
-    const result = await this.dbClient.query(query, [...possibleValues, tenantId]);
+    const result = await this.dbClient.query(query, [status, tenantId]);
     return result.rows.map((row) => this.mapRowToConfig(row));
   }
 
@@ -270,7 +257,9 @@ export class DatabaseService {
     if (updates.status !== undefined) {
       updateFields.push(`status = $${paramIndex++}`);
       // Convert status to database format (STATUS_XX_NAME)
-      values.push(this.convertStatusToDatabase(updates.status));
+      const statusValue = this.convertStatusToDatabase(updates.status);
+      console.log(`🔄 DATABASE UPDATE - Setting status to: "${statusValue}" (original: "${updates.status}")`);
+      values.push(statusValue);
     }
     if (updates.comments !== undefined) {
       updateFields.push(`comments = $${paramIndex++}`);
@@ -286,7 +275,12 @@ export class DatabaseService {
       WHERE id = $${paramIndex++} AND tenant_id = $${paramIndex++}
     `;
 
-    await this.dbClient.query(query, values);
+    console.log(`🔍 DATABASE UPDATE QUERY:`, query);
+    console.log(`🔍 DATABASE UPDATE VALUES:`, values);
+    console.log(`🔍 UPDATE TARGET: id=${id}, tenantId=${tenantId}`);
+    
+    const result = await this.dbClient.query(query, values);
+    console.log(`✅ DATABASE UPDATE RESULT: ${result.rowCount} row(s) affected`);
   }
 
   async deleteConfig(id: number, tenantId: string): Promise<void> {
@@ -493,52 +487,14 @@ export class DatabaseService {
    * Convert ConfigStatus enum to database STATUS_XX_NAME format
    */
   private convertStatusToDatabase(status: string): string {
-    const statusToDbMap: Record<string, string> = {
-      [ConfigStatus.IN_PROGRESS]: 'STATUS_01_IN_PROGRESS',
-      [ConfigStatus.SUSPENDED]: 'STATUS_02_SUSPENDED',
-      [ConfigStatus.UNDER_REVIEW]: 'STATUS_03_UNDER_REVIEW',
-      [ConfigStatus.APPROVED]: 'STATUS_04_APPROVED',
-      [ConfigStatus.REJECTED]: 'STATUS_05_REJECTED',
-      [ConfigStatus.EXPORTED]: 'STATUS_06_EXPORTED',
-      [ConfigStatus.READY_FOR_DEPLOYMENT]: 'STATUS_07_READY_FOR_DEPLOYMENT',
-      [ConfigStatus.DEPLOYED]: 'STATUS_08_DEPLOYED',
-      [ConfigStatus.CHANGES_REQUESTED]: 'STATUS_09_CHANGES_REQUESTED',
-    };
-    
-    // If already in STATUS_XX format, return as-is
-    if (status && status.startsWith('STATUS_')) {
-      return status;
-    }
-    
-    // Convert enum value to database format
-    return statusToDbMap[status] || status;
+    // The enum values are already in STATUS_XX_NAME format
+    // Just return as-is, this method exists for backward compatibility
+    return status;
   }
 
   private normalizeStatusFromDatabase(dbStatus: string): ConfigStatus {
-    // Normalize STATUS_XX_NAME format to ConfigStatus enum value
-    if (dbStatus && dbStatus.startsWith('STATUS_')) {
-      const parts = dbStatus.split('_');
-      if (parts.length >= 3) {
-        const statusName = parts.slice(2).join('_').toLowerCase();
-        
-        // Map to ConfigStatus enum values
-        const statusMap: Record<string, ConfigStatus> = {
-          'in_progress': ConfigStatus.IN_PROGRESS,
-          'suspended': ConfigStatus.SUSPENDED,
-          'under_review': ConfigStatus.UNDER_REVIEW,
-          'approved': ConfigStatus.APPROVED,
-          'rejected': ConfigStatus.REJECTED,
-          'exported': ConfigStatus.EXPORTED,
-          'ready_for_deployment': ConfigStatus.READY_FOR_DEPLOYMENT,
-          'deployed': ConfigStatus.DEPLOYED,
-          'changes_requested': ConfigStatus.CHANGES_REQUESTED
-        };
-        
-        return statusMap[statusName] || (dbStatus as ConfigStatus);
-      }
-    }
-    
-    // Return as-is if it's already in the expected format
+    // The enum values are already in STATUS_XX_NAME format
+    // Just return as-is, this method exists for backward compatibility
     return dbStatus as ConfigStatus;
   }
 

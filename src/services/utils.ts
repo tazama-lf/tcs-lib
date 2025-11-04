@@ -4,19 +4,19 @@
  * @param path The dot-notation path (e.g., 'user.address.street')
  * @returns The value at the specified path, or undefined if not found
  */
-export function getValueByPath<T>(obj: any, path: string): T {
+export function getValueByPath(obj: any, path: string): any {
   const properties = path.split('.');
   let current: any = obj;
 
   for (const prop of properties) {
-    if (/^\d+$/.test(prop)) {
+    if (prop.match(/^\d+$/)) {
       current = current[parseInt(prop)];
     } else {
       current = current?.[prop];
     }
 
     if (current === undefined || current === null) {
-      throw new Error(`Property '${path}' not found`);
+      return undefined;
     }
   }
 

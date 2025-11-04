@@ -78,8 +78,9 @@ export class DatabaseService {
         functions, 
         status, 
         tenant_id, 
-        created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        created_by,
+        publishing_status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING id
     `;
 
@@ -95,6 +96,7 @@ export class DatabaseService {
       this.convertStatusToDatabase(config.status || ConfigStatus.IN_PROGRESS),
       config.tenantId,
       config.createdBy,
+      config.publishing_status || 'inactive',
     ];
 
     const result = await this.dbClient.query(query, values);
@@ -205,18 +207,7 @@ export class DatabaseService {
   async updateConfig(
     id: number,
     tenantId: string,
-    updates: {
-      msgFam?: string;
-      transactionType?: string;
-      endpointPath?: string;
-      version?: string;
-      contentType?: string;
-      schema?: JSONSchema;
-      mapping?: FieldMapping[];
-      functions?: FunctionDefinition[];
-      status?: string;
-      comments?: string; // Comments from approvers to editors (CHANGES_REQUESTED)
-    },
+    updates: Partial<Config>
   ): Promise<void> {
     const updateFields: string[] = [];
     const values: any[] = [];
@@ -244,38 +235,31 @@ export class DatabaseService {
     }
     if (updates.schema !== undefined) {
       updateFields.push(`schema = $${paramIndex++}`);
-      const schemaString = JSON.stringify(updates.schema);
-      
-      // Log schema size and preview for debugging
-      console.log(` Saving schema - Size: ${schemaString.length} bytes`);
-      console.log(`Schema preview (first 500 chars): ${schemaString.substring(0, 500)}...`);
-      
-      // Validate array fields before saving
-      const hasArrays = schemaString.includes('"type":"ARRAY"') || schemaString.includes('"arrayElementType"');
-      if (hasArrays) {
-        console.log(` Schema contains array fields - will verify after save`);
-      }
-      
-      values.push(schemaString);
+      values.push(JSON.stringify(updates.schema));
     }
     if (updates.mapping !== undefined) {
       updateFields.push(`mapping = $${paramIndex++}`);
-      values.push(JSON.stringify(updates.mapping));
+      values.push(updates.mapping ? JSON.stringify(updates.mapping) : null);
     }
     if (updates.functions !== undefined) {
       updateFields.push(`functions = $${paramIndex++}`);
-      values.push(JSON.stringify(updates.functions));
+      values.push(updates.functions ? JSON.stringify(updates.functions) : null);
     }
     if (updates.status !== undefined) {
       updateFields.push(`status = $${paramIndex++}`);
-      // Convert status to database format (STATUS_XX_NAME)
-      const statusValue = this.convertStatusToDatabase(updates.status);
-      console.log(`🔄 DATABASE UPDATE - Setting status to: "${statusValue}" (original: "${updates.status}")`);
-      values.push(statusValue);
+      values.push(this.convertStatusToDatabase(updates.status));
+    }
+    if (updates.createdBy !== undefined) {
+      updateFields.push(`created_by = $${paramIndex++}`);
+      values.push(updates.createdBy);
     }
     if (updates.comments !== undefined) {
       updateFields.push(`comments = $${paramIndex++}`);
       values.push(updates.comments);
+    }
+    if (updates.publishing_status !== undefined) {
+      updateFields.push(`publishing_status = $${paramIndex++}`);
+      values.push(updates.publishing_status);
     }
 
     updateFields.push('updated_at = CURRENT_TIMESTAMP');
@@ -293,9 +277,7 @@ export class DatabaseService {
     
     const result = await this.dbClient.query(query, values);
     console.log(`✅ DATABASE UPDATE RESULT: ${result.rowCount} row(s) affected`);
-  }
-
-  async deleteConfig(id: number, tenantId: string): Promise<void> {
+  }  async deleteConfig(id: number, tenantId: string): Promise<void> {
     const query = `
       DELETE FROM config 
       WHERE id = $1 AND tenant_id = $2

@@ -91,7 +91,8 @@ export interface Config {
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
-  comments?: string; // Comments from approvers to editors (CHANGES_REQUESTED status)
+  comments?: string; 
+  publishing_status?: 'active' | 'inactive';
 }
 export interface AddMappingDto {
   source?: string;

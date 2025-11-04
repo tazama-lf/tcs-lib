@@ -38,16 +38,14 @@ export interface FunctionDefinition {
     params: string[];
     functionName: AllowedFunctionName;
 }
-export type AllowedFunctionName = 'saveTransactionDetails' | 'addAccountHolder' | 'addEntity' | 'addAccount' | 'transactionRelationship';
+export type AllowedFunctionName = 'addAccountHolder' | 'addEntity' | 'addAccount' | 'transactionRelationship';
 export declare enum ConfigStatus {
-    IN_PROGRESS = "STATUS_01_IN_PROGRESS",
-    SUSPENDED = "STATUS_02_SUSPENDED",
-    UNDER_REVIEW = "STATUS_03_UNDER_REVIEW",
-    APPROVED = "STATUS_04_APPROVED",
-    REJECTED = "STATUS_05_REJECTED",
-    EXPORTED = "STATUS_06_EXPORTED",
-    READY_FOR_DEPLOYMENT = "STATUS_07_READY_FOR_DEPLOYMENT",
-    DEPLOYED = "STATUS_08_DEPLOYED"
+    IN_PROGRESS = "IN_PROGRESS",
+    UNDER_REVIEW = "UNDER_REVIEW",
+    APPROVED = "APPROVED",
+    DEPLOYED = "DEPLOYED",
+    REJECTED = "REJECTED",
+    CHANGES_REQUESTED = "CHANGES_REQUESTED"
 }
 export interface MappingSource {
     field: string;
@@ -130,7 +128,6 @@ export interface WorkflowValidationResult {
     canApprove: boolean;
     canReject: boolean;
     canRequestChanges: boolean;
-    canExport: boolean;
     canDeploy: boolean;
     canReturnToProgress: boolean;
     reason?: string;
@@ -142,8 +139,8 @@ export interface StatusTransitionValidation {
     allowedNextStatuses: ConfigStatus[];
     reason?: string;
 }
-export type WorkflowAction = 'submit_for_approval' | 'approve' | 'reject' | 'request_changes' | 'export' | 'deploy' | 'return_to_progress';
-export interface AuditLogEntry {
+export type WorkflowAction = 'submit_for_approval' | 'approve' | 'reject'  | 'deploy' | 'return_to_progress';
+export interface ConfigAuditLogEntry {
     configId: number;
     action: string;
     userId: string;

@@ -244,7 +244,19 @@ export class DatabaseService {
     }
     if (updates.schema !== undefined) {
       updateFields.push(`schema = $${paramIndex++}`);
-      values.push(JSON.stringify(updates.schema));
+      const schemaString = JSON.stringify(updates.schema);
+      
+      // Log schema size and preview for debugging
+      console.log(` Saving schema - Size: ${schemaString.length} bytes`);
+      console.log(`Schema preview (first 500 chars): ${schemaString.substring(0, 500)}...`);
+      
+      // Validate array fields before saving
+      const hasArrays = schemaString.includes('"type":"ARRAY"') || schemaString.includes('"arrayElementType"');
+      if (hasArrays) {
+        console.log(` Schema contains array fields - will verify after save`);
+      }
+      
+      values.push(schemaString);
     }
     if (updates.mapping !== undefined) {
       updateFields.push(`mapping = $${paramIndex++}`);
@@ -499,6 +511,52 @@ export class DatabaseService {
   }
 
   private mapRowToConfig(row: any): Config {
+    // Parse schema with validation
+    let parsedSchema;
+    try {
+      parsedSchema = typeof row.schema === 'string' ? JSON.parse(row.schema) : row.schema;
+      
+      // Validate schema integrity - check for arrays
+      if (parsedSchema && typeof parsedSchema === 'object') {
+        const validateArrayFields = (schema: any, path: string = ''): boolean => {
+          let hasIssues = false;
+          
+          if (Array.isArray(schema)) {
+            for (const field of schema) {
+              if (field.type === 'ARRAY') {
+                if (!field.arrayElementType) {
+                  console.warn(`⚠️  Array field missing arrayElementType at path: ${path}.${field.name}`);
+                  hasIssues = true;
+                }
+                if (field.arrayElementType === 'OBJECT' && !field.children) {
+                  console.warn(`⚠️  Object array missing children at path: ${path}.${field.name}`);
+                  hasIssues = true;
+                }
+              }
+              
+              if (field.children && Array.isArray(field.children)) {
+                const childPath = path ? `${path}.${field.name}` : field.name;
+                if (validateArrayFields(field.children, childPath)) {
+                  hasIssues = true;
+                }
+              }
+            }
+          }
+          
+          return hasIssues;
+        };
+        
+        const hasArrayIssues = validateArrayFields(parsedSchema);
+        if (hasArrayIssues) {
+          console.error(`❌ Schema integrity check failed for config ${row.id} - arrays lost metadata`);
+          console.error(`Schema preview: ${JSON.stringify(parsedSchema).substring(0, 500)}...`);
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to parse schema for config ${row.id}:`, error);
+      parsedSchema = row.schema;
+    }
+    
     return {
       id: row.id,
       msgFam: row.msg_fam,
@@ -506,7 +564,7 @@ export class DatabaseService {
       endpointPath: row.endpoint_path,
       version: row.version,
       contentType: row.content_type,
-      schema: typeof row.schema === 'string' ? JSON.parse(row.schema) : row.schema,
+      schema: parsedSchema,
       mapping:
         row.mapping === null
           ? null

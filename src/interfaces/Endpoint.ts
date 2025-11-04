@@ -61,14 +61,13 @@ export type AllowedFunctionName =
 /* eslint-disable no-unused-vars */
 export enum ConfigStatus {
   IN_PROGRESS = 'STATUS_01_IN_PROGRESS',
-  SUSPENDED = 'STATUS_02_SUSPENDED',
+  ON_HOLD = 'STATUS_02_ON_HOLD',
   UNDER_REVIEW = 'STATUS_03_UNDER_REVIEW',
   APPROVED = 'STATUS_04_APPROVED',
   REJECTED = 'STATUS_05_REJECTED',
   EXPORTED = 'STATUS_06_EXPORTED',
   READY_FOR_DEPLOYMENT = 'STATUS_07_READY_FOR_DEPLOYMENT',
   DEPLOYED = 'STATUS_08_DEPLOYED',
-  CHANGES_REQUESTED = 'STATUS_09_CHANGES_REQUESTED',
 }
 /* eslint-enable no-unused-vars */
 export interface MappingSource {
@@ -168,7 +167,6 @@ export type WorkflowAction =
   | 'submit_for_approval'
   | 'approve'
   | 'reject'
-  | 'request_changes'
   | 'export'
   | 'deploy'
   | 'return_to_progress';

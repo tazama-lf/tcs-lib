@@ -7,6 +7,7 @@ import { Config, ConfigStatus } from '../interfaces/Endpoint';
 import { randomUUID } from 'crypto';
 
 import { userEmailCache } from './user-email-cache.service';
+import { JobStatus, Schedule } from 'src/interfaces/enrichment.interface';
 
 export interface AuditLogEntry {
   action: string;
@@ -830,7 +831,162 @@ export class DatabaseService {
     };
   }
 
-  async close(): Promise<void> {
-    await this.dbClient.end();
+
+
+  // ==================== SCHEDULER OPERATIONS ====================
+
+  async createSchedule(scheduleWithId: Record<string, unknown>): Promise<string> {
+    try {
+      const keys = Object.keys(scheduleWithId);
+      const values = Object.values(scheduleWithId);
+      const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
+
+      const insertQuery = `
+      INSERT INTO schedule (${keys.join(', ')})
+      VALUES (${placeholders})
+      RETURNING id;
+    `;
+
+      const result = await this.dbClient.query(insertQuery, values);
+      const insertedId = result.rows[0]?.id;
+
+      if (!insertedId) {
+        throw new Error('Failed to insert schedule: No ID returned.');
+      }
+
+      return insertedId;
+    } catch (error) {
+      throw new Error(`Failed to create schedule: ${(error as Error).message}`);
+    }
   }
+
+  async findScheduleById(id: string): Promise<Schedule | null> {
+    try {
+      const query = 'SELECT * FROM schedule WHERE id = $1 LIMIT 1;';
+      const result = await this.dbClient.query(query, [id]);
+      return result.rows[0] || null;
+    } catch (error) {
+
+      throw new Error(`Failed to find schedule: ${(error as Error).message}`);
+    }
+  }
+
+  async updateSchedule(id: string, attr: Record<string, unknown>): Promise<number | null> {
+    try {
+      const keys = Object.keys(attr);
+      const values = Object.values(attr);
+      const setClause = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
+
+      const query = `
+      UPDATE schedule 
+      SET ${setClause} 
+      WHERE id = $${keys.length + 1};
+    `;
+
+      const result = await this.dbClient.query(query, [...values, id]);
+
+      if (result.rowCount === 0) {
+        throw new Error(`No schedule found with id: ${id}`);
+      }
+      return result.rowCount;
+    } catch (error) {
+
+      throw new Error(`Failed to update schedule: ${(error as Error).message}`);
+    }
+  }
+
+  async getAllSchedule(
+    tenant_id: string,
+    page: number,
+    limit: number
+  ): Promise<Schedule[]> {
+    try {
+      const offset = (page - 1) * limit;
+
+
+      const result = await this.dbClient.query('SELECT * FROM schedule WHERE tenant_id = $1 LIMIT $2 OFFSET $3;', [tenant_id, limit, offset]);
+
+      return result.rows;
+    } catch (error) {
+      throw new Error(`Failed to fetch schedules: ${(error as Error).message}`);
+    }
+  }
+
+  async getScheduleByStatus(
+    tenant_id: string,
+    status: JobStatus,
+    page: number,
+    limit: number
+  ): Promise<Schedule[]> {
+    try {
+      const offset = (page - 1) * limit;
+
+      const query = `
+      SELECT *
+      FROM schedule
+      WHERE tenant_id = $1
+        AND status = $2
+      ORDER BY created_at DESC
+      LIMIT $3 OFFSET $4;
+    `;
+
+      const result = await this.dbClient.query(query, [tenant_id, status, limit, offset]);
+
+      return result.rows;
+    } catch (error) {
+      throw new Error(`Failed to fetch schedules: ${(error as Error).message}`);
+    }
+  }
+
+  async updateScheduleByStatus(
+    status: JobStatus,
+    id: string,
+    tenant_id: string,
+    reason?: string
+  ): Promise<number | null> {
+    try {
+      const query =
+        status === JobStatus.REJECTED
+          ? `
+          UPDATE schedule
+          SET status = $1, comments = $2, updated_at = NOW()
+           WHERE id = $3 AND tenant_id = $4
+          RETURNING id;
+        `
+          : `
+          UPDATE schedule
+          SET status = $1, updated_at = NOW()
+          WHERE id = $2 AND tenant_id = $3
+          RETURNING id;
+        `;
+
+      const params =
+        status === JobStatus.REJECTED
+          ? [status, reason, id, tenant_id]
+          : [status, id, tenant_id];
+
+      const result = await this.dbClient.query(query, params);
+
+      if (result.rowCount === 0) {
+        throw new Error(`No schedule found with id: ${id}`);
+      }
+
+      return result.rowCount;
+    } catch (error) {
+      console.error('Error updating schedule status:', error);
+      throw new Error(`Failed to update schedule status: ${(error as Error).message}`);
+    }
+  }
+
+
+
+  async close(): Promise<void> {
+    try {
+      await this.dbClient.end();
+    } catch (error) {
+      console.error('Error closing database connection:', error);
+      throw new Error(`Failed to close database connection: ${(error as Error).message}`);
+    }
+  }
+
 }

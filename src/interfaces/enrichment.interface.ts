@@ -46,14 +46,14 @@ interface ISuccess {
 
 interface Schedule {
     id: number;
+    tenant_id: string,
     name: string;
-    iterations: number;
-    schedule_status: ScheduleStatus;
-    next_time: string | null;
     cron: string;
+    iterations: number;
     status: JobStatus,
     start_date: Date,
     end_date?: Date
+    comments: string
 }
 
 interface HTTPConnection {

@@ -1,5 +1,4 @@
 // DTOs
-export * from './dtos/endpoint.dto';
 export * from './dtos/file-upload.dto';
 export * from './dtos/schema-workflow.dto';
 
@@ -7,6 +6,7 @@ export * from './dtos/schema-workflow.dto';
 export * from './interfaces/core.interfaces';
 export * from './interfaces/schema.interfaces';
 export * from './interfaces/json-schema.interfaces';
+export * from './interfaces/database.interfaces';
 export * from './interfaces/multi-field-mapping.interfaces';
 export * from './interfaces/Endpoint';
 export * from './interfaces/enrichment.interface';
@@ -22,8 +22,6 @@ export * from './services/file-parsing-class.service';
 export { DatabaseService } from './services/database.service';
 export { DatabaseFactory } from './database/databaseFactory';
 export { userEmailCache } from './services/user-email-cache.service';
-
-export type { AuditLogEntry as DbAuditLogEntry, DatabaseConfig } from './services/database.service';
 
 export { AuditService } from './audit/audit.service';
 export { convertToJSONSchema } from './schemas/json-schema-converter.service';

@@ -171,14 +171,4 @@ export type WorkflowAction =
   | 'export'
   | 'deploy'
   | 'return_to_progress';
-export interface AuditLogEntry {
-  configId: number;
-  action: string;
-  userId: string;
-  userRole: string;
-  previousStatus?: ConfigStatus;
-  newStatus?: ConfigStatus;
-  comment?: string;
-  metadata?: Record<string, any>;
-  timestamp: Date;
-}
+

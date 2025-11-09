@@ -264,7 +264,7 @@ class UserEmailCache {
     
     this.groupApproversCache.set(key, cached);
     
-    console.log(`✅ Cached ${emails.length} approver(s) for tenant '${tenantId}' group '${groupName}' (TTL: ${cached.ttlMs}ms)`);
+    console.log(`Cached ${emails.length} approver(s) for tenant '${tenantId}' group '${groupName}' (TTL: ${cached.ttlMs}ms)`);
   }
 
   /**
@@ -280,7 +280,7 @@ class UserEmailCache {
     const cached = this.groupApproversCache.get(key);
     
     if (!cached) {
-      console.log(`ℹ️  Cache miss for tenant '${tenantId}' group '${groupName}'`);
+      console.log(`Cache miss for tenant '${tenantId}' group '${groupName}'`);
       return null;
     }
 
@@ -289,12 +289,12 @@ class UserEmailCache {
     const cacheAge = now - cached.cachedAt.getTime();
     
     if (cacheAge > cached.ttlMs) {
-      console.log(`⏰ Cache expired for tenant '${tenantId}' group '${groupName}' (age: ${cacheAge}ms, TTL: ${cached.ttlMs}ms)`);
+      console.log(`Cache expired for tenant '${tenantId}' group '${groupName}' (age: ${cacheAge}ms, TTL: ${cached.ttlMs}ms)`);
       this.groupApproversCache.delete(key);
       return null;
     }
 
-    console.log(`✅ Cache hit for tenant '${tenantId}' group '${groupName}' (${cached.emails.length} approvers, age: ${cacheAge}ms)`);
+    console.log(`Cache hit for tenant '${tenantId}' group '${groupName}' (${cached.emails.length} approvers, age: ${cacheAge}ms)`);
     return cached.emails;
   }
 
@@ -307,7 +307,7 @@ class UserEmailCache {
     const deleted = this.groupApproversCache.delete(key);
     
     if (deleted) {
-      console.log(`🗑️  Invalidated cache for tenant '${tenantId}' group '${groupName}'`);
+      console.log(`Invalidated cache for tenant '${tenantId}' group '${groupName}'`);
     }
     
     return deleted;
@@ -319,7 +319,7 @@ class UserEmailCache {
   clearGroupApproversCache(): void {
     const size = this.groupApproversCache.size;
     this.groupApproversCache.clear();
-    console.log(`🗑️  Cleared ${size} group approvers cache entries`);
+    console.log(`Cleared ${size} group approvers cache entries`);
   }
 }
 

@@ -45,7 +45,7 @@ interface ISuccess {
 }
 
 interface Schedule {
-    id: number;
+    id: string;
     tenant_id: string,
     name: string;
     cron: string;
@@ -53,7 +53,7 @@ interface Schedule {
     status: JobStatus,
     start_date: Date,
     end_date?: Date
-    comments: string
+    comments: string | null
 }
 
 interface HTTPConnection {

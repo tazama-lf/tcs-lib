@@ -831,7 +831,100 @@ export class DatabaseService {
     };
   }
 
+  // ==================== JOB OPERATIONS ====================
 
+  async createPushJob(job: Record<string, unknown>): Promise<string | null> {
+    try {
+      const keys = Object.keys(job);
+      const values = Object.values(job);
+      const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
+
+      const insertQuery = `
+                    INSERT INTO endpoints (${keys.join(', ')})
+                     VALUES (${placeholders})
+                      RETURNING *;
+                      `;
+      const result = await this.dbClient.query(insertQuery, values);
+      const insertedId = result.rows[0]?.id;
+
+      return insertedId;
+    } catch (error) {
+      throw new Error(`Failed to create job: ${(error as Error).message}`);
+    }
+  }
+
+
+  async createPullJob(job: Record<string, unknown>): Promise<string | null> {
+    try {
+      const keys = Object.keys(job);
+      const values = Object.values(job);
+      const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
+
+      const insertQuery = `
+                    INSERT INTO job (${keys.join(', ')})
+                     VALUES (${placeholders})
+                      RETURNING *;
+                      `;
+      const result = await this.dbClient.query(insertQuery, values);
+      const insertedId = result.rows[0]?.id;
+
+      return insertedId;
+    } catch (error) {
+      throw new Error(`Failed to create job: ${(error as Error).message}`);
+    }
+  }
+
+  async getAllJobs(
+    tenant_id: string,
+    page: number,
+    limit: number
+  ): Promise<Schedule[]> {
+    try {
+      const offset = (page - 1) * limit;
+      const query = `
+      SELECT 
+        id,
+        endpoint_name,
+        path,
+        mode,
+        table_name,
+        description,
+        version,
+        status,
+        publishing_status,
+        created_at,
+        'push' AS type
+      FROM endpoints
+      WHERE tenant_id = $3
+
+      UNION ALL
+
+      SELECT 
+        id,
+        endpoint_name,
+        NULL AS path,
+        mode,
+        table_name,
+        description,
+        version,
+        status,
+        publishing_status,
+        created_at,
+        'pull' AS type
+      FROM job
+      WHERE tenant_id = $3
+
+      ORDER BY created_at DESC
+      LIMIT $1 OFFSET $2;
+    `;
+
+      const result = await this.dbClient.query(query, [tenant_id, limit, offset]);
+
+      return result.rows;
+    } catch (error) {
+      throw new Error(`Failed to fetch jobs: ${(error as Error).message}`);
+    }
+  }
 
   // ==================== SCHEDULER OPERATIONS ====================
 

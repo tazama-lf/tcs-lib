@@ -32,8 +32,13 @@ export async function processMappings(
 
   if (configuredMapping) {
     try {
-      for (const mapping of configuredMapping) {
-        const sources = mapping.source;
+      // Support both array format and object with mappings property
+      const mappingsArray = Array.isArray(configuredMapping) 
+        ? configuredMapping 
+        : (configuredMapping.mappings || []);
+      
+      for (const mapping of mappingsArray) {
+        const sources = mapping.source || [];
         const destination =
           typeof mapping.destination === 'string'
             ? mapping.destination.split('.')[1]
@@ -44,6 +49,11 @@ export async function processMappings(
             : mapping.destination;
         const separator = mapping.delimiter;
         const transformation = mapping.transformation;
+
+        // Skip if no sources defined (unless it's a constant value)
+        if (!mapping.constantValue && (!sources || sources.length === 0)) {
+          continue;
+        }
 
         if (mapping.constantValue) {
           if (type === 'redis') {
@@ -84,9 +94,9 @@ export async function processMappings(
               const numValue: number = getValueByPath<number>(payload, sources[i]);
               sum += numValue;
             } else {
-              dataCacheValue += value;
+              dataCacheValue += value ?? '';
             }
-            if (i < sources.length - 1) {
+            if (separator && i < sources.length - 1) {
               dataCacheValue += separator;
             }
           }
@@ -96,9 +106,9 @@ export async function processMappings(
               const numValue = getValueByPath<number>(payload, sources[i]);
               sum += numValue;
             } else {
-              transactionRelationshipValue += value;
+              transactionRelationshipValue += value ?? '';
             }
-            if (i < sources.length - 1) {
+            if (separator && i < sources.length - 1) {
               transactionRelationshipValue += separator;
             }
           }
@@ -129,7 +139,7 @@ export async function processMappings(
         }
       }
     } catch (error) {
-      this.loggerService.error(`Failed to process mapping data: ${String(error)}`);
+      console.error(`Failed to process mapping data: ${String(error)}`);
       // Return valid objects even on error
       return {
         dataCache,
@@ -138,7 +148,7 @@ export async function processMappings(
       };
     }
   } else {
-    this.loggerService.log(`No mapping configured for endpoint: ${endpoint}`);
+    console.log(`No mapping configured for endpoint: ${endpoint}`);
   }
 
   return {

@@ -1,46 +1,14 @@
 ﻿import { Pool, PoolClient } from 'pg';
-
-import { DatabaseFactory } from '../database/databaseFactory';
-
-import { Config, ConfigStatus } from '../interfaces/Endpoint';
-
 import { randomUUID } from 'crypto';
 
 import { Job, JobStatus, JobSummary, Schedule } from 'src/interfaces/enrichment.interface';
+import { DatabaseFactory } from '../database/databaseFactory';
+import type { Config } from '../types/config.types';
+import { ConfigStatus } from '../types/config.types';
+import type { DatabaseConfig, AuditLogEntry } from '../interfaces/database.interfaces';
 import { userEmailCache } from './user-email-cache.service';
 
-export interface AuditLogEntry {
-  action: string;
-  entityType: string;
-  entityId?: string;
-  actor: string;
-  actorEmail?: string;
-  tenantId: string;
-  endpointName?: string;
-  mappingName?: string;
-  version?: string;
-  details?: string;
-  oldValues?: Record<string, any>;
-  newValues?: Record<string, any>;
-  ipAddress?: string;
-  userAgent?: string;
-  sessionId?: string;
-  severity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status?: 'SUCCESS' | 'FAILURE' | 'PENDING';
-  errorMessage?: string;
-}
-
-export interface DatabaseConfig {
-  host: string;
-
-  port: number;
-
-  database: string;
-
-  user: string;
-
-  password: string;
-}
+export type { AuditLogEntry, DatabaseConfig } from '../interfaces/database.interfaces';
 
 export class DatabaseService {
   private dbClient: Pool;
@@ -53,21 +21,12 @@ export class DatabaseService {
     this.dbClient = DatabaseFactory.getPool();
   }
 
-  /**
-
-   * Get the underlying database pool
-
-   */
+ 
 
   getPool(): Pool {
     return this.dbClient;
   }
 
-  /**
-
-   * Get a client from the pool for transactions
-
-   */
 
   async getClient(): Promise<PoolClient> {
     return await this.dbClient.connect();
@@ -75,11 +34,6 @@ export class DatabaseService {
 
   // ==================== CONFIG CRUD OPERATIONS ====================
 
-  /**
-
-   * Create a new configuration
-
-   */
 
   async createConfig(config: Omit<Config, 'id' | 'createdAt' | 'updatedAt'>): Promise<number> {
     const query = `
@@ -147,13 +101,19 @@ export class DatabaseService {
     return result.rows[0].id;
   }
 
+  /**
+   * Finds a configuration by its unique identifier and tenant
+   * @param id - The unique configuration ID
+   * @param tenantId - The tenant identifier for multi-tenancy isolation
+   * @returns The configuration object or null if not found
+   * @throws Error if database query fails
+   */
   async findConfigById(id: number, tenantId: string): Promise<Config | null> {
     const query = `
 
       SELECT * FROM config
 
       WHERE id = $1 AND tenant_id = $2
-
     `;
 
     const result = await this.dbClient.query(query, [id, tenantId]);
@@ -165,128 +125,244 @@ export class DatabaseService {
     return this.mapRowToConfig(result.rows[0]);
   }
 
+  /**
+   * Finds a configuration by endpoint path and version
+   * @param endpointPath - The API endpoint path (e.g., /tenant/v1/pacs.008)
+   * @param version - The configuration version
+   * @param tenantId - The tenant identifier for multi-tenancy isolation
+   * @param limit - Maximum number of results to return (default: 10)
+   * @param offset - Number of results to skip (default: 0)
+   * @returns Object with data array, total count, limit, and offset
+   * @throws Error if database query fails
+   */
   async findConfigByEndpoint(
     endpointPath: string,
-
     version: string,
-
     tenantId: string,
-  ): Promise<Config | null> {
-    const query = `
-
-      SELECT * FROM config
-
+    limit: number = 10,
+    offset: number = 0,
+  ): Promise<{ data: Config[]; total: number; limit: number; offset: number }> {
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM config
       WHERE endpoint_path = $1 AND version = $2 AND tenant_id = $3
-
     `;
 
-    const result = await this.dbClient.query(query, [endpointPath, version, tenantId]);
+    const countResult = await this.dbClient.query(countQuery, [endpointPath, version, tenantId]);
+    const total = parseInt(countResult.rows[0].total, 10);
 
-    if (result.rows.length === 0) {
-      return null;
-    }
+    // Get paginated data
+    const dataQuery = `
+      SELECT id, msg_fam, transaction_type, endpoint_path, version, content_type,
+             schema, mapping, functions, status, tenant_id, created_by, 
+             created_at, updated_at, publishing_status
+      FROM config
+      WHERE endpoint_path = $1 AND version = $2 AND tenant_id = $3
+      LIMIT $4 OFFSET $5
+    `;
 
-    return this.mapRowToConfig(result.rows[0]);
+    const dataResult = await this.dbClient.query(dataQuery, [endpointPath, version, tenantId, limit, offset]);
+
+    return {
+      data: dataResult.rows.map((row) => this.mapRowToConfig(row)),
+      total,
+      limit,
+      offset,
+    };
   }
 
-  async findConfigsByTenant(tenantId: string): Promise<Config[]> {
-    const query = `
-
-      SELECT * FROM config
-
+  /**
+   * Finds all configurations for a specific tenant
+   * WHY: Includes NULL and 'default' tenant_id for shared/global configurations
+   * @param tenantId - The tenant identifier
+   * @param limit - Maximum number of results to return (default: 10)
+   * @param offset - Number of results to skip (default: 0)
+   * @returns Object with data array, total count, limit, and offset, ordered by creation date (newest first)
+   * @throws Error if database query fails
+   */
+  async findConfigsByTenant(
+    tenantId: string,
+    limit: number = 10,
+    offset: number = 0,
+  ): Promise<{ data: Config[]; total: number; limit: number; offset: number }> {
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM config
       WHERE tenant_id = $1 OR tenant_id IS NULL OR tenant_id = 'default'
-
-      ORDER BY created_at DESC
-
     `;
 
-    const result = await this.dbClient.query(query, [tenantId]);
+    const countResult = await this.dbClient.query(countQuery, [tenantId]);
+    const total = parseInt(countResult.rows[0].total, 10);
 
-    return result.rows.map((row) => this.mapRowToConfig(row));
+    // Get paginated data
+    const dataQuery = `
+      SELECT id, msg_fam, transaction_type, endpoint_path, version, content_type,
+              status, tenant_id, created_by, 
+             created_at, updated_at, publishing_status
+      FROM config
+      WHERE tenant_id = $1 OR tenant_id IS NULL OR tenant_id = 'default'
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3
+    `;
+
+    const dataResult = await this.dbClient.query(dataQuery, [tenantId, limit, offset]);
+
+    return {
+      data: dataResult.rows.map((row) => this.mapRowToConfig(row)),
+      total,
+      limit,
+      offset,
+    };
   }
 
-  async findConfigsByTransactionType(transactionType: string, tenantId: string): Promise<Config[]> {
-    const query = `
-
-      SELECT * FROM config
-
+  async findConfigsByTransactionType(
+    transactionType: string,
+    tenantId: string,
+    limit: number = 10,
+    offset: number = 0,
+  ): Promise<{ data: Config[]; total: number; limit: number; offset: number }> {
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM config
       WHERE transaction_type = $1 AND tenant_id = $2
 
-      ORDER BY created_at DESC
-
     `;
 
-    const result = await this.dbClient.query(query, [transactionType, tenantId]);
+    const countResult = await this.dbClient.query(countQuery, [transactionType, tenantId]);
+    const total = parseInt(countResult.rows[0].total, 10);
 
-    return result.rows.map((row) => this.mapRowToConfig(row));
+    // Get paginated data
+    const dataQuery = `
+      SELECT endpoint_path, status,  created_at
+      FROM config
+      WHERE transaction_type = $1 AND tenant_id = $2
+      ORDER BY created_at DESC
+      LIMIT $3 OFFSET $4
+    `;
+
+    const dataResult = await this.dbClient.query(dataQuery, [transactionType, tenantId, limit, offset]);
+
+    return {
+      data: dataResult.rows.map((row) => this.mapRowToConfig(row)),
+      total,
+      limit,
+      offset,
+    };
   }
 
   async findConfigByVersionAndTransactionType(
     version: string,
-
     transactionType: string,
-
     tenantId: string,
-  ): Promise<Config | null> {
-    const query = `
-
-      SELECT * FROM config
-
+    limit: number = 10,
+    offset: number = 0,
+  ): Promise<{ data: Config[]; total: number; limit: number; offset: number }> {
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM config
       WHERE version = $1 AND transaction_type = $2 AND tenant_id = $3
-
     `;
 
-    const result = await this.dbClient.query(query, [version, transactionType, tenantId]);
+    const countResult = await this.dbClient.query(countQuery, [version, transactionType, tenantId]);
+    const total = parseInt(countResult.rows[0].total, 10);
 
-    if (result.rows.length === 0) {
-      return null;
-    }
+    // Get paginated data
+    const dataQuery = `
+      SELECT id, msg_fam, transaction_type, endpoint_path, version, content_type,
+             schema, mapping, functions, status, tenant_id, created_by, 
+             created_at, updated_at, publishing_status
+      FROM config
+      WHERE version = $1 AND transaction_type = $2 AND tenant_id = $3
+      LIMIT $4 OFFSET $5
+    `;
 
-    return this.mapRowToConfig(result.rows[0]);
+    const dataResult = await this.dbClient.query(dataQuery, [version, transactionType, tenantId, limit, offset]);
+
+    return {
+      data: dataResult.rows.map((row) => this.mapRowToConfig(row)),
+      total,
+      limit,
+      offset,
+    };
   }
 
   async findConfigByMsgFamVersionAndTransactionType(
     msgFam: string,
-
     version: string,
-
     transactionType: string,
-
     tenantId: string,
-  ): Promise<Config | null> {
-    const query = `
-
-      SELECT * FROM config
-
+    limit: number = 10,
+    offset: number = 0,
+  ): Promise<{ data: Config[]; total: number; limit: number; offset: number }> {
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM config
       WHERE msg_fam = $1 AND version = $2 AND transaction_type = $3 AND tenant_id = $4
-
     `;
 
-    const result = await this.dbClient.query(query, [msgFam, version, transactionType, tenantId]);
+    const countResult = await this.dbClient.query(countQuery, [msgFam, version, transactionType, tenantId]);
+    const total = parseInt(countResult.rows[0].total, 10);
 
-    if (result.rows.length === 0) {
-      return null;
-    }
+    // Get paginated data
+    const dataQuery = `
+      SELECT id, msg_fam, transaction_type, endpoint_path, version, content_type,
+             schema, mapping, functions, status, tenant_id, created_by, 
+             created_at, updated_at, publishing_status
+      FROM config
+      WHERE msg_fam = $1 AND version = $2 AND transaction_type = $3 AND tenant_id = $4
+      LIMIT $5 OFFSET $6
+    `;
 
-    return this.mapRowToConfig(result.rows[0]);
+    const dataResult = await this.dbClient.query(dataQuery, [msgFam, version, transactionType, tenantId, limit, offset]);
+
+    return {
+      data: dataResult.rows.map((row) => this.mapRowToConfig(row)),
+      total,
+      limit,
+      offset,
+    };
   }
 
-  async findConfigsByStatus(status: ConfigStatus, tenantId: string): Promise<Config[]> {
-    // The enum values are already in STATUS_XX_NAME format
-
-    const query = `
-
-      SELECT * FROM config
-
-      WHERE status = $1 AND tenant_id = $2
-
-      ORDER BY created_at DESC
-
+  async findConfigsByStatus(
+    status: ConfigStatus,
+    tenantId: string,
+    limit: number = 10,
+    offset: number = 0,
+  ): Promise<{ data: Config[]; total: number; limit: number; offset: number }> {
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM config
+      WHERE status IN ($1) AND tenant_id = $2
     `;
 
-    const result = await this.dbClient.query(query, [status, tenantId]);
+    const countResult = await this.dbClient.query(countQuery, [status, tenantId]);
+    const total = parseInt(countResult.rows[0].total, 10);
 
-    return result.rows.map((row) => this.mapRowToConfig(row));
+    // Get paginated data
+    const dataQuery = `
+      SELECT id, msg_fam, transaction_type, endpoint_path, version, content_type,
+            status, tenant_id, created_by, 
+             created_at, updated_at, publishing_status
+      FROM config
+      WHERE status = $1 AND tenant_id = $2
+      ORDER BY created_at DESC
+      LIMIT $3 OFFSET $4
+    `;
+
+    const dataResult = await this.dbClient.query(dataQuery, [status, tenantId, limit, offset]);
+
+    return {
+      data: dataResult.rows.map((row) => this.mapRowToConfig(row)),
+      total,
+      limit,
+      offset,
+    };
   }
 
   async updateConfig(id: number, tenantId: string, updates: Partial<Config>): Promise<void> {
@@ -382,15 +458,10 @@ export class DatabaseService {
 
     `;
 
-    console.log('🔍 DATABASE UPDATE QUERY:', query);
-
-    console.log('🔍 DATABASE UPDATE VALUES:', values);
-
-    console.log(`🔍 UPDATE TARGET: id=${id}, tenantId=${tenantId}`);
 
     const result = await this.dbClient.query(query, values);
 
-    console.log(`✅ DATABASE UPDATE RESULT: ${result.rowCount} row(s) affected`);
+    console.log(` DATABASE UPDATED RESULT: ${result}`);
   }
 
   async deleteConfig(id: number, tenantId: string): Promise<void> {
@@ -433,7 +504,7 @@ export class DatabaseService {
 
       entry.actorEmail || null,
 
-      entry.endpointName || entry.mappingName || 'UNKNOWN',
+      entry.endpointName || null, // Don't default to 'UNKNOWN', use NULL
 
       entry.mappingName || null,
 
@@ -493,7 +564,6 @@ export class DatabaseService {
       SELECT * FROM audit_logs
 
       WHERE tenant_id = $1
-
     `;
 
     const values: any[] = [tenantId];
@@ -712,17 +782,11 @@ export class DatabaseService {
    */
 
   private convertStatusToDatabase(status: string): string {
-    // The enum values are already in STATUS_XX_NAME format
-
-    // Just return as-is, this method exists for backward compatibility
 
     return status;
   }
 
   private normalizeStatusFromDatabase(dbStatus: string): ConfigStatus {
-    // The enum values are already in STATUS_XX_NAME format
-
-    // Just return as-is, this method exists for backward compatibility
 
     return dbStatus as ConfigStatus;
   }
@@ -746,14 +810,14 @@ export class DatabaseService {
               if (field.type === 'ARRAY') {
                 if (!field.arrayElementType) {
                   console.warn(
-                    `⚠️  Array field missing arrayElementType at path: ${path}.${field.name}`,
+                    ` Array field missing arrayElementType at path: ${path}.${field.name}`,
                   );
 
                   hasIssues = true;
                 }
 
                 if (field.arrayElementType === 'OBJECT' && !field.children) {
-                  console.warn(`⚠️  Object array missing children at path: ${path}.${field.name}`);
+                  console.warn(` Object array missing children at path: ${path}.${field.name}`);
 
                   hasIssues = true;
                 }
@@ -776,7 +840,7 @@ export class DatabaseService {
 
         if (hasArrayIssues) {
           console.error(
-            `❌ Schema integrity check failed for config ${row.id} - arrays lost metadata`,
+            `Schema integrity check failed for config ${row.id} - arrays lost metadata`,
           );
 
           console.error(`Schema preview: ${JSON.stringify(parsedSchema).substring(0, 500)}...`);
@@ -1166,12 +1230,6 @@ export class DatabaseService {
 
 
   async close(): Promise<void> {
-    try {
-      await this.dbClient.end();
-    } catch (error) {
-      console.error('Error closing database connection:', error);
-      throw new Error(`Failed to close database connection: ${(error as Error).message}`);
-    }
+    await this.dbClient.end();
   }
-
 }

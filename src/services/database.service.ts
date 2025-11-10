@@ -185,6 +185,7 @@ export class DatabaseService {
     tenantId: string,
     limit: number = 10,
     offset: number = 0,
+    payload?: Record<string, unknown>
   ): Promise<{ data: Config[]; total: number; limit: number; offset: number }> {
     // Get total count
     const countQuery = `
@@ -192,6 +193,10 @@ export class DatabaseService {
       FROM config
       WHERE tenant_id = $1 OR tenant_id IS NULL OR tenant_id = 'default'
     `;
+
+
+    console.log("here inside the tenant")
+
 
     const countResult = await this.dbClient.query(countQuery, [tenantId]);
     const total = parseInt(countResult.rows[0].total, 10);
@@ -329,19 +334,21 @@ export class DatabaseService {
   }
 
   async findConfigsByStatus(
-    status: ConfigStatus,
-    tenantId: string,
     limit: number = 10,
     offset: number = 0,
+    payload: Record<string, unknown>
   ): Promise<{ data: Config[]; total: number; limit: number; offset: number }> {
     // Get total count
+
+    const {status, endpoint} = payload;
+
     const countQuery = `
       SELECT COUNT(*) as total
       FROM config
-      WHERE status IN ($1) AND tenant_id = $2
+      WHERE status IN ($1)
     `;
 
-    const countResult = await this.dbClient.query(countQuery, [status, tenantId]);
+    const countResult = await this.dbClient.query(countQuery, [status]);
     const total = parseInt(countResult.rows[0].total, 10);
 
     // Get paginated data
@@ -350,12 +357,12 @@ export class DatabaseService {
             status, tenant_id, created_by, 
              created_at, updated_at, publishing_status
       FROM config
-      WHERE status = $1 AND tenant_id = $2
+      WHERE status = $1
       ORDER BY created_at DESC
-      LIMIT $3 OFFSET $4
+      LIMIT $2 OFFSET $3
     `;
 
-    const dataResult = await this.dbClient.query(dataQuery, [status, tenantId, limit, offset]);
+    const dataResult = await this.dbClient.query(dataQuery, [status, limit, offset]);
 
     return {
       data: dataResult.rows.map((row) => this.mapRowToConfig(row)),

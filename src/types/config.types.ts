@@ -19,6 +19,7 @@ export type AllowedFunctionName =
   | 'addEntity'
   | 'addAccount'
   | 'saveTransactionDetails'
+  | 'transactionRelationship';
 
 
 export interface FunctionDefinition {

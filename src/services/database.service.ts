@@ -1,7 +1,7 @@
 ﻿import { Pool, PoolClient } from 'pg';
 import { randomUUID } from 'crypto';
 
-import { Job, JobStatus, JobSummary, Schedule } from 'src/interfaces/enrichment.interface';
+import { ConfigType, Job, JobStatus, JobSummary, Schedule } from 'src/interfaces/enrichment.interface';
 import { DatabaseFactory } from '../database/databaseFactory';
 import type { Config } from '../types/config.types';
 import { ConfigStatus } from '../types/config.types';
@@ -21,7 +21,7 @@ export class DatabaseService {
     this.dbClient = DatabaseFactory.getPool();
   }
 
- 
+
 
   getPool(): Pool {
     return this.dbClient;
@@ -1064,9 +1064,8 @@ export class DatabaseService {
     id: string,
     status: JobStatus,
     tableName: string,
-  ): Promise<Schedule[]> {
+  ): Promise<Job[]> {
     try {
-
       const query = `
                  UPDATE ${tableName}
                  SET publishing_status = $1, updated_at = NOW()
@@ -1077,9 +1076,55 @@ export class DatabaseService {
       const result = await this.dbClient.query(query, [status, id]);
       return result.rows;
     } catch (error) {
-      throw new Error(`Failed to fetch schedules: ${(error as Error).message}`);
+      throw new Error(`Failed to update job publishing status: ${(error as Error).message}`);
     }
   }
+
+  async updateJobByStatus(
+    status: JobStatus,
+    id: string,
+    tenant_id: string,
+    type: ConfigType,
+    reason?: string
+  ): Promise<number | null> {
+    try {
+
+      const tableName = type === ConfigType.PUSH ? 'endpoints' : 'job';
+
+      const query =
+        status === JobStatus.REJECTED
+          ? `
+          UPDATE ${tableName}
+          SET status = $1, comments = $2, updated_at = NOW()
+          WHERE id = $3
+          RETURNING id;
+        `
+          : `
+          UPDATE ${tableName}
+          SET status = $1, updated_at = NOW()
+          WHERE id = $2
+          RETURNING id;
+        `;
+
+
+      const params =
+        status === JobStatus.REJECTED
+          ? [status, reason, id]
+          : [status, id];
+
+      const result = await this.dbClient.query(query, params);
+
+      if (result.rowCount === 0) {
+        throw new Error(`No job found with id: ${id}`);
+      }
+
+      return result.rowCount;
+    } catch (error) {
+      console.error('Error updating job status:', error);
+      throw new Error(`Failed to update job status: ${(error as Error).message}`);
+    }
+  }
+
 
 
   // ==================== SCHEDULER OPERATIONS ====================

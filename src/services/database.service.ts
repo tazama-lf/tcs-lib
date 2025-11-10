@@ -18,7 +18,7 @@ export interface AuditLogEntry {
   tenantId: string;
   endpointName?: string;
   mappingName?: string;
-  version?: number;
+  version?: string;
   details?: string;
   oldValues?: Record<string, any>;
   newValues?: Record<string, any>;
@@ -875,13 +875,13 @@ export class DatabaseService {
   }
 
   async getAllJobs(
-    tenant_id: string,
-    page: number,
-    limit: number
-  ): Promise<Schedule[]> {
-    try {
-      const offset = (page - 1) * limit;
-      const query = `
+  tenant_id: string,
+  page: number,
+  limit: number
+): Promise<Schedule[]> {
+  try {
+    const offset = (page - 1) * limit;
+    const query = `
       SELECT 
         id,
         endpoint_name,
@@ -895,7 +895,7 @@ export class DatabaseService {
         created_at,
         'push' AS type
       FROM endpoints
-      WHERE tenant_id = $3
+      WHERE tenant_id = $1
 
       UNION ALL
 
@@ -912,19 +912,20 @@ export class DatabaseService {
         created_at,
         'pull' AS type
       FROM job
-      WHERE tenant_id = $3
+      WHERE tenant_id = $1
 
       ORDER BY created_at DESC
-      LIMIT $1 OFFSET $2;
+      LIMIT $2 OFFSET $3;
     `;
 
-      const result = await this.dbClient.query(query, [tenant_id, limit, offset]);
+    const result = await this.dbClient.query(query, [tenant_id, limit, offset]);
 
-      return result.rows;
-    } catch (error) {
-      throw new Error(`Failed to fetch jobs: ${(error as Error).message}`);
-    }
+    return result.rows;
+  } catch (error) {
+    throw new Error(`Failed to fetch jobs: ${(error as Error).message}`);
   }
+}
+
 
   // ==================== SCHEDULER OPERATIONS ====================
 

@@ -6,8 +6,8 @@ import { Config, ConfigStatus } from '../interfaces/Endpoint';
 
 import { randomUUID } from 'crypto';
 
+import { Job, JobStatus, JobSummary, Schedule } from 'src/interfaces/enrichment.interface';
 import { userEmailCache } from './user-email-cache.service';
-import { JobStatus, Schedule } from 'src/interfaces/enrichment.interface';
 
 export interface AuditLogEntry {
   action: string;
@@ -875,13 +875,13 @@ export class DatabaseService {
   }
 
   async getAllJobs(
-  tenant_id: string,
-  page: number,
-  limit: number
-): Promise<Schedule[]> {
-  try {
-    const offset = (page - 1) * limit;
-    const query = `
+    tenant_id: string,
+    page: number,
+    limit: number
+  ): Promise<Job[]> {
+    try {
+      const offset = (page - 1) * limit;
+      const query = `
       SELECT 
         id,
         endpoint_name,
@@ -918,13 +918,104 @@ export class DatabaseService {
       LIMIT $2 OFFSET $3;
     `;
 
-    const result = await this.dbClient.query(query, [tenant_id, limit, offset]);
+      const result = await this.dbClient.query(query, [tenant_id, limit, offset]);
 
-    return result.rows;
-  } catch (error) {
-    throw new Error(`Failed to fetch jobs: ${(error as Error).message}`);
+      return result.rows;
+    } catch (error) {
+      throw new Error(`Failed to fetch jobs: ${(error as Error).message}`);
+    }
   }
-}
+
+  async findJobById(id: string, tableName: string): Promise<Job | null> {
+    try {
+
+      const query = ` SELECT * FROM ${tableName} WHERE id = $1 LIMIT 1;`;
+      const result = await this.dbClient.query(query, [id]);
+      return result.rows[0] || null;
+    } catch (error) {
+      throw new Error(`Failed to find job: ${(error as Error).message}`);
+    }
+  }
+
+  async getJobsByStatus(
+    tenant_id: string,
+    status: JobStatus,
+    page: number,
+    limit: number
+  ): Promise<JobSummary[]> {
+    try {
+      const offset = (page - 1) * limit;
+
+      const query = `
+      SELECT 
+        id,
+        endpoint_name,
+        path,
+        mode,
+        table_name,
+        description,
+        version,
+        status,
+        publishing_status,
+        created_at,
+        'push' AS type
+      FROM endpoints
+      WHERE tenant_id = $1 AND status = $2
+
+      UNION ALL
+
+      SELECT 
+        id,
+        endpoint_name,
+        NULL AS path,
+        mode,
+        table_name,
+        description,
+        version,
+        status,
+        publishing_status,
+        created_at,
+        'pull' AS type
+      FROM job
+      WHERE tenant_id = $1 AND status = $2
+
+      ORDER BY created_at DESC
+      LIMIT $3 OFFSET $4;
+    `;
+
+      const result = await this.dbClient.query<JobSummary>(query, [
+        tenant_id,
+        status,
+        limit,
+        offset,
+      ]);
+
+      return result.rows;
+    } catch (error) {
+      throw new Error(`Failed to fetch jobs: ${(error as Error).message}`);
+    }
+  }
+
+  async updateJobActivation(
+    id: string,
+    status: JobStatus,
+    tableName: string,
+  ): Promise<Schedule[]> {
+    try {
+
+      const query = `
+                 UPDATE ${tableName}
+                 SET publishing_status = $1, updated_at = NOW()
+                 WHERE id = $2
+                 RETURNING *;
+                    `;
+
+      const result = await this.dbClient.query(query, [status, id]);
+      return result.rows;
+    } catch (error) {
+      throw new Error(`Failed to fetch schedules: ${(error as Error).message}`);
+    }
+  }
 
 
   // ==================== SCHEDULER OPERATIONS ====================

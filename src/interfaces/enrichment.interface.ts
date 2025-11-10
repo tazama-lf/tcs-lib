@@ -79,21 +79,39 @@ interface Job {
     id: string;
     tenant_id: string;
     endpoint_name: string;
-    source_type: SourceType;
-    description: string;
-    connection: HTTPConnection | SFTPConnection;
-    file: FileSettings;
+    path: string | null;
+    source_type?: SourceType;
+    description: string | null;
+    connection?: HTTPConnection | SFTPConnection;
+    file?: FileSettings;
     table_name: string;
-    mode?: IngestMode;
+    mode: IngestMode;
     version: string;
     status: JobStatus;
+    publishing_status: string | null;
     record_status?: ScheduleStatus;
-    schedule_id: string,
-    cron: string,
-    start_date: Date,
-    end_date: Date,
-    iterations?: number
+    schedule_id?: string;
+    cron?: string;
+    start_date?: Date;
+    end_date?: Date;
+    iterations?: number;
+    created_at: Date;
+    type: 'push' | 'pull';
 }
+interface JobSummary {
+    id: string;
+    endpoint_name: string;
+    path: string | null;
+    mode: IngestMode;
+    table_name: string;
+    description: string | null;
+    version: string;
+    status: JobStatus;
+    publishing_status: string | null;
+    created_at: Date;
+    type: 'push' | 'pull';
+}
+
 
 interface Enrichment {
     id?: number;
@@ -131,5 +149,6 @@ export {
     type FileSettings,
     type HTTPConnection,
     type Job,
-    type SFTPConnection
+    type SFTPConnection,
+    type JobSummary
 };

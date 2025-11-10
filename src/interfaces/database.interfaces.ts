@@ -15,7 +15,7 @@ export interface AuditLogEntry {
   tenantId: string;
   endpointName?: string;
   mappingName?: string;
-  version?: number;
+  version?: string;
   details?: string;
   oldValues?: Record<string, any>;
   newValues?: Record<string, any>;

@@ -1363,6 +1363,21 @@ export class DatabaseService {
       throw new Error(`Failed to update schedule status: ${(error as Error).message}`);
     }
   }
+   /**
+   * Execute raw SQL query on configuration database
+   * @param query - SQL query string
+   * @param tenantId - Tenant identifier for logging/auditing
+   * @returns Query result
+   */
+  async runRawQuery(query: string, tenantId: string): Promise<any> {
+    try {
+      const result = await this.dbClient.query(query);
+      return result.rows;
+    } catch (error) {
+      console.error(`Error executing raw query for tenant ${tenantId}:`, error);
+      throw new Error(`Failed to execute raw query: ${(error as Error).message}`);
+    }
+  }
 
 
 

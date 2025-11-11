@@ -339,31 +339,55 @@ export class DatabaseService {
     offset: number = 0,
     payload: Record<string, unknown>
   ): Promise<{ data: Config[]; total: number; limit: number; offset: number }> {
-    // Get total count
+    const { status, endpoint_path, created_at, updated_at } = payload;
 
-    const { status, endpoint } = payload;
+    const whereClauses: string[] = [];
+    const queryParams: unknown[] = [];
+    let paramIndex = 1;
+
+    if (status) {
+      whereClauses.push(`status = $${paramIndex++}`);
+      queryParams.push(status);
+    }
+
+    if (endpoint_path) {
+      whereClauses.push(`endpoint_path = $${paramIndex++}`);
+      queryParams.push(endpoint_path);
+    }
+
+    if (created_at) {
+      whereClauses.push(`DATE(created_at) = $${paramIndex++}`);
+      queryParams.push(created_at);
+    }
+
+    if (updated_at) {
+      whereClauses.push(`DATE(updated_at) = $${paramIndex++}`);
+      queryParams.push(updated_at);
+    }
+
+    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
     const countQuery = `
       SELECT COUNT(*) as total
       FROM config
-      WHERE status IN ($1)
+      ${whereClause}
     `;
 
-    const countResult = await this.dbClient.query(countQuery, [status]);
+    const countResult = await this.dbClient.query(countQuery, queryParams);
     const total = parseInt(countResult.rows[0].total, 10);
 
-    // Get paginated data
     const dataQuery = `
       SELECT id, msg_fam, transaction_type, endpoint_path, version, content_type,
             status, tenant_id, created_by, 
              created_at, updated_at, publishing_status
       FROM config
-      WHERE status = $1
+      ${whereClause}
       ORDER BY created_at DESC
-      LIMIT $2 OFFSET $3
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
 
-    const dataResult = await this.dbClient.query(dataQuery, [status, limit, offset]);
+    const dataParams = [...queryParams, limit, offset];
+    const dataResult = await this.dbClient.query(dataQuery, dataParams);
 
     return {
       data: dataResult.rows.map((row) => this.mapRowToConfig(row)),

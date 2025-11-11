@@ -7,6 +7,7 @@ import type { Config } from '../types/config.types';
 import { ConfigStatus } from '../types/config.types';
 import type { DatabaseConfig, AuditLogEntry } from '../interfaces/database.interfaces';
 import { userEmailCache } from './user-email-cache.service';
+import { validateTableName } from './utils';
 
 export type { AuditLogEntry, DatabaseConfig } from '../interfaces/database.interfaces';
 
@@ -340,7 +341,7 @@ export class DatabaseService {
   ): Promise<{ data: Config[]; total: number; limit: number; offset: number }> {
     // Get total count
 
-    const {status, endpoint} = payload;
+    const { status, endpoint } = payload;
 
     const countQuery = `
       SELECT COUNT(*) as total
@@ -902,6 +903,56 @@ export class DatabaseService {
     };
   }
 
+
+  // ==================== GENERAL DE OPERATIONS ====================
+
+  async tableExist(tableName: string): Promise<boolean> {
+    try {
+      const cleanName = tableName.trim().toLowerCase();
+
+      const query = `
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = $1
+      ) AS exists;
+    `;
+
+      const result = await this.dbClient.query(query, [cleanName]);
+      return result.rows[0]?.exists || false;
+    } catch (error) {
+      const err = error as Error;
+      throw new Error(`Failed to check if table "${tableName}" exists: ${err.message}`);
+    }
+  }
+
+  async validateExisting(table_name: string): Promise<void> {
+    try {
+      validateTableName(table_name);
+
+      const jobResult = await this.dbClient.query(
+        'SELECT * FROM job WHERE table_name = $1 LIMIT 1;',
+        [table_name],
+      );
+
+      const endpointResult = await this.dbClient.query(
+        'SELECT * FROM endpoints WHERE table_name = $1 LIMIT 1;',
+        [table_name],
+      );
+
+      const existingJob = jobResult.rows[0] || endpointResult.rows[0];
+      const exists = (await this.tableExist(table_name)) || existingJob;
+
+      if (exists) {
+        throw new Error(`Table "${table_name}" already exists`);
+      }
+    } catch (error) {
+      const err = error as Error;
+      throw new Error(`Failed to validate existing table "${table_name}": ${err.message}`);
+    }
+  }
+
+
   // ==================== JOB OPERATIONS ====================
 
   async createPushJob(job: Record<string, unknown>): Promise<string | null> {
@@ -1067,6 +1118,41 @@ export class DatabaseService {
     }
   }
 
+  async updateJob(id: string, job: Job, type: ConfigType): Promise<{ success: boolean, message: string }> {
+    try {
+      const tableName = type === ConfigType.PUSH ? 'endpoints' : 'job';
+
+      const keys = Object.keys(job);
+      const values = Object.values(job);
+
+      if (keys.length === 0) {
+        throw new Error('No fields provided to update');
+      }
+
+      const setClause = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
+      const query = `
+      UPDATE ${tableName}
+      SET ${setClause}
+      WHERE id = $${keys.length + 1};
+    `;
+
+      const result = await this.dbClient.query(query, [...values, id]);
+
+      if (!result.rowCount) {
+        throw new Error(`Job with id "${id}" not found or no changes were made`);
+      }
+
+      return {
+        success: true,
+        message: `Job with id "${id}" successfully updated`,
+      };
+    } catch (error) {
+      const err = error as Error;
+      throw new Error(`Failed to update job: ${err.message}`);
+    }
+  }
+
+
   async updateJobActivation(
     id: string,
     status: JobStatus,
@@ -1090,7 +1176,6 @@ export class DatabaseService {
   async updateJobByStatus(
     status: JobStatus,
     id: string,
-    tenant_id: string,
     type: ConfigType,
     reason?: string
   ): Promise<number | null> {

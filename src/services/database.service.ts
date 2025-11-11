@@ -1369,7 +1369,7 @@ export class DatabaseService {
    * @param tenantId - Tenant identifier for logging/auditing
    * @returns Query result
    */
-  async runRawQuery(query: string, tenantId: string): Promise<any> {
+  async runRawQuery(query: string, tenantId: string): Promise<unknown[]> {
     try {
       const result = await this.dbClient.query(query);
       return result.rows;

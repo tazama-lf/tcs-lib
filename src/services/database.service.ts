@@ -339,7 +339,7 @@ export class DatabaseService {
     offset: number = 0,
     payload: Record<string, unknown>
   ): Promise<{ data: Config[]; total: number; limit: number; offset: number }> {
-    const { status, endpoint_path, created_at, updated_at } = payload;
+    const { status, endpointPath, createdAt, updatedAt } = payload;
 
     const whereClauses: string[] = [];
     const queryParams: unknown[] = [];
@@ -350,19 +350,19 @@ export class DatabaseService {
       queryParams.push(status);
     }
 
-    if (endpoint_path) {
+    if (endpointPath) {
       whereClauses.push(`endpoint_path = $${paramIndex++}`);
-      queryParams.push(endpoint_path);
+      queryParams.push(endpointPath);
     }
 
-    if (created_at) {
+    if (createdAt) {
       whereClauses.push(`DATE(created_at) = $${paramIndex++}`);
-      queryParams.push(created_at);
+      queryParams.push(createdAt);
     }
 
-    if (updated_at) {
+    if (updatedAt) {
       whereClauses.push(`DATE(updated_at) = $${paramIndex++}`);
-      queryParams.push(updated_at);
+      queryParams.push(updatedAt);
     }
 
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';

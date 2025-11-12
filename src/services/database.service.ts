@@ -337,7 +337,8 @@ export class DatabaseService {
   async findConfigsByStatus(
     limit: number = 10,
     offset: number = 0,
-    payload: Record<string, unknown>
+    payload: Record<string, unknown>,
+    tenantId: string,
   ): Promise<{ data: Config[]; total: number; limit: number; offset: number }> {
     const { status, endpointPath, createdAt, updatedAt } = payload;
 
@@ -351,8 +352,8 @@ export class DatabaseService {
     }
 
     if (endpointPath) {
-      whereClauses.push(`endpoint_path = $${paramIndex++}`);
-      queryParams.push(endpointPath);
+      whereClauses.push(`endpoint_path LIKE $${paramIndex++}`);
+      queryParams.push(`%${endpointPath}%`);
     }
 
     if (createdAt) {
@@ -365,12 +366,12 @@ export class DatabaseService {
       queryParams.push(updatedAt);
     }
 
-    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : `WHERE 1=1`;
 
     const countQuery = `
       SELECT COUNT(*) as total
       FROM config
-      ${whereClause}
+      ${whereClause} AND tenant_id = $${paramIndex++}
     `;
 
     const countResult = await this.dbClient.query(countQuery, queryParams);
@@ -381,12 +382,13 @@ export class DatabaseService {
             status, tenant_id, created_by, 
              created_at, updated_at, publishing_status
       FROM config
-      ${whereClause}
+      ${whereClause} AND tenant_id = $${paramIndex++}
       ORDER BY created_at DESC
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
 
-    const dataParams = [...queryParams, limit, offset];
+
+    const dataParams = [...queryParams, tenantId, limit, offset];
     const dataResult = await this.dbClient.query(dataQuery, dataParams);
 
     return {

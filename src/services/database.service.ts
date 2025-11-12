@@ -11,6 +11,15 @@ import { validateTableName } from './utils';
 
 export type { AuditLogEntry, DatabaseConfig } from '../interfaces/database.interfaces';
 
+
+  let limit: number =  10;
+  const offset: number = 0;
+  const filters: Record<string, string> = {status:"STATUS_01_IN_PROGRESS,STATUS_04_APPROVED"};
+  const tenantId: string = 'tenant1';
+
+
+
+
 export class DatabaseService {
   private dbClient: Pool;
 
@@ -139,7 +148,7 @@ export class DatabaseService {
   async findConfigByEndpoint(
     endpointPath: string,
     version: string,
-    tenantId: string,
+    tenantId: string | undefined,
     limit: number = 10,
     offset: number = 0,
   ): Promise<{ data: Config[]; total: number; limit: number; offset: number }> {
@@ -334,22 +343,26 @@ export class DatabaseService {
     };
   }
 
+
   async findConfigsByStatus(
     limit: number = 10,
     offset: number = 0,
-    payload: Record<string, unknown>,
+    payload: Record<string, string>,
     tenantId: string,
   ): Promise<{ data: Config[]; total: number; limit: number; offset: number }> {
-    const { status, endpointPath, createdAt, updatedAt } = payload;
+    const { status, endpointPath, createdAt } = payload;
 
-    const whereClauses: string[] = [];
-    const queryParams: unknown[] = [];
-    let paramIndex = 1;
+    const whereClauses: string[] = ["tenant_id = $1"];
+    const queryParams: unknown[] = [tenantId];
+    let paramIndex = 2;
 
-    if (status) {
-      whereClauses.push(`status = $${paramIndex++}`);
-      queryParams.push(status);
-    }
+
+if (status) {
+  const statusArray = status.split(",").map(s => s.trim());
+  whereClauses.push(`status = ANY($${paramIndex++})`);
+  queryParams.push(statusArray);
+}
+
 
     if (endpointPath) {
       whereClauses.push(`endpoint_path LIKE $${paramIndex++}`);
@@ -361,18 +374,19 @@ export class DatabaseService {
       queryParams.push(createdAt);
     }
 
-    if (updatedAt) {
-      whereClauses.push(`DATE(updated_at) = $${paramIndex++}`);
-      queryParams.push(updatedAt);
-    }
+    
 
-    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : `WHERE 1=1`;
+    const whereClause =`WHERE ${whereClauses.join(' AND ')}`;
 
     const countQuery = `
       SELECT COUNT(*) as total
       FROM config
-      ${whereClause} AND tenant_id = $${paramIndex++}
+      ${whereClause}
     `;
+
+    console.log("count query",countQuery);
+    console.log("count query params", queryParams);
+    console.log("where" , whereClause);
 
     const countResult = await this.dbClient.query(countQuery, queryParams);
     const total = parseInt(countResult.rows[0].total, 10);
@@ -382,13 +396,17 @@ export class DatabaseService {
             status, tenant_id, created_by, 
              created_at, updated_at, publishing_status
       FROM config
-      ${whereClause} AND tenant_id = $${paramIndex++}
+      ${whereClause}
       ORDER BY created_at DESC
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
 
 
-    const dataParams = [...queryParams, tenantId, limit, offset];
+    const dataParams = [...queryParams, limit, offset];
+
+    console.log("data query",dataQuery);
+    console.log("data params",dataParams);  
+
     const dataResult = await this.dbClient.query(dataQuery, dataParams);
 
     return {
@@ -1411,3 +1429,4 @@ export class DatabaseService {
     await this.dbClient.end();
   }
 }
+

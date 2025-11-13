@@ -12,10 +12,10 @@ import { validateTableName } from './utils';
 export type { AuditLogEntry, DatabaseConfig } from '../interfaces/database.interfaces';
 
 
-  let limit: number =  10;
-  const offset: number = 0;
-  const filters: Record<string, string> = {status:"STATUS_01_IN_PROGRESS,STATUS_04_APPROVED"};
-  const tenantId: string = 'tenant1';
+let limit: number = 10;
+const offset: number = 0;
+const filters: Record<string, string> = { status: "STATUS_01_IN_PROGRESS,STATUS_04_APPROVED" };
+const tenantId: string = 'tenant1';
 
 
 
@@ -357,11 +357,11 @@ export class DatabaseService {
     let paramIndex = 2;
 
 
-if (status) {
-  const statusArray = status.split(",").map(s => s.trim());
-  whereClauses.push(`status = ANY($${paramIndex++})`);
-  queryParams.push(statusArray);
-}
+    if (status) {
+      const statusArray = status.split(",").map(s => s.trim());
+      whereClauses.push(`status = ANY($${paramIndex++})`);
+      queryParams.push(statusArray);
+    }
 
 
     if (endpointPath) {
@@ -374,9 +374,9 @@ if (status) {
       queryParams.push(createdAt);
     }
 
-    
 
-    const whereClause =`WHERE ${whereClauses.join(' AND ')}`;
+
+    const whereClause = `WHERE ${whereClauses.join(' AND ')}`;
 
     const countQuery = `
       SELECT COUNT(*) as total
@@ -384,9 +384,9 @@ if (status) {
       ${whereClause}
     `;
 
-    console.log("count query",countQuery);
+    console.log("count query", countQuery);
     console.log("count query params", queryParams);
-    console.log("where" , whereClause);
+    console.log("where", whereClause);
 
     const countResult = await this.dbClient.query(countQuery, queryParams);
     const total = parseInt(countResult.rows[0].total, 10);
@@ -404,8 +404,8 @@ if (status) {
 
     const dataParams = [...queryParams, limit, offset];
 
-    console.log("data query",dataQuery);
-    console.log("data params",dataParams);  
+    console.log("data query", dataQuery);
+    console.log("data params", dataParams);
 
     const dataResult = await this.dbClient.query(dataQuery, dataParams);
 
@@ -1041,13 +1041,38 @@ if (status) {
   }
 
   async getAllJobs(
-    tenant_id: string,
-    page: number,
-    limit: number
-  ): Promise<Job[]> {
-    try {
-      const offset = (page - 1) * limit;
-      const query = `
+    limit: number = 10,
+    offset: number = 0,
+    payload: Record<string, string>,
+    tenantId: string,
+  ): Promise<{ data: Job[]; total: number; limit: number; offset: number }> {
+    const { status, endpointName, createdAt } = payload;
+    const whereClauses: string[] = ["tenant_id = $1"];
+    const queryParams: unknown[] = [tenantId];
+    let paramIndex = 2;
+    if (status) {
+      const statusArray = status.split(",").map(s => s.trim());
+      whereClauses.push(`status = ANY($${paramIndex++})`);
+      queryParams.push(statusArray);
+    }
+    if (endpointName) {
+      whereClauses.push(`endpoint_name LIKE $${paramIndex++}`);
+      queryParams.push(`%${endpointName}%`);
+    }
+    if (createdAt) {
+      whereClauses.push(`DATE(created_at) = $${paramIndex++}`);
+      queryParams.push(createdAt);
+    }
+    const whereClause = `WHERE ${whereClauses.join(' AND ')}`;
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM job
+      ${whereClause}
+    `;
+    const countResult = await this.dbClient.query(countQuery, queryParams);
+    const total = parseInt(countResult.rows[0].total, 10);
+
+    const dataQuery = `
       SELECT 
         id,
         endpoint_name,
@@ -1061,7 +1086,7 @@ if (status) {
         created_at,
         'push' AS type
       FROM endpoints
-      WHERE tenant_id = $1
+      ${whereClause}
 
       UNION ALL
 
@@ -1078,18 +1103,19 @@ if (status) {
         created_at,
         'pull' AS type
       FROM job
-      WHERE tenant_id = $1
+      ${whereClause}
 
       ORDER BY created_at DESC
-      LIMIT $2 OFFSET $3;
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
-
-      const result = await this.dbClient.query(query, [tenant_id, limit, offset]);
-
-      return result.rows;
-    } catch (error) {
-      throw new Error(`Failed to fetch jobs: ${(error as Error).message}`);
-    }
+    const dataParams = [...queryParams, limit, offset];
+    const dataResult = await this.dbClient.query(dataQuery, dataParams);
+    return {
+      data: dataResult.rows,
+      total,
+      limit,
+      offset,
+    };
   }
 
   async findJobById(id: string, tableName: string): Promise<Job | null> {
@@ -1325,21 +1351,50 @@ if (status) {
     }
   }
 
+
   async getAllSchedule(
-    tenant_id: string,
-    page: number,
-    limit: number
-  ): Promise<Schedule[]> {
-    try {
-      const offset = (page - 1) * limit;
-
-
-      const result = await this.dbClient.query('SELECT * FROM schedule WHERE tenant_id = $1 LIMIT $2 OFFSET $3;', [tenant_id, limit, offset]);
-
-      return result.rows;
-    } catch (error) {
-      throw new Error(`Failed to fetch schedules: ${(error as Error).message}`);
+    limit: number = 10,
+    offset: number = 0,
+    payload: Record<string, string>,
+    tenantId: string,
+  ): Promise<{ data: Schedule[]; total: number; limit: number; offset: number }> {
+    const { status, name, createdAt } = payload;
+    const whereClauses: string[] = ["tenant_id = $1"];
+    const queryParams: unknown[] = [tenantId];
+    let paramIndex = 2;
+    if (status) {
+      const statusArray = status.split(",").map(s => s.trim());
+      whereClauses.push(`status = ANY($${paramIndex++})`);
+      queryParams.push(statusArray);
     }
+    if (name) {
+      whereClauses.push(`name LIKE $${paramIndex++}`);
+      queryParams.push(`%${name}%`);
+    }
+    if (createdAt) {
+      whereClauses.push(`DATE(created_at) = $${paramIndex++}`);
+      queryParams.push(createdAt);
+    }
+    const whereClause = `WHERE ${whereClauses.join(' AND ')}`;
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM schedule
+      ${whereClause}
+    `;
+    const countResult = await this.dbClient.query(countQuery, queryParams);
+    const total = parseInt(countResult.rows[0].total, 10);
+
+    const dataQuery = `
+    SELECT * FROM schedule ${whereClause}  ORDER BY created_at DESC
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++}`
+    const dataParams = [...queryParams, limit, offset];
+    const dataResult = await this.dbClient.query(dataQuery, dataParams);
+    return {
+      data: dataResult.rows,
+      total,
+      limit,
+      offset,
+    };
   }
 
   async getScheduleByStatus(
@@ -1407,12 +1462,12 @@ if (status) {
       throw new Error(`Failed to update schedule status: ${(error as Error).message}`);
     }
   }
-   /**
-   * Execute raw SQL query on configuration database
-   * @param query - SQL query string
-   * @param tenantId - Tenant identifier for logging/auditing
-   * @returns Query result
-   */
+  /**
+  * Execute raw SQL query on configuration database
+  * @param query - SQL query string
+  * @param tenantId - Tenant identifier for logging/auditing
+  * @returns Query result
+  */
   async runRawQuery(query: string, tenantId: string): Promise<unknown[]> {
     try {
       const result = await this.dbClient.query(query);

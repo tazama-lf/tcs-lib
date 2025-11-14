@@ -267,7 +267,29 @@ export class DatabaseService {
       offset,
     };
   }
+   async updateConfigByStatus(id: string, status?: string): Promise<number | null> {
+    try {
+      const query = `
+      UPDATE config
+      SET status = $1, updated_at = NOW()
+      WHERE id = $2
+      RETURNING id;
+    `;
 
+      const params = [status, id];
+
+      const result = await this.dbClient.query(query, params);
+
+      if (result.rowCount === 0) {
+        throw new Error(`No config found with id: ${id}`);
+      }
+
+      return result.rowCount;
+    } catch (error) {
+      console.error('Error updating config status:', error);
+      throw new Error(`Failed to update config status: ${(error as Error).message}`);
+    }
+  }
   async findConfigByVersionAndTransactionType(
     version: string,
     transactionType: string,

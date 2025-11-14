@@ -11,6 +11,7 @@ export * from './interfaces/multi-field-mapping.interfaces';
 export * from './interfaces/Endpoint';
 export * from './interfaces/enrichment.interface';
 
+
 export * from './interfaces/iMappingConfiguration';
 export * from './interfaces/iMappingResult';
 
@@ -23,7 +24,8 @@ export { DatabaseService } from './services/database.service';
 export { DatabaseFactory } from './database/databaseFactory';
 export { userEmailCache } from './services/user-email-cache.service';
 
-export { AuditService } from './audit/audit.service';
 export { convertToJSONSchema } from './schemas/json-schema-converter.service';
+
+export * from './template/email-templates';
 
 export * from './tcs-dryrun-simulation';

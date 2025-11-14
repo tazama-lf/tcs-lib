@@ -48,42 +48,42 @@ export interface Config {
 }
 
 
-export interface ConfigResponseDto {
-  success: boolean;
-  message: string;
-  config?: Config;
-  validation?: {
-    success: boolean;
-    errors: string[];
-    warnings: string[];
-  };
-}
+// export interface ConfigResponseDto {
+//   success: boolean;
+//   message: string;
+//   config?: Config;
+//   validation?: {
+//     success: boolean;
+//     errors: string[];
+//     warnings: string[];
+//   };
+// }
 
-export type WorkflowAction =
-  | 'submit_for_approval'
-  | 'approve'
-  | 'reject'
-  | 'export'
-  | 'deploy'
-  | 'return_to_progress';
+// export type WorkflowAction =
+//   | 'submit_for_approval'
+//   | 'approve'
+//   | 'reject'
+//   | 'export'
+//   | 'deploy'
+//   | 'return_to_progress';
 
-export interface WorkflowValidationResult {
-  canEdit: boolean;
-  canSubmit: boolean;
-  canApprove: boolean;
-  canReject: boolean;
-  canRequestChanges: boolean;
-  canExport: boolean;
-  canDeploy: boolean;
-  canReturnToProgress: boolean;
-  reason?: string;
-}
+// export interface WorkflowValidationResult {
+//   canEdit: boolean;
+//   canSubmit: boolean;
+//   canApprove: boolean;
+//   canReject: boolean;
+//   canRequestChanges: boolean;
+//   canExport: boolean;
+//   canDeploy: boolean;
+//   canReturnToProgress: boolean;
+//   reason?: string;
+// }
 
 
-export interface StatusTransitionValidation {
-  isValid: boolean;
-  currentStatus: ConfigStatus;
-  targetStatus: ConfigStatus;
-  allowedNextStatuses: ConfigStatus[];
-  reason?: string;
-}
+// export interface StatusTransitionValidation {
+//   isValid: boolean;
+//   currentStatus: ConfigStatus;
+//   targetStatus: ConfigStatus;
+//   allowedNextStatuses: ConfigStatus[];
+//   reason?: string;
+// }

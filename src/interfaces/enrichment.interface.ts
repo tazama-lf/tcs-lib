@@ -30,13 +30,13 @@ enum AuthType {
 }
 
 enum JobStatus {
-    INPROGRESS = 'in-progress',
-    REVIEW = 'under-review',
-    APPROVED = 'approved',
-    REJECTED = 'rejected',
-    EXPORTED = 'exported',
-    READY = 'ready-for-deployment',
-    DEPLOYED = 'deployed'
+    INPROGRESS = 'STATUS_01_IN_PROGRESS',
+    REVIEW = 'STATUS_03_UNDER_REVIEW',
+    APPROVED = 'STATUS_04_APPROVED',
+    REJECTED = 'STATUS_05_REJECTED',
+    EXPORTED = 'STATUS_06_EXPORTED',
+    READY = 'STATUS_07_READY_FOR_DEPLOYMENT',
+    DEPLOYED = 'STATUS_08_DEPLOYED'
 }
 
 interface ISuccess {

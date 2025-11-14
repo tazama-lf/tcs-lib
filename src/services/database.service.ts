@@ -267,7 +267,7 @@ export class DatabaseService {
       offset,
     };
   }
-   async updateConfigByStatus(id: string, status?: string): Promise<number | null> {
+  async updateConfigByStatus(id: string, status?: string): Promise<number | null> {
     try {
       const query = `
       UPDATE config
@@ -997,12 +997,12 @@ export class DatabaseService {
       validateTableName(table_name);
 
       const jobResult = await this.dbClient.query(
-        'SELECT * FROM job WHERE table_name = $1 LIMIT 1;',
+        'SELECT * FROM pull_jobs WHERE table_name = $1 LIMIT 1;',
         [table_name],
       );
 
       const endpointResult = await this.dbClient.query(
-        'SELECT * FROM endpoints WHERE table_name = $1 LIMIT 1;',
+        'SELECT * FROM push_jobs WHERE table_name = $1 LIMIT 1;',
         [table_name],
       );
 
@@ -1028,7 +1028,7 @@ export class DatabaseService {
       const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
 
       const insertQuery = `
-                    INSERT INTO endpoints (${keys.join(', ')})
+                    INSERT INTO push_jobs (${keys.join(', ')})
                      VALUES (${placeholders})
                       RETURNING *;
                       `;
@@ -1049,7 +1049,7 @@ export class DatabaseService {
       const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
 
       const insertQuery = `
-                    INSERT INTO job (${keys.join(', ')})
+                    INSERT INTO pull_jobs (${keys.join(', ')})
                      VALUES (${placeholders})
                       RETURNING *;
                       `;
@@ -1087,10 +1087,12 @@ export class DatabaseService {
     }
     const whereClause = `WHERE ${whereClauses.join(' AND ')}`;
     const countQuery = `
-      SELECT COUNT(*) as total
-      FROM job
-      ${whereClause}
-    `;
+    SELECT SUM(count) AS total FROM (
+      SELECT COUNT(*) AS count FROM push_jobs ${whereClause}
+      UNION ALL
+      SELECT COUNT(*) AS count FROM pull_jobs ${whereClause}
+    ) AS combined_counts
+  `;
     const countResult = await this.dbClient.query(countQuery, queryParams);
     const total = parseInt(countResult.rows[0].total, 10);
 
@@ -1107,7 +1109,7 @@ export class DatabaseService {
         publishing_status,
         created_at,
         'push' AS type
-      FROM endpoints
+      FROM push_jobs
       ${whereClause}
 
       UNION ALL
@@ -1124,7 +1126,7 @@ export class DatabaseService {
         publishing_status,
         created_at,
         'pull' AS type
-      FROM job
+      FROM pull_jobs
       ${whereClause}
 
       ORDER BY created_at DESC
@@ -1173,7 +1175,7 @@ export class DatabaseService {
         publishing_status,
         created_at,
         'push' AS type
-      FROM endpoints
+      FROM push_jobs
       WHERE tenant_id = $1 AND status = $2
 
       UNION ALL
@@ -1190,7 +1192,7 @@ export class DatabaseService {
         publishing_status,
         created_at,
         'pull' AS type
-      FROM job
+      FROM pull_jobs
       WHERE tenant_id = $1 AND status = $2
 
       ORDER BY created_at DESC
@@ -1212,7 +1214,7 @@ export class DatabaseService {
 
   async updateJob(id: string, job: Job, type: ConfigType): Promise<{ success: boolean, message: string }> {
     try {
-      const tableName = type === ConfigType.PUSH ? 'endpoints' : 'job';
+      const tableName = type === ConfigType.PUSH ? 'push_jobs' : 'pull_jobs';
 
       const keys = Object.keys(job);
       const values = Object.values(job);
@@ -1273,7 +1275,7 @@ export class DatabaseService {
   ): Promise<number | null> {
     try {
 
-      const tableName = type === ConfigType.PUSH ? 'endpoints' : 'job';
+      const tableName = type === ConfigType.PUSH ? 'push_jobs' : 'pull_jobs';
 
       const query =
         status === JobStatus.REJECTED
@@ -1320,7 +1322,7 @@ export class DatabaseService {
       const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
 
       const insertQuery = `
-      INSERT INTO schedule (${keys.join(', ')})
+      INSERT INTO cron_jobs (${keys.join(', ')})
       VALUES (${placeholders})
       RETURNING id;
     `;
@@ -1334,18 +1336,18 @@ export class DatabaseService {
 
       return insertedId;
     } catch (error) {
-      throw new Error(`Failed to create schedule: ${(error as Error).message}`);
+      throw new Error(`Failed to create cron job: ${(error as Error).message}`);
     }
   }
 
   async findScheduleById(id: string): Promise<Schedule | null> {
     try {
-      const query = 'SELECT * FROM schedule WHERE id = $1 LIMIT 1;';
+      const query = 'SELECT * FROM cron_jobs WHERE id = $1 LIMIT 1;';
       const result = await this.dbClient.query(query, [id]);
       return result.rows[0] || null;
     } catch (error) {
 
-      throw new Error(`Failed to find schedule: ${(error as Error).message}`);
+      throw new Error(`Failed to find cron job: ${(error as Error).message}`);
     }
   }
 
@@ -1356,7 +1358,7 @@ export class DatabaseService {
       const setClause = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
 
       const query = `
-      UPDATE schedule 
+      UPDATE cron_jobs 
       SET ${setClause} 
       WHERE id = $${keys.length + 1};
     `;
@@ -1364,12 +1366,12 @@ export class DatabaseService {
       const result = await this.dbClient.query(query, [...values, id]);
 
       if (result.rowCount === 0) {
-        throw new Error(`No schedule found with id: ${id}`);
+        throw new Error(`No cron job found with id: ${id}`);
       }
       return result.rowCount;
     } catch (error) {
 
-      throw new Error(`Failed to update schedule: ${(error as Error).message}`);
+      throw new Error(`Failed to update cron job: ${(error as Error).message}`);
     }
   }
 
@@ -1400,14 +1402,14 @@ export class DatabaseService {
     const whereClause = `WHERE ${whereClauses.join(' AND ')}`;
     const countQuery = `
       SELECT COUNT(*) as total
-      FROM schedule
+      FROM cron_jobs
       ${whereClause}
     `;
     const countResult = await this.dbClient.query(countQuery, queryParams);
     const total = parseInt(countResult.rows[0].total, 10);
 
     const dataQuery = `
-    SELECT * FROM schedule ${whereClause}  ORDER BY created_at DESC
+    SELECT * FROM cron_jobs ${whereClause}  ORDER BY created_at DESC
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}`
     const dataParams = [...queryParams, limit, offset];
     const dataResult = await this.dbClient.query(dataQuery, dataParams);
@@ -1430,7 +1432,7 @@ export class DatabaseService {
 
       const query = `
       SELECT *
-      FROM schedule
+      FROM cron_jobs
       WHERE tenant_id = $1
         AND status = $2
       ORDER BY created_at DESC
@@ -1441,7 +1443,7 @@ export class DatabaseService {
 
       return result.rows;
     } catch (error) {
-      throw new Error(`Failed to fetch schedules: ${(error as Error).message}`);
+      throw new Error(`Failed to fetch cron jobs: ${(error as Error).message}`);
     }
   }
 
@@ -1455,13 +1457,13 @@ export class DatabaseService {
       const query =
         status === JobStatus.REJECTED
           ? `
-          UPDATE schedule
+          UPDATE cron_jobs
           SET status = $1, comments = $2, updated_at = NOW()
            WHERE id = $3 AND tenant_id = $4
           RETURNING id;
         `
           : `
-          UPDATE schedule
+          UPDATE cron_jobs
           SET status = $1, updated_at = NOW()
           WHERE id = $2 AND tenant_id = $3
           RETURNING id;
@@ -1475,13 +1477,13 @@ export class DatabaseService {
       const result = await this.dbClient.query(query, params);
 
       if (result.rowCount === 0) {
-        throw new Error(`No schedule found with id: ${id}`);
+        throw new Error(`No cron job found with id: ${id}`);
       }
 
       return result.rowCount;
     } catch (error) {
       console.error('Error updating schedule status:', error);
-      throw new Error(`Failed to update schedule status: ${(error as Error).message}`);
+      throw new Error(`Failed to update cron job status: ${(error as Error).message}`);
     }
   }
   /**

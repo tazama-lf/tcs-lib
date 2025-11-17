@@ -439,7 +439,7 @@ export class DatabaseService {
     };
   }
 
-  async updateConfig(id: number, tenantId: string, updates: Partial<Config>): Promise<void> {
+  async updateConfig(id: number, tenantId: string, updates: Partial<Config>): Promise<number | null> {
     const updateFields: string[] = [];
 
     const values: any[] = [];
@@ -530,12 +530,16 @@ export class DatabaseService {
 
       WHERE id = $${paramIndex++} AND tenant_id = $${paramIndex++}
 
+      returning id;
+
     `;
 
 
     const result = await this.dbClient.query(query, values);
 
     console.log(` DATABASE UPDATED RESULT: ${result}`);
+
+    return result.rowCount;
   }
 
   async deleteConfig(id: number, tenantId: string): Promise<void> {
@@ -966,6 +970,8 @@ export class DatabaseService {
       updatedAt: row.updated_at,
 
       publishing_status: row.publishing_status,
+
+      comments: row.comments || null,
     };
   }
 

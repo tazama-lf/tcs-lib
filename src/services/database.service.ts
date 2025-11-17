@@ -1133,7 +1133,7 @@ export class DatabaseService {
       FROM pull_jobs
       ${whereClause}
 
-      ORDER BY created_at DESC
+      ORDER BY updated_at DESC
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
     const dataParams = [...queryParams, limit, offset];

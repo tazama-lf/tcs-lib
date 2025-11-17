@@ -396,8 +396,6 @@ export class DatabaseService {
       queryParams.push(createdAt);
     }
 
-
-
     const whereClause = `WHERE ${whereClauses.join(' AND ')}`;
 
     const countQuery = `
@@ -424,7 +422,7 @@ export class DatabaseService {
     `;
 
 
-    const dataParams = [...queryParams, limit, offset];
+    const dataParams = [...queryParams, limit, offset * 10];
 
     console.log("data query", dataQuery);
     console.log("data params", dataParams);

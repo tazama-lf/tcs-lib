@@ -1140,7 +1140,7 @@ FROM (
 ORDER BY all_jobs.updated_at DESC
 LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     `;
-    const dataParams = [...queryParams, limit, offset];
+    const dataParams = [...queryParams, limit, offset * 10];
     const dataResult = await this.dbClient.query(dataQuery, dataParams);
     return {
       data: dataResult.rows,

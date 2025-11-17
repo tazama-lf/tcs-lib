@@ -1101,40 +1101,44 @@ export class DatabaseService {
     const total = parseInt(countResult.rows[0].total, 10);
 
     const dataQuery = `
-      SELECT 
-        id,
-        endpoint_name,
-        path,
-        mode,
-        table_name,
-        description,
-        version,
-        status,
-        publishing_status,
-        created_at,
-        'push' AS type
-      FROM push_jobs
-      ${whereClause}
+     SELECT *
+FROM (
+  SELECT 
+    id,
+    endpoint_name,
+    path,
+    mode,
+    table_name,
+    description,
+    version,
+    status,
+    publishing_status,
+    created_at,
+    updated_at,
+    'push' AS type
+  FROM push_jobs
+  ${whereClause}
 
-      UNION ALL
+  UNION ALL
 
-      SELECT 
-        id,
-        endpoint_name,
-        NULL AS path,
-        mode,
-        table_name,
-        description,
-        version,
-        status,
-        publishing_status,
-        created_at,
-        'pull' AS type
-      FROM pull_jobs
-      ${whereClause}
-
-      ORDER BY updated_at DESC
-      LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+  SELECT 
+    id,
+    endpoint_name,
+    NULL AS path,
+    mode,
+    table_name,
+    description,
+    version,
+    status,
+    publishing_status,
+    created_at,
+    updated_at,
+    'pull' AS type
+  FROM pull_jobs
+  ${whereClause}
+) AS all_jobs
+ORDER BY all_jobs.updated_at DESC
+LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     `;
     const dataParams = [...queryParams, limit, offset];
     const dataResult = await this.dbClient.query(dataQuery, dataParams);

@@ -116,20 +116,24 @@ interface JobSummary {
 interface Enrichment {
     id?: number;
     tenant_id: string;
-    endpoint_id: number;
+    endpoint_id: string;
     correlation_id: string;
     checksum: string;
-    data: Record<string, any>;
+    data: Record<string, unknown>;
 }
 
 interface PushJob {
     id: string;
+    tenant_id: string;
     endpoint_name: string;
     path: string;
-    description: string;
     mode: IngestMode;
     table_name: string;
-    job_status: JobStatus;
+    description: string;
+    version: string;
+    status: JobStatus;
+    publishing_status: ScheduleStatus;
+    comments?: string;
     created_at: Date;
     updated_at: Date;
 }

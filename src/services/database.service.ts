@@ -1421,7 +1421,7 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     const total = parseInt(countResult.rows[0].total, 10);
 
     const dataQuery = `
-    SELECT * FROM cron_jobs ${whereClause}  ORDER BY created_at DESC
+    SELECT * FROM cron_jobs ${whereClause}  ORDER BY updated_at DESC
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}`
     const dataParams = [...queryParams, limit, offset];
     const dataResult = await this.dbClient.query(dataQuery, dataParams);

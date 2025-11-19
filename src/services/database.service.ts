@@ -1224,10 +1224,6 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     try {
       const tableName = type === ConfigType.PUSH ? 'push_jobs' : 'pull_jobs';
 
-      if (job.status === JobStatus.REJECTED) {
-        job.status = JobStatus.INPROGRESS;
-      }
-
       const keys = Object.keys(job);
       const values = Object.values(job);
 
@@ -1235,7 +1231,9 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
         throw new Error('No fields provided to update');
       }
 
-      const setClause = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
+      const setClause = keys
+        .map((key, i) => `${key} = $${i + 1}`)
+        .join(', ') + `, updated_at = NOW()`;
       const query = `
       UPDATE ${tableName}
       SET ${setClause}
@@ -1273,6 +1271,12 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
                     `;
 
       const result = await this.dbClient.query(query, [status, id]);
+
+
+      if (result.rows.length === 0) {
+        throw new Error("Job not found or publishing_status not updated");
+      }
+
       return result.rows;
     } catch (error) {
       throw new Error(`Failed to update job publishing status: ${(error as Error).message}`);
@@ -1367,7 +1371,10 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     try {
       const keys = Object.keys(attr);
       const values = Object.values(attr);
-      const setClause = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
+      const setClause = keys
+        .map((key, i) => `${key} = $${i + 1}`)
+        .join(', ') + `, updated_at = NOW()`;
+
 
       const query = `
       UPDATE cron_jobs 

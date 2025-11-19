@@ -13,6 +13,7 @@ export interface CreateConfigDto {
   mapping?: FieldMapping[];
   functions?: FunctionDefinition[];
   fieldAdjustments?: AdjustFieldDto[];
+  schema?: Record<string, any>; // Accept schema as an object
 }
 export interface CloneConfigDto {
   sourceConfigId: number;

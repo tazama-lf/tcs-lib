@@ -67,6 +67,12 @@ export function getEmailTheme(
       emailTitle: 'Configuration Deactivated',
       actionDescription: 'deactivated',
     },
+     approver_reject: {
+      themeColor: '#F44336',
+      statusBadgeColor: '#ffebee',
+      emailTitle: 'Configuration Rejected',
+      actionDescription: 'rejected',
+    },
   };
 
   const theme = themes[event] || {
@@ -129,17 +135,7 @@ export function generateWorkflowEmailHTML(context: EmailTemplateContext): string
           </span>
         </td>
       </tr>
-      <tr>
-        <td style="padding: 8px; font-weight: bold; color: #666;">Config ID:</td>
-        <td style="padding: 8px;">${config.id || config.configId || 'N/A'}</td>
-      </tr>
     </table>
-  </div>
-
-  <div style="text-align: center; margin: 30px 0;">
-    <a href="#" style="display: inline-block; background-color: ${theme.themeColor}; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-weight: bold;">
-      View in Connection Studio
-    </a>
   </div>
 
   <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;"/>
@@ -165,7 +161,6 @@ ${actorName || actorEmail} has ${theme.actionDescription}:
 Configuration: ${configName}
 Version: ${version}
 Endpoint: ${config.endpointPath || config.endpoint_path || 'N/A'}
-Config ID: ${config.id || config.configId || 'N/A'}
 Status: ${config.status || 'N/A'}
 ${comment ? `\nComment:\n${comment}` : ''}
 

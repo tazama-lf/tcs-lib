@@ -165,7 +165,7 @@ export class DatabaseService {
     // Get paginated data
     const dataQuery = `
       SELECT id, msg_fam, transaction_type, endpoint_path, version, content_type,
-             schema, mapping, functions, status, tenant_id, created_by, 
+             schema, mapping, functions, status, tenant_id, created_by, comments,
              created_at, updated_at, publishing_status
       FROM config
       WHERE endpoint_path = $1 AND version = $2 AND tenant_id = $3
@@ -969,7 +969,7 @@ export class DatabaseService {
 
       publishing_status: row.publishing_status,
 
-      comments: row.comments || null,
+      comments: row.comment || null,
     };
   }
 

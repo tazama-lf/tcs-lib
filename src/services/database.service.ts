@@ -1220,9 +1220,13 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     }
   }
 
-  async updateJob(id: string, job: Job, type: ConfigType): Promise<{ success: boolean, message: string }> {
+  async updateJob(id: string, job: Record<string, unknown>, type: ConfigType): Promise<{ success: boolean, message: string }> {
     try {
       const tableName = type === ConfigType.PUSH ? 'push_jobs' : 'pull_jobs';
+
+      if (job.status === JobStatus.REJECTED) {
+        job.status = JobStatus.INPROGRESS;
+      }
 
       const keys = Object.keys(job);
       const values = Object.values(job);
@@ -1417,7 +1421,7 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     const total = parseInt(countResult.rows[0].total, 10);
 
     const dataQuery = `
-    SELECT * FROM cron_jobs ${whereClause}  ORDER BY created_at DESC
+    SELECT * FROM cron_jobs ${whereClause}  ORDER BY updated_at DESC
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}`
     const dataParams = [...queryParams, limit, offset];
     const dataResult = await this.dbClient.query(dataQuery, dataParams);

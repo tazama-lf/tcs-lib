@@ -969,7 +969,7 @@ export class DatabaseService {
 
       publishing_status: row.publishing_status,
 
-      comments: row.comment || null,
+      comments: row.comment || row.comments ,
     };
   }
 

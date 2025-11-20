@@ -969,7 +969,7 @@ export class DatabaseService {
 
       publishing_status: row.publishing_status,
 
-      comments: row.comment || row.comments ,
+      comments: row.comment || row.comments,
     };
   }
 
@@ -1140,7 +1140,7 @@ FROM (
 ORDER BY all_jobs.updated_at DESC
 LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     `;
-    const dataParams = [...queryParams, limit, offset];
+    const dataParams = [...queryParams, limit, offset * 10];
     const dataResult = await this.dbClient.query(dataQuery, dataParams);
     return {
       data: dataResult.rows,
@@ -1430,7 +1430,7 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     const dataQuery = `
     SELECT * FROM cron_jobs ${whereClause}  ORDER BY updated_at DESC
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}`
-    const dataParams = [...queryParams, limit, offset];
+    const dataParams = [...queryParams, limit, offset * 10];
     const dataResult = await this.dbClient.query(dataQuery, dataParams);
     return {
       data: dataResult.rows,

@@ -1010,7 +1010,7 @@ export class DatabaseService {
         [table_name],
       );
 
-      const existingJob = jobResult.rows[0] || endpointResult.rows[0];
+      const existingJob = jobResult.rows[0] && endpointResult.rows[0];
       const exists = (await this.tableExist(table_name)) || existingJob;
 
       if (exists) {

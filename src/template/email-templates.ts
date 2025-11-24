@@ -1,3 +1,5 @@
+import { Job } from "src/interfaces/enrichment.interface";
+
 export interface EmailTemplateContext {
   event: string;
   config: {
@@ -11,6 +13,14 @@ export interface EmailTemplateContext {
     endpoint_path?: string;
     status?: string;
   };
+  actorName: string;
+  actorEmail: string;
+  comment?: string;
+  tenantId?: string;
+}
+export interface JobEmailTemplateContext {
+  event: string;
+  job: Job;
   actorName: string;
   actorEmail: string;
   comment?: string;
@@ -67,7 +77,7 @@ export function getEmailTheme(
       emailTitle: 'Configuration Deactivated',
       actionDescription: 'deactivated',
     },
-     approver_reject: {
+    approver_reject: {
       themeColor: '#F44336',
       statusBadgeColor: '#ffebee',
       emailTitle: 'Configuration Rejected',
@@ -95,7 +105,7 @@ export function getEmailTheme(
 
 export function generateWorkflowEmailHTML(context: EmailTemplateContext): string {
   const { config, actorName, actorEmail, comment } = context;
-  
+
   const configName = config.transactionType || config.cfg_name || 'Configuration';
   const version = config.version || config.cfg_version || '1.0';
   const theme = getEmailTheme(context.event, configName, version);
@@ -148,7 +158,7 @@ export function generateWorkflowEmailHTML(context: EmailTemplateContext): string
 
 export function generateWorkflowEmailText(context: EmailTemplateContext): string {
   const { config, actorName, actorEmail, comment, tenantId } = context;
-  
+
   const configName = config.transactionType || config.cfg_name || 'Configuration';
   const version = config.version || config.cfg_version || '1.0';
   const theme = getEmailTheme(context.event, configName, version);
@@ -169,6 +179,83 @@ This is an automated notification from Tazama Connection Studio.
 From: ${actorName || actorEmail} (${actorEmail})${tenantId ? `\nTenant: ${tenantId}` : ''}
   `.trim();
 }
+
+export function generateJobflowEmailHTML(context: JobEmailTemplateContext): string {
+  const { job, actorName, actorEmail, comment } = context;
+
+  const jobName = job.endpoint_name || 'Job';
+  const version = job.version || '1.0';
+  const theme = getEmailTheme(context.event, jobName, version);
+
+  return `
+<div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; background-color: #f9f9f9;">
+  <h2 style="color: ${theme.themeColor}; margin-top: 0;">${theme.emailTitle}</h2>
+  
+  <div style="background-color: ${theme.statusBadgeColor}; padding: 15px; border-left: 4px solid ${theme.themeColor}; margin: 20px 0;">
+    <p style="margin: 0; font-weight: bold; font-size: 16px;">From: ${actorName || actorEmail}</p>
+    <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">
+      <a href="mailto:${actorEmail}" style="color: ${theme.themeColor}; text-decoration: none;">${actorEmail}</a>
+    </p>
+    ${comment ? `<p style="margin: 10px 0 0 0;"><strong>Comment:</strong><br/>${comment.replace(/\n/g, '<br/>')}</p>` : ''}
+  </div>
+
+  <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <h3 style="margin-top: 0; color: ${theme.themeColor};">Job Details</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px; font-weight: bold; color: #666;">Job:</td>
+        <td style="padding: 8px;">${jobName}</td>
+      </tr>
+      <tr style="background-color: #f5f5f5;">
+        <td style="padding: 8px; font-weight: bold; color: #666;">Version:</td>
+        <td style="padding: 8px;">${version}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; font-weight: bold; color: #666;">Endpoint Path:</td>
+        <td style="padding: 8px;">${job.path || 'N/A'}</td>
+      </tr>
+      <tr style="background-color: #f5f5f5;">
+        <td style="padding: 8px; font-weight: bold; color: #666;">Status:</td>
+        <td style="padding: 8px;">
+          <span style="background-color: ${theme.themeColor}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+            ${job.status || 'N/A'}
+          </span>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;"/>
+  <p style="color: #999; font-size: 12px;">
+    This is an automated notification from Tazama Connection Studio.${context.tenantId ? `<br/>Tenant: ${context.tenantId}` : ''}
+  </p>
+</div>
+  `.trim();
+}
+
+export function generateJobflowEmailText(context: JobEmailTemplateContext): string {
+  const { job, actorName, actorEmail, comment, tenantId } = context;
+
+  const jobName = job.endpoint_name || 'Job';
+  const version = job.version || '1.0';
+  const theme = getEmailTheme(context.event, jobName, version);
+  return `
+Hello,
+
+${actorName || actorEmail} has ${theme.actionDescription}:
+
+Job: ${jobName}
+Version: ${version}
+Endpoint path: ${job.path || 'N/A'}
+Status: ${job.status || 'N/A'}
+${comment ? `\nComment:\n${comment}` : ''}
+
+---
+This is an automated notification from Tazama Connection Studio.
+From: ${actorName || actorEmail} (${actorEmail})${tenantId ? `\nTenant: ${tenantId}` : ''}
+  `.trim();
+}
+
 
 export function generatePublishingStatusEmailHTML(
   configId: number,

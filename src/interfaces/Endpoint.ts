@@ -132,11 +132,11 @@ export interface SubmitForApprovalDto extends StatusTransitionDto {
 }
 export interface ApprovalDto extends StatusTransitionDto {
   configId: number;
-  approvalNotes?: string;
+  comment?: string;
 }
 export interface RejectionDto extends StatusTransitionDto {
   configId: number;
-  rejectionReason: string;
+  comment: string;
 }
 export interface ChangeRequestDto extends StatusTransitionDto {
   configId: number;

@@ -211,8 +211,8 @@ export function generateJobflowEmailHTML(context: JobEmailTemplateContext): stri
         <td style="padding: 8px;">${version}</td>
       </tr>
       <tr>
-        <td style="padding: 8px; font-weight: bold; color: #666;">Endpoint Path:</td>
-        <td style="padding: 8px;">${job.path || 'N/A'}</td>
+        <td style="padding: 8px; font-weight: bold; color: #666;">Endpoint Name:</td>
+        <td style="padding: 8px;">${job.endpoint_name || 'N/A'}</td>
       </tr>
       <tr style="background-color: #f5f5f5;">
         <td style="padding: 8px; font-weight: bold; color: #666;">Status:</td>
@@ -246,7 +246,7 @@ ${actorName || actorEmail} has ${theme.actionDescription}:
 
 Job: ${jobName}
 Version: ${version}
-Endpoint path: ${job.path || 'N/A'}
+Endpoint Name: ${job.endpoint_name || 'N/A'}
 Status: ${job.status || 'N/A'}
 ${comment ? `\nComment:\n${comment}` : ''}
 

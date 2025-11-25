@@ -153,6 +153,7 @@ interface PaginatedResult<T> {
     total: number;
     offset: number;
     limit: number;
+    page?: number
 }
 
 export {

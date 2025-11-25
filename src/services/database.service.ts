@@ -372,6 +372,7 @@ export class DatabaseService {
     payload: Record<string, string>,
     tenantId: string,
   ): Promise<{ data: Config[]; total: number; limit: number; offset: number }> {
+    console.log("findConfigsByStatus called")
     const { status, endpointPath, createdAt } = payload;
 
     const whereClauses: string[] = ["tenant_id = $1"];
@@ -404,10 +405,6 @@ export class DatabaseService {
       ${whereClause}
     `;
 
-    console.log("count query", countQuery);
-    console.log("count query params", queryParams);
-    console.log("where", whereClause);
-
     const countResult = await this.dbClient.query(countQuery, queryParams);
     const total = parseInt(countResult.rows[0].total, 10);
 
@@ -417,17 +414,15 @@ export class DatabaseService {
              created_at, updated_at, publishing_status
       FROM config
       ${whereClause}
-      ORDER BY created_at DESC
+      ORDER BY updated_at DESC
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
 
 
     const dataParams = [...queryParams, limit, offset * 10];
 
-    console.log("data query", dataQuery);
-    console.log("data params", dataParams);
-
     const dataResult = await this.dbClient.query(dataQuery, dataParams);
+    console.log("findConfigsByStatus end")
 
     return {
       data: dataResult.rows.map((row) => this.mapRowToConfig(row)),

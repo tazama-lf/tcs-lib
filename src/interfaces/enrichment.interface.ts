@@ -139,6 +139,23 @@ interface PushJob {
     updated_at: Date;
 }
 
+interface PullJobHistory {
+    id: number;
+    job_id: string;
+    counts: number;
+    processed_counts: number;
+    exception: string | null;
+    created_at: Date;
+}
+
+interface PaginatedResult<T> {
+    data: PullJobHistory[];
+    total: number;
+    offset: number;
+    limit: number;
+    page?: number
+}
+
 export {
     ScheduleStatus,
     IngestMode,
@@ -155,5 +172,7 @@ export {
     type HTTPConnection,
     type Job,
     type SFTPConnection,
-    type JobSummary
+    type JobSummary,
+    type PullJobHistory,
+    type PaginatedResult,
 };

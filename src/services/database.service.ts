@@ -1,7 +1,7 @@
 ﻿import { Pool, PoolClient } from 'pg';
 import { randomUUID } from 'crypto';
 
-import { ConfigType, Job, JobStatus, JobSummary, Schedule } from 'src/interfaces/enrichment.interface';
+import { ConfigType, Job, JobStatus, JobSummary, PaginatedResult, PullJobHistory, Schedule } from 'src/interfaces/enrichment.interface';
 import { DatabaseFactory } from '../database/databaseFactory';
 import type { Config } from '../types/config.types';
 import { ConfigStatus } from '../types/config.types';
@@ -1060,6 +1060,72 @@ export class DatabaseService {
       throw new Error(`Failed to create job: ${(error as Error).message}`);
     }
   }
+
+  async getJobHistory(
+    limit: number = 10,
+    offset: number = 0,
+    tenantId: string,
+    payload: Record<string, string> = {}
+  ): Promise<PaginatedResult<PullJobHistory>> {
+    try {
+      const { createdAt, exception } = payload;
+
+      const whereClauses: string[] = ["ph.tenant_id = $1"];
+      const queryParams: unknown[] = [tenantId];
+      let paramIndex = 2;
+
+      if (createdAt) {
+        whereClauses.push(`DATE(ph.created_at) = $${paramIndex++}`);
+        queryParams.push(createdAt);
+      }
+
+      if (exception) {
+        whereClauses.push(`ph.exception LIKE $${paramIndex++}`);
+        queryParams.push(`%${exception}%`);
+      }
+
+      const whereClause = `WHERE ${whereClauses.join(" AND ")}`;
+
+      const countQuery = `
+      SELECT COUNT(*) AS total
+      FROM pull_job_history ph
+      ${whereClause};
+    `;
+      const countResult = await this.dbClient.query(countQuery, queryParams);
+      const total = parseInt(countResult.rows[0].total, 10);
+
+      const dataQuery = `
+      SELECT 
+        ph.*,
+        pj.endpoint_name,
+        pj.table_name,
+        pj.description,
+        pj.version,
+        pj.status,
+        pj.publishing_status
+      FROM pull_job_history ph
+      LEFT JOIN pull_jobs pj ON pj.id = ph.job_id
+      ${whereClause}
+      ORDER BY ph.created_at DESC
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++};
+    `;
+      const dataParams = [...queryParams, limit, offset * 10];
+      const dataResult = await this.dbClient.query(dataQuery, dataParams);
+
+      return {
+        data: dataResult.rows as PullJobHistory[],
+        total,
+        limit,
+        offset,
+      };
+    } catch (error) {
+      throw new Error(
+        `Error fetching pull_job_history: ${error instanceof Error ? error.message : JSON.stringify(error)
+        }`
+      );
+    }
+  }
+
 
   async getAllJobs(
     limit: number = 10,

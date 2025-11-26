@@ -1351,29 +1351,25 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     reason?: string
   ): Promise<number | null> {
     try {
-
       const tableName = type === ConfigType.PUSH ? 'push_jobs' : 'pull_jobs';
 
-      const query =
-        status === JobStatus.REJECTED
-          ? `
-          UPDATE ${tableName}
-          SET status = $1, comments = $2, updated_at = NOW()
-          WHERE id = $3
-          RETURNING id;
-        `
-          : `
-          UPDATE ${tableName}
-          SET status = $1, updated_at = NOW()
-          WHERE id = $2
-          RETURNING id;
-        `;
+      const setClauses = ["status = $1", "updated_at = NOW()"];
+      const params: unknown[] = [status];
+      let paramIndex = 2;
 
+      if (status === JobStatus.REJECTED || (status === JobStatus.APPROVED && reason)) {
+        setClauses.push(`comments = $${paramIndex++}`);
+        params.push(reason);
+      }
 
-      const params =
-        status === JobStatus.REJECTED
-          ? [status, reason, id]
-          : [status, id];
+      params.push(id);
+
+      const query = `
+      UPDATE ${tableName}
+      SET ${setClauses.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING id;
+    `;
 
       const result = await this.dbClient.query(query, params);
 

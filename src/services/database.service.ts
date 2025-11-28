@@ -1,7 +1,7 @@
 ﻿import { Pool, PoolClient } from 'pg';
 import { randomUUID } from 'crypto';
 
-import { ConfigType, Job, JobStatus, JobSummary, PaginatedResult, PullJobHistory, Schedule } from 'src/interfaces/enrichment.interface';
+import { ConfigType, ISuccess, Job, JobStatus, JobSummary, PaginatedResult, PullJobHistory, PushJob, Schedule } from 'src/interfaces/enrichment.interface';
 import { DatabaseFactory } from '../database/databaseFactory';
 import type { Config } from '../types/config.types';
 import { ConfigStatus } from '../types/config.types';
@@ -991,7 +991,7 @@ export class DatabaseService {
     }
   }
 
-  async validateExisting(table_name: string): Promise<void> {
+  async validateExisting(table_name: string): Promise<boolean> {
     try {
       validateTableName(table_name);
 
@@ -1005,12 +1005,12 @@ export class DatabaseService {
         [table_name],
       );
 
-      const existingJob = jobResult.rows[0] && endpointResult.rows[0];
-      const exists = (await this.tableExist(table_name)) || existingJob;
+      const jobExists = jobResult.rows.length > 0;
+      const pushExists = endpointResult.rows.length > 0;
+      const tableExists = await this.tableExist(table_name);
 
-      if (exists) {
-        throw new Error(`Table "${table_name}" already exists`);
-      }
+      return tableExists || jobExists || pushExists;
+
     } catch (error) {
       const err = error as Error;
       throw new Error(`Failed to validate existing table "${table_name}": ${err.message}`);
@@ -1020,8 +1020,11 @@ export class DatabaseService {
 
   // ==================== JOB OPERATIONS ====================
 
-  async createPushJob(job: Record<string, unknown>): Promise<string | null> {
+  async createPushJob(job: Partial<PushJob>): Promise<ISuccess> {
     try {
+      const exists = await this.validateExisting(job.table_name!)
+
+
       const keys = Object.keys(job);
       const values = Object.values(job);
       const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
@@ -1031,18 +1034,22 @@ export class DatabaseService {
                      VALUES (${placeholders})
                       RETURNING *;
                       `;
-      const result = await this.dbClient.query(insertQuery, values);
-      const insertedId = result.rows[0]?.id;
+      await this.dbClient.query(insertQuery, values);
 
-      return insertedId;
+
+      return {
+        success: true,
+        message: `Push Job Created Successfully ${exists ? 'with an existing table' : ''}`
+      };
     } catch (error) {
       throw new Error(`Failed to create job: ${(error as Error).message}`);
     }
   }
 
 
-  async createPullJob(job: Record<string, unknown>): Promise<string | null> {
+  async createPullJob(job: Partial<Job>): Promise<ISuccess> {
     try {
+      const exists = await this.validateExisting(job.table_name!)
       const keys = Object.keys(job);
       const values = Object.values(job);
       const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
@@ -1052,10 +1059,13 @@ export class DatabaseService {
                      VALUES (${placeholders})
                       RETURNING *;
                       `;
-      const result = await this.dbClient.query(insertQuery, values);
-      const insertedId = result.rows[0]?.id;
+      await this.dbClient.query(insertQuery, values);
 
-      return insertedId;
+
+      return {
+        success: true,
+        message: `Pull Job Created Successfully ${exists ? 'with an existing table' : ''}`
+      };
     } catch (error) {
       throw new Error(`Failed to create job: ${(error as Error).message}`);
     }

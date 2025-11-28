@@ -1068,7 +1068,7 @@ export class DatabaseService {
     payload: Record<string, string> = {}
   ): Promise<PaginatedResult<PullJobHistory>> {
     try {
-      const { createdAt, exception } = payload;
+      const { endpointName, createdAt, exception } = payload;
 
       const whereClauses: string[] = ["ph.tenant_id = $1"];
       const queryParams: unknown[] = [tenantId];
@@ -1084,11 +1084,17 @@ export class DatabaseService {
         queryParams.push(`%${exception}%`);
       }
 
+      if (endpointName) {
+        whereClauses.push(`pj.endpoint_name ILIKE $${paramIndex++}`);
+        queryParams.push(`%${endpointName}%`);
+      }
+
       const whereClause = `WHERE ${whereClauses.join(" AND ")}`;
 
       const countQuery = `
       SELECT COUNT(*) AS total
       FROM pull_job_history ph
+      LEFT JOIN pull_jobs pj ON pj.id = ph.job_id
       ${whereClause};
     `;
       const countResult = await this.dbClient.query(countQuery, queryParams);

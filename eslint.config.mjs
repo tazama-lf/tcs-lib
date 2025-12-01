@@ -1,61 +1,62 @@
-import js from '@eslint/js';
-import globals from 'globals';
-import tseslint from '@typescript-eslint/eslint-plugin';
-import tsparser from '@typescript-eslint/parser';
-import prettier from 'eslint-plugin-prettier';
+// SPDX-License-Identifier: Apache-2.0
+import eslintPluginEslintComments from '@eslint-community/eslint-plugin-eslint-comments';
+import stylistic from '@stylistic/eslint-plugin';
+import tsEslint from '@typescript-eslint/eslint-plugin';
+import tsParser from '@typescript-eslint/parser';
+import eslintStandard from 'eslint-config-love';
+import eslintConfigPrettier from 'eslint-config-prettier/flat';
+import { defineConfig, globalIgnores } from 'eslint/config';
 
-export default [
+export default defineConfig([
+  eslintConfigPrettier,
+  globalIgnores(['**/coverage/**', '**/build/**', '**/node_modules/**', '**/__tests__/**', '**/dist/**', '**/test/**', '*.ts', '**/*.spec.ts',]),
   {
-    ignores: [
-      'dist/**/*',
-      'node_modules/**/*',
-      'coverage/**/*',
-      'build/**/*',
-      '*.config.js',
-      '*.config.mjs',
-      '**/*.spec.ts',
-      '**/*.test.ts',
-    ],
-  },
-  {
-    files: ['src/**/*.ts'],
-    languageOptions: {
-      parser: tsparser,
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
-      },
-      globals: {
-        ...globals.node,
-        ...globals.jest,
-      },
-      sourceType: 'module',
-    },
+    files: ['**/*.ts'],
     plugins: {
-      '@typescript-eslint': tseslint,
-      'prettier': prettier,
+      ...eslintStandard.plugins,
+      ['@eslint-community/eslint-comments']: eslintPluginEslintComments,
+      ['@stylistic']: stylistic,
+      ['@typescript-eslint']: tsEslint,
+    },
+    languageOptions: {
+      ...eslintStandard.languageOptions,
+      parser: tsParser,
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      parserOptions: {
+        project: ['./tsconfig.json'],
+      },
     },
     rules: {
-      ...js.configs.recommended.rules,
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
-      '@typescript-eslint/no-unsafe-assignment': 'warn',
-      '@typescript-eslint/no-unsafe-member-access': 'warn',
-      '@typescript-eslint/no-unsafe-call': 'warn',
-      '@typescript-eslint/no-unsafe-return': 'warn',
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-      '@typescript-eslint/require-await': 'warn',
-      '@typescript-eslint/unbound-method': 'warn',
-      '@typescript-eslint/no-require-imports': 'warn',
+      ...eslintStandard.rules,
+      ...eslintPluginEslintComments.configs.recommended.rules,
+      '@eslint-community/eslint-comments/require-description': ['error', { ignore: ['eslint-enable'] }],
+      '@eslint-community/eslint-comments/disable-enable-pair': 'error',
+      '@typescript-eslint/init-declarations': 'off',
+      '@typescript-eslint/max-params': ['warn', { max: 6 }],
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/class-methods-use-this': 'off',
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/no-magic-numbers': 'off',
+      '@typescript-eslint/no-var-requires': 'off',
+      '@typescript-eslint/no-unsafe-type-assertion': 'off',
+      '@typescript-eslint/no-use-before-define': 'off',
+      '@typescript-eslint/prefer-destructuring': 'warn',
       '@typescript-eslint/prefer-optional-chain': 'warn',
-      '@typescript-eslint/no-unnecessary-condition': 'warn',
-      'quotes': ['error', 'single'],
-      'complexity': ['warn', { max: 25 }],
-      'max-depth': ['warn', { max: 5 }],
-      'no-console': 'warn',
-      'prettier/prettier': 'error',
+      '@typescript-eslint/restrict-template-expressions': 'error',
+      '@typescript-eslint/strict-boolean-expressions': 'off',
+      '@stylistic/quotes': ['error', 'single'],
+      complexity: ['warn', { max: 15 }],
+      'no-console': 'error',
+      'no-unneeded-ternary': 'off',
+      /* eslint-comments are bundled with eslint-config-love but they are using the unmaintained plugin. Replaced with @eslint-community/eslint-plugin-eslint-comments */
+      'eslint-comments/require-description': 'off',
+      'eslint-comments/disable-enable-pair': 'off',
+      'eslint-comments/no-aggregating-enable': 'off',
+      'eslint-comments/no-duplicate-disable': 'off',
+      'eslint-comments/no-unlimited-disable': 'off',
+      'eslint-comments/no-unused-enable': 'off',
     },
   },
-];
+]);

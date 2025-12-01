@@ -1018,13 +1018,8 @@ export class DatabaseService {
   }
 
   async validateActive(tableName: string, type: ConfigType): Promise<void> {
-    const tableMap: Record<ConfigType, string> = {
-      [ConfigType.PULL]: "pull_jobs",
-      [ConfigType.PUSH]: "push_jobs",
-    };
 
-    const targetTable = tableMap[type];
-
+    const targetTable = type === ConfigType.PULL ? 'pull_jobs' : 'push_jobs'
     try {
       const query = `
       SELECT COUNT(*) AS count
@@ -1041,7 +1036,7 @@ export class DatabaseService {
     } catch (err) {
       const error = err as Error;
       throw new Error(
-        `Failed to validate existing table with active status "${tableName}": ${error.message}`
+        error.message
       );
     }
   }
@@ -1381,8 +1376,10 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
 
       const tableName = type === ConfigType.PUSH ? 'push_jobs' : 'pull_jobs'
 
+      const job = (await this.findJobById(id, tableName) as Job)
+
       if (status === ScheduleStatus.ACTIVE) {
-        await this.validateActive(tableName, type)
+        await this.validateActive(job.table_name, type)
       }
 
       const query = `

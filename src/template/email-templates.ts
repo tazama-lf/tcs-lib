@@ -1,4 +1,4 @@
-import { Job } from "src/interfaces/enrichment.interface";
+import { Job, Schedule } from "src/interfaces/enrichment.interface";
 
 export interface EmailTemplateContext {
   event: string;
@@ -26,6 +26,14 @@ export interface JobEmailTemplateContext {
   comment?: string;
   tenantId?: string;
 }
+export interface ScheduleEmailTemplateContext {
+  event: string;
+  schedule: Schedule;
+  actorName: string;
+  actorEmail: string;
+  comment?: string;
+  tenantId?: string;
+}
 
 export interface EmailTheme {
   subject: string;
@@ -38,7 +46,7 @@ export interface EmailTheme {
 export function getEmailTheme(
   event: string,
   configName: string,
-  version: string,
+  version?: string,
 ): EmailTheme {
   const themes: Record<string, Omit<EmailTheme, 'subject'>> = {
     editor_submit: {
@@ -99,7 +107,7 @@ export function getEmailTheme(
 
   return {
     ...theme,
-    subject: `${subjectPrefix}: ${configName} v${version}`,
+    subject: `${subjectPrefix}: ${configName} ${version ? version : ''}`.trim(),
   };
 }
 
@@ -248,6 +256,82 @@ Job: ${jobName}
 Version: ${version}
 Endpoint Name: ${job.endpoint_name || 'N/A'}
 Status: ${job.status || 'N/A'}
+${comment ? `\nComment:\n${comment}` : ''}
+
+---
+This is an automated notification from Tazama Connection Studio.
+From: ${actorName || actorEmail} (${actorEmail})${tenantId ? `\nTenant: ${tenantId}` : ''}
+  `.trim();
+}
+
+export function generateScheduleflowEmailHTML(context: ScheduleEmailTemplateContext): string {
+  const { schedule, actorName, actorEmail, comment } = context;
+
+  const name = schedule.name;
+  const cron = schedule.cron;
+  const theme = getEmailTheme(context.event, name);
+
+  return `
+<div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; background-color: #f9f9f9;">
+  <h2 style="color: ${theme.themeColor}; margin-top: 0;">${theme.emailTitle}</h2>
+  
+  <div style="background-color: ${theme.statusBadgeColor}; padding: 15px; border-left: 4px solid ${theme.themeColor}; margin: 20px 0;">
+    <p style="margin: 0; font-weight: bold; font-size: 16px;">From: ${actorName || actorEmail}</p>
+    <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">
+      <a href="mailto:${actorEmail}" style="color: ${theme.themeColor}; text-decoration: none;">${actorEmail}</a>
+    </p>
+    ${comment ? `<p style="margin: 10px 0 0 0;"><strong>Comment:</strong><br/>${comment.replace(/\n/g, '<br/>')}</p>` : ''}
+  </div>
+
+  <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <h3 style="margin-top: 0; color: ${theme.themeColor};">Cron Job Details</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px; font-weight: bold; color: #666;">Cron Job Name:</td>
+        <td style="padding: 8px;">${name}</td>
+      </tr>
+      <tr style="background-color: #f5f5f5;">
+        <td style="padding: 8px; font-weight: bold; color: #666;">Cron Expression:</td>
+        <td style="padding: 8px;">${cron}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; font-weight: bold; color: #666;">Iterations:</td>
+        <td style="padding: 8px;">${schedule.iterations}</td>
+      </tr>
+      <tr style="background-color: #f5f5f5;">
+        <td style="padding: 8px; font-weight: bold; color: #666;">Status:</td>
+        <td style="padding: 8px;">
+          <span style="background-color: ${theme.themeColor}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+            ${schedule.status || 'N/A'}
+          </span>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;"/>
+  <p style="color: #999; font-size: 12px;">
+    This is an automated notification from Tazama Connection Studio.${context.tenantId ? `<br/>Tenant: ${context.tenantId}` : ''}
+  </p>
+</div>
+  `.trim();
+}
+
+export function generateScheduleflowEmailText(context: ScheduleEmailTemplateContext): string {
+  const { schedule, actorName, actorEmail, comment, tenantId } = context;
+
+  const name = schedule.name;
+  const cron = schedule.cron;
+  const theme = getEmailTheme(context.event, name);
+  return `
+Hello,
+
+${actorName || actorEmail} has ${theme.actionDescription}:
+
+Cron Job: ${name}
+Cron Expression: ${cron}
+Iterations: ${schedule.iterations}
+Status: ${schedule.status || 'N/A'}
 ${comment ? `\nComment:\n${comment}` : ''}
 
 ---

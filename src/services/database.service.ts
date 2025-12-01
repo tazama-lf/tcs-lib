@@ -1583,29 +1583,26 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
   async updateScheduleByStatus(
     status: JobStatus,
     id: string,
-    tenant_id: string,
     reason?: string
   ): Promise<number | null> {
     try {
-      const query =
-        status === JobStatus.REJECTED
-          ? `
-          UPDATE cron_jobs
-          SET status = $1, comments = $2, updated_at = NOW()
-           WHERE id = $3 AND tenant_id = $4
-          RETURNING id;
-        `
-          : `
-          UPDATE cron_jobs
-          SET status = $1, updated_at = NOW()
-          WHERE id = $2 AND tenant_id = $3
-          RETURNING id;
-        `;
+      const setClauses = ["status = $1", "updated_at = NOW()"];
+      const params: unknown[] = [status];
+      let paramIndex = 2;
 
-      const params =
-        status === JobStatus.REJECTED
-          ? [status, reason, id, tenant_id]
-          : [status, id, tenant_id];
+      if (status === JobStatus.REJECTED || (status === JobStatus.APPROVED && reason)) {
+        setClauses.push(`comments = $${paramIndex++}`);
+        params.push(reason);
+      }
+
+      params.push(id);
+
+      const query = `
+      UPDATE cron_jobs
+      SET ${setClauses.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING id;
+    `;
 
       const result = await this.dbClient.query(query, params);
 
@@ -1615,10 +1612,11 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
 
       return result.rowCount;
     } catch (error) {
-      console.error('Error updating schedule status:', error);
+      console.error('Error updating cron job status:', error);
       throw new Error(`Failed to update cron job status: ${(error as Error).message}`);
     }
   }
+  
   /**
   * Execute raw SQL query on configuration database
   * @param query - SQL query string

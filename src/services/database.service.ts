@@ -1,7 +1,7 @@
 ﻿import { Pool, PoolClient } from 'pg';
 import { randomUUID } from 'crypto';
 
-import { ConfigType, ISuccess, Job, JobStatus, JobSummary, PaginatedResult, PullJobHistory, PushJob, Schedule } from 'src/interfaces/enrichment.interface';
+import { ConfigType, ISuccess, Job, JobStatus, JobSummary, PaginatedResult, PullJobHistory, PushJob, Schedule, ScheduleStatus } from 'src/interfaces/enrichment.interface';
 import { DatabaseFactory } from '../database/databaseFactory';
 import type { Config } from '../types/config.types';
 import { ConfigStatus } from '../types/config.types';
@@ -1017,6 +1017,35 @@ export class DatabaseService {
     }
   }
 
+  async validateActive(tableName: string, type: ConfigType): Promise<void> {
+    const tableMap: Record<ConfigType, string> = {
+      [ConfigType.PULL]: "pull_jobs",
+      [ConfigType.PUSH]: "push_jobs",
+    };
+
+    const targetTable = tableMap[type];
+
+    try {
+      const query = `
+      SELECT COUNT(*) AS count
+      FROM ${targetTable}
+      WHERE table_name = $1 AND publishing_status = 'active'
+    `;
+
+      const { rows } = await this.dbClient.query(query, [tableName]);
+
+      if (Number(rows[0].count) > 0) {
+        throw new Error("Deactivate jobs with the table name used");
+      }
+
+    } catch (err) {
+      const error = err as Error;
+      throw new Error(
+        `Failed to validate existing table with active status "${tableName}": ${error.message}`
+      );
+    }
+  }
+
 
   // ==================== JOB OPERATIONS ====================
 
@@ -1024,6 +1053,9 @@ export class DatabaseService {
     try {
       const exists = await this.validateExisting(job.table_name!)
 
+      if (job.status === JobStatus.DEPLOYED) {
+        await this.validateActive(job.table_name!, ConfigType.PUSH)
+      }
 
       const keys = Object.keys(job);
       const values = Object.values(job);
@@ -1050,6 +1082,12 @@ export class DatabaseService {
   async createPullJob(job: Partial<Job>): Promise<ISuccess> {
     try {
       const exists = await this.validateExisting(job.table_name!)
+
+
+      if (job.status === JobStatus.DEPLOYED) {
+        await this.validateActive(job.table_name!, ConfigType.PULL)
+      }
+
       const keys = Object.keys(job);
       const values = Object.values(job);
       const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
@@ -1336,10 +1374,17 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
 
   async updateJobActivation(
     id: string,
-    status: JobStatus,
-    tableName: string,
+    status: ScheduleStatus,
+    type: ConfigType,
   ): Promise<Job[]> {
     try {
+
+      const tableName = type === ConfigType.PUSH ? 'push_jobs' : 'pull_jobs'
+
+      if (status === ScheduleStatus.ACTIVE) {
+        await this.validateActive(tableName, type)
+      }
+
       const query = `
                  UPDATE ${tableName}
                  SET publishing_status = $1, updated_at = NOW()
@@ -1348,7 +1393,6 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
                     `;
 
       const result = await this.dbClient.query(query, [status, id]);
-
 
       if (result.rows.length === 0) {
         throw new Error("Job not found or publishing_status not updated");

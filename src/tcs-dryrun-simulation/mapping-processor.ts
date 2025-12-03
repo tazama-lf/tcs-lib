@@ -147,9 +147,7 @@ export async function processMappings(
         endToEndId,
       };
     }
-  } else {
-    console.log(`No mapping configured for endpoint: ${endpoint}`);
-  }
+  } 
 
   return {
     dataCache,

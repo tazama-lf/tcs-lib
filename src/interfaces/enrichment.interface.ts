@@ -52,8 +52,6 @@ interface Schedule {
     cron: string;
     iterations: number;
     status: JobStatus,
-    start_date: Date,
-    end_date?: Date
     comments: string | null
 }
 
@@ -93,8 +91,6 @@ interface Job {
     record_status?: ScheduleStatus;
     schedule_id?: string;
     cron?: string;
-    start_date?: Date;
-    end_date?: Date;
     iterations?: number;
     created_at: Date;
     type: 'push' | 'pull';
@@ -147,7 +143,7 @@ interface PullJobHistory {
 }
 
 interface PaginatedResult<T> {
-    data: PullJobHistory[];
+    data: unknown[];
     total: number;
     offset: number;
     limit: number;

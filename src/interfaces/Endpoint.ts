@@ -45,7 +45,9 @@ export interface UpdateConfigDto {
 //   operator?: 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'DIVIDE'; // Mathematical operators for MATH transformation
 // }
 export interface FunctionDefinition {
-  params: string[]; // Array of parameter names
+  params?: string[];
+  columns?: Record<string, string>[];
+  tableName?: string;
   functionName: AllowedFunctionName;
 }
 export type AllowedFunctionName =

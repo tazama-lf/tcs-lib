@@ -1121,7 +1121,7 @@ export class DatabaseService {
 
       const countQuery = `
       SELECT COUNT(*) AS total
-      FROM pull_job_history ph
+      FROM job_history ph
       LEFT JOIN pull_jobs pj ON pj.id = ph.job_id
       ${whereClause};
     `;
@@ -1129,20 +1129,39 @@ export class DatabaseService {
       const total = parseInt(countResult.rows[0].total, 10);
 
       const dataQuery = `
-      SELECT 
-        ph.*,
-        pj.endpoint_name,
-        pj.table_name,
-        pj.description,
-        pj.version,
-        pj.status,
-        pj.publishing_status
-      FROM pull_job_history ph
-      LEFT JOIN pull_jobs pj ON pj.id = ph.job_id
-      ${whereClause}
-      ORDER BY ph.created_at DESC
-      LIMIT $${paramIndex++} OFFSET $${paramIndex++};
-    `;
+  SELECT 
+    ph.*,
+    CASE 
+      WHEN ph.job_type = 'pull' THEN pj.endpoint_name
+      WHEN ph.job_type = 'push' THEN psh.endpoint_name
+    END AS endpoint_name,
+    CASE 
+      WHEN ph.job_type = 'pull' THEN pj.table_name
+      WHEN ph.job_type = 'push' THEN psh.table_name
+    END AS table_name,
+    CASE 
+      WHEN ph.job_type = 'pull' THEN pj.description
+      WHEN ph.job_type = 'push' THEN psh.description
+    END AS description,
+    CASE 
+      WHEN ph.job_type = 'pull' THEN pj.version
+      WHEN ph.job_type = 'push' THEN psh.version
+    END AS version,
+    CASE 
+      WHEN ph.job_type = 'pull' THEN pj.status
+      WHEN ph.job_type = 'push' THEN psh.status
+    END AS status,
+    CASE 
+      WHEN ph.job_type = 'pull' THEN pj.publishing_status
+      WHEN ph.job_type = 'push' THEN psh.publishing_status
+    END AS publishing_status
+  FROM job_history ph
+  LEFT JOIN pull_jobs pj ON pj.id = ph.job_id AND ph.job_type = 'pull'
+  LEFT JOIN push_jobs psh ON psh.id = ph.job_id AND ph.job_type = 'push'
+  ${whereClause}
+  ORDER BY ph.created_at DESC
+  LIMIT $${paramIndex++} OFFSET $${paramIndex++};
+`;
       const dataParams = [...queryParams, limit, offset * 10];
       const dataResult = await this.dbClient.query(dataQuery, dataParams);
 
@@ -1154,7 +1173,7 @@ export class DatabaseService {
       };
     } catch (error) {
       throw new Error(
-        `Error fetching pull_job_history: ${error instanceof Error ? error.message : JSON.stringify(error)
+        `Error fetching job_history: ${error instanceof Error ? error.message : JSON.stringify(error)
         }`
       );
     }
@@ -1601,7 +1620,7 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
       throw new Error(`Failed to update cron job status: ${(error as Error).message}`);
     }
   }
-  
+
   /**
   * Execute raw SQL query on configuration database
   * @param query - SQL query string

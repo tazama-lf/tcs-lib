@@ -4,7 +4,7 @@ import { ConfigType, ISuccess, Job, JobStatus, JobSummary, PaginatedResult, Pull
 import { DatabaseFactory } from '../database/databaseFactory';
 import type { Config } from '../types/config.types';
 import { ConfigStatus } from '../types/config.types';
-import type { DatabaseConfig} from '../interfaces/database.interfaces';
+import type { DatabaseConfig } from '../interfaces/database.interfaces';
 import { validateTableName } from './utils';
 export type { AuditLogEntry, DatabaseConfig } from '../interfaces/database.interfaces';
 
@@ -1185,7 +1185,7 @@ export class DatabaseService {
     offset: number = 0,
     payload: Record<string, string>,
     tenantId: string,
-  ): Promise<{ data: Job[]; total: number; limit: number; offset: number }> {
+  ): Promise<PaginatedResult<Job>> {
     const { status, endpointName, createdAt } = payload;
     const whereClauses: string[] = ["tenant_id = $1"];
     const queryParams: unknown[] = [tenantId];
@@ -1518,7 +1518,7 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     offset: number = 0,
     payload: Record<string, string>,
     tenantId: string,
-  ): Promise<{ data: Schedule[]; total: number; limit: number; offset: number }> {
+  ): Promise<PaginatedResult<Schedule>> {
     const { status, name, createdAt } = payload;
     const whereClauses: string[] = ["tenant_id = $1"];
     const queryParams: unknown[] = [tenantId];

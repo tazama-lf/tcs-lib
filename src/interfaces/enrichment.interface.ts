@@ -116,9 +116,7 @@ interface JobSummary {
 
 interface Enrichment {
     id?: number;
-    tenant_id: string;
-    endpoint_id: string;
-    correlation_id: string;
+    job_id: string;
     checksum: string;
     data: Record<string, unknown>;
 }

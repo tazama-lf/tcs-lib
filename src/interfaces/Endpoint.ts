@@ -108,7 +108,9 @@ export interface AddMappingDto {
   operator?: 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'DIVIDE';
 }
 export interface AddFunctionDto {
-  params: string[];
+  params?: string[];
+  columns?: Record<string, string>[];
+  tableName?: string;
   functionName: AllowedFunctionName;
 }
 export interface ConfigResponseDto {

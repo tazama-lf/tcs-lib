@@ -23,7 +23,9 @@ export type AllowedFunctionName =
 
 
 export interface FunctionDefinition {
-  params: string[];
+  params?: string[];
+  columns?: Record<string, string>[];
+  tableName?: string;
   functionName: AllowedFunctionName;
 }
 

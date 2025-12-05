@@ -8,11 +8,15 @@ export * from './interfaces/schema.interfaces';
 export * from './interfaces/json-schema.interfaces';
 export * from './interfaces/database.interfaces';
 export * from './interfaces/multi-field-mapping.interfaces';
-export * from './interfaces/Endpoint';
 export * from './interfaces/enrichment.interface';
 
 export * from './interfaces/iMappingConfiguration';
 export * from './interfaces/iMappingResult';
+
+export type { Config, FunctionDefinition, AllowedFunctionName } from './types/config.types';
+export { ConfigStatus } from './types/config.types';
+
+export * from './interfaces/Endpoint';
 
 // Services
 export { DatabaseService } from './services/database.service';

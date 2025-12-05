@@ -1638,6 +1638,87 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
   }
 
 
+  async getAllCollections(tenantId: string): Promise<any[]> {
+    const query = `
+      SELECT 
+        dt.destination_type_id,
+        dt.name as collection_name,
+        dt.collection_type,
+        dt.description as collection_description,
+        dt.destination_type_id as destination_type_id,
+        dt.destination_id as destination_id
+      FROM destination d
+      JOIN destination_type dt ON d.destination_id = dt.destination_id
+      WHERE d.tenant_id = $1
+      ORDER BY dt.name
+    `;
+    const result = await this.dbClient.query(query, [tenantId]);
+    return result.rows;
+  }
+  async getCollectionFields(collectionId: number): Promise<any[]> {
+    const query = `
+      SELECT 
+        dtf.field_id,
+        dtf.name as field_name,
+        dtf.field_type,
+        dtf.parent_id,
+        dtf.serial_no,
+        dtf.collection_id,
+        dtf.is_active
+      FROM destination_type_fields dtf
+      WHERE dtf.collection_id = $1 AND dtf.is_active = true
+      ORDER BY dtf.serial_no, dtf.field_id
+    `;
+    const result = await this.dbClient.query(query, [collectionId]);
+    return result.rows;
+  }
+  async createDestinationType(
+    collectionType: string,
+    name: string,
+    description: string | null,
+    destinationId: number,
+  ): Promise<any> {
+    const query = `
+      INSERT INTO destination_type (collection_type, name, description, destination_id, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, NOW(), NOW())
+      RETURNING destination_type_id, collection_type, name, description, destination_id, created_at
+    `;
+    const result = await this.dbClient.query(query, [collectionType, name, description, destinationId]);
+    return result.rows[0];
+  }
+
+  async destinationTypeExists(destinationTypeId: number): Promise<boolean> {
+    const query = `SELECT destination_type_id FROM destination_type WHERE destination_type_id = $1`;
+    const result = await this.dbClient.query(query, [destinationTypeId]);
+    return result.rows.length > 0;
+  }
+
+  async getNextSerialNumber(destinationTypeId: number): Promise<number> {
+    const query = `
+      SELECT COALESCE(MAX(serial_no), 0) + 1 as next_serial
+      FROM destination_type_fields
+      WHERE collection_id = $1 AND parent_id IS NULL
+    `;
+    const result = await this.dbClient.query(query, [destinationTypeId]);
+    return result.rows[0].next_serial;
+  }
+
+  async addFieldToDestinationType(
+    name: string,
+    fieldType: string,
+    parentId: number | null,
+    isActive: boolean,
+    serialNo: number | null,
+    collectionId: number,
+  ): Promise<any> {
+    const query = `
+      INSERT INTO destination_type_fields (name, field_type, parent_id, is_active, serial_no, collection_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING field_id, name as field_name, field_type, parent_id, is_active, serial_no, collection_id
+    `;
+    const result = await this.dbClient.query(query, [name, fieldType, parentId, isActive, serialNo, collectionId]);
+    return result.rows[0];
+  }
 
   async close(): Promise<void> {
     await this.dbClient.end();

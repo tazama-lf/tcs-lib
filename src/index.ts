@@ -12,6 +12,7 @@ export * from './interfaces/enrichment.interface';
 
 export * from './interfaces/iMappingConfiguration';
 export * from './interfaces/iMappingResult';
+export * from './interfaces/iTransactionDetails';
 
 export type { Config, FunctionDefinition, AllowedFunctionName } from './types/config.types';
 export { ConfigStatus } from './types/config.types';

@@ -2,18 +2,18 @@ import { ContentType, TransactionType } from './core.interfaces';
 import { JSONSchema } from './json-schema.interfaces';
 import { AdjustFieldDto } from 'src/dtos/schema-workflow.dto';
 import { FieldMapping } from './schema.interfaces';
-// import { JSONSchema, AdjustFieldDto } from './SchemaValidation';
+import { FunctionDefinition, AllowedFunctionName } from '../types/config.types';
 export interface CreateConfigDto {
   msgFam?: string;
   transactionType: TransactionType;
-  version?: string;
+  version: string;
   contentType?: ContentType;
-  payload?: string | any; // Accept both string and object for convenience
-  endpointPath?: string; // Generated endpoint path
+  payload: string | Record<string, unknown>; 
+  endpointPath?: string; 
   mapping?: FieldMapping[];
   functions?: FunctionDefinition[];
   fieldAdjustments?: AdjustFieldDto[];
-  schema?: Record<string, any>; // Accept schema as an object
+  schema?: Record<string, unknown>; 
 }
 export interface CloneConfigDto {
   sourceConfigId: number;
@@ -36,31 +36,6 @@ export interface UpdateConfigDto {
   status?: ConfigStatus; // Allow status updates with proper enum type
   comments?: string; // Comments from approvers to editors (CHANGES_REQUESTED)
 }
-// export interface FieldMapping {
-//   source?: string | string[]; // Optional when using constants
-//   destination: string | string[];
-//   transformation?: 'NONE' | 'CONCAT' | 'SUM' | 'SPLIT' | 'CONSTANT' | 'MATH';
-//   delimiter?: string; // Used for one-to-many mapping to split source value
-//   constantValue?: any; // Fixed value to map to destination (replaces constants)
-//   operator?: 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'DIVIDE'; // Mathematical operators for MATH transformation
-// }
-export interface FunctionDefinition {
-  params?: string[];
-  columns?: Record<string, string>[];
-  tableName?: string;
-  functionName: AllowedFunctionName;
-}
-export type AllowedFunctionName =
-  | 'addAccountHolder'
-  | 'addEntity'
-  | 'addAccount'
-  | 'saveTransactionDetails'
-  | 'transactionRelationship';
-// export enum ContentType {
-//   JSON = 'application/json',
-//   XML = 'application/xml',
-// }
-// export type TransactionType = string;
 /* eslint-disable no-unused-vars */
 export enum ConfigStatus {
   IN_PROGRESS = 'STATUS_01_IN_PROGRESS',
@@ -98,7 +73,7 @@ export interface Config {
   publishing_status?: 'active' | 'inactive';
 }
 export interface AddMappingDto {
-  source?: string;
+  source?: string[];
   destination?: string;
   destinations?: string[];
   sources?: string[];
@@ -129,7 +104,7 @@ export interface StatusTransitionDto {
   userId: string;
   userRole: string;
   comment?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 export interface SubmitForApprovalDto extends StatusTransitionDto {
   configId: number;

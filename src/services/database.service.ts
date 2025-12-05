@@ -1720,6 +1720,34 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     return result.rows[0];
   }
 
+  async createTransactionTypeTable(transactionType: string): Promise<void> {
+    validateTableName(transactionType);
+    const query = `
+      CREATE TABLE IF NOT EXISTS "${transactionType}" (
+        id SERIAL PRIMARY KEY,
+        document JSONB NOT NULL
+      )
+    `;
+    await this.dbClient.query(query);
+  }
+
+  async createTazamaDataModelTable(tableName: string, columns: Array<{ name: string; type: string; isPrimaryKey?: boolean | string }>): Promise<void> {
+    validateTableName(tableName);
+    
+    const defs = columns.map((c) => `"${c.name}" ${c.type}`);
+    const pks = columns
+      .filter((c) => c.isPrimaryKey === true || c.isPrimaryKey === 'true')
+      .map((c) => `"${c.name}"`);
+    const pk = pks.length ? `, PRIMARY KEY (${pks.join(',')})` : '';
+    
+    const query = `CREATE TABLE IF NOT EXISTS "${tableName}" (
+      ${defs.join(',')}
+      ${pk}
+    );`;
+    
+    await this.dbClient.query(query);
+  }
+
   async close(): Promise<void> {
     await this.dbClient.end();
   }

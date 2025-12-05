@@ -16,6 +16,9 @@ export * from './interfaces/iMappingResult';
 export type { Config, FunctionDefinition, AllowedFunctionName } from './types/config.types';
 export { ConfigStatus } from './types/config.types';
 
+export * from './types/data-model.types';
+export * from './types/data-model-handler.types';
+
 export * from './interfaces/Endpoint';
 
 // Services

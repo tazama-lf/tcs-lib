@@ -249,11 +249,9 @@ export function createSchemaAwareNumberProcessor(stringFields: string[]) {
     const fullPath = path ? `${path}.${name}` : name;
     if (stringFieldSet.has(fullPath)) return value;
 
-    // Only convert to number if it's a string with no leading/trailing whitespace
-    // and is a valid number
+    
     if (typeof value === 'string') {
       const trimmed = value.trim();
-      // If original has whitespace but trimmed doesn't, preserve the original
       if (trimmed !== value) {
         return value;
       }
@@ -268,7 +266,6 @@ export function createSchemaAwareNumberProcessor(stringFields: string[]) {
 
 export function isXmlContentType(req: Request, loggerService?: LoggerService): boolean {
   try {
-    // Handle null/undefined request by throwing
     if (req === null || req === undefined) {
       throw new Error('Request cannot be null or undefined');
     }

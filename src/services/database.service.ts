@@ -1129,9 +1129,15 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     const query = `
       INSERT INTO destination_type (collection_type, name, destination_id, tenant_id, created_at, updated_at)
       VALUES ($1, $2, $3, $4, NOW(), NOW())
+      ON CONFLICT (name, destination_id) DO NOTHING
       RETURNING destination_type_id, collection_type, name, destination_id, tenant_id, created_at
     `;
     const result = await this.dbClient.query(query, [collectionType, name, destinationId, tenantId]);
+    
+      // If duplicate → result.rows will be empty
+    if (result.rows.length === 0) {
+      return { error: 'Destination type already exists for this destination_id' };
+    }
     return result.rows[0];
   }
 

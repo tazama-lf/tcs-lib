@@ -33,64 +33,47 @@ export class DatabaseService {
   // ==================== CONFIG CRUD OPERATIONS ====================
 
 
-  async createConfig(config: Omit<Config, 'id' | 'createdAt' | 'updatedAt'>): Promise<number> {
-    const query = `
-
+  async createConfig(config: Omit<Config, 'id' | 'createdAt' | 'updatedAt'>, id?: number): Promise<number> {
+    const query = id ? `
       INSERT INTO config (
-
-        msg_fam,
-
-        transaction_type,
-
-        endpoint_path,
-
-        version,
-
-        content_type,
-
-        schema,
-
-        mapping,
-
-        functions,
-
-        status,
-
-        tenant_id,
-
-        created_by,
-
-        publishing_status
-
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-
+        id, msg_fam, transaction_type, endpoint_path, version, content_type,
+        schema, mapping, functions, status, tenant_id, created_by, publishing_status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING id
-
+    ` : `
+      INSERT INTO config (
+        msg_fam, transaction_type, endpoint_path, version, content_type,
+        schema, mapping, functions, status, tenant_id, created_by, publishing_status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      RETURNING id
     `;
 
-    const values = [
+    const values = id ? [
+      id,
       config.msgFam,
-
       config.transactionType,
-
       config.endpointPath,
-
       config.version,
-
       config.contentType,
-
       JSON.stringify(config.schema),
-
       config.mapping ? JSON.stringify(config.mapping) : null,
-
       config.functions ? JSON.stringify(config.functions) : null,
-
       this.convertStatusToDatabase(config.status || ConfigStatus.IN_PROGRESS),
-
       config.tenantId,
-
       config.createdBy,
-
+      config.publishing_status || 'inactive',
+    ] : [
+      config.msgFam,
+      config.transactionType,
+      config.endpointPath,
+      config.version,
+      config.contentType,
+      JSON.stringify(config.schema),
+      config.mapping ? JSON.stringify(config.mapping) : null,
+      config.functions ? JSON.stringify(config.functions) : null,
+      this.convertStatusToDatabase(config.status || ConfigStatus.IN_PROGRESS),
+      config.tenantId,
+      config.createdBy,
       config.publishing_status || 'inactive',
     ];
 

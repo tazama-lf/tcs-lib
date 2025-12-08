@@ -1187,35 +1187,14 @@ export class DatabaseService {
     await this.dbClient.query(query);
   }
 
-  async createTazamaDataModelTable(tableName: string, columns: Array<{ name: string; type: string; isPrimaryKey?: boolean | string }>): Promise<void> {
+  async createTazamaDataModelTable(tableName: string): Promise<void> {
     validateTableName(tableName);
     
-    const mapPgType = (type: string) => {
-    if (!type) return 'text';
-
-  const t = type.toLowerCase();
-
-  if (t === 'string') return 'text';
-  if (t === 'number') return 'integer';
-  if (t === 'boolean') return 'boolean';
-  if (t === 'json' || t === 'object') return 'jsonb';
-
-  return t;
-};
-
-const defs = columns.map((c) => `"${c.name}" ${mapPgType(c.type)}`);
-
-const pks = columns
-  .filter((c) => c.isPrimaryKey === true || c.isPrimaryKey === 'true')
-  .map((c) => `"${c.name}"`);
-
-const pk = pks.length ? `, PRIMARY KEY (${pks.join(',')})` : '';
-
-const query = `CREATE TABLE IF NOT EXISTS "${tableName}" (
-  ${defs.join(',')}
-  ${pk}
-);`;
-
+    const query = `CREATE TABLE IF NOT EXISTS "${tableName}" (
+      _key text PRIMARY KEY,
+      data jsonb NOT NULL
+    )`;
+    
     await this.dbClient.query(query);
   }
 

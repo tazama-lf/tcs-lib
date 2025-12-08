@@ -322,8 +322,6 @@ export class DatabaseService {
     try {
       parsedSchema = typeof row.schema === 'string' ? JSON.parse(row.schema) : row.schema;
 
-      // Validate schema integrity - check for arrays
-
       if (parsedSchema && typeof parsedSchema === 'object') {
         const validateArrayFields = (schema: any, path: string = ''): boolean => {
           let hasIssues = false;
@@ -1088,41 +1086,23 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     }
   }
 
-  /**
-  * Execute raw SQL query on configuration database
-  * @param query - SQL query string
-  * @param tenantId - Tenant identifier for logging/auditing
-  * @returns Query result
-  */
-  // async runRawQuery(query: string, tenantId: string): Promise<unknown[]> {
-  //   try {
-  //     const result = await this.dbClient.query(query);
-  //     return result.rows;
-  //   } catch (error) {
-  //     console.error(`Error executing raw query for tenant ${tenantId}:`, error);
-  //     throw new Error(`Failed to execute raw query: ${(error as Error).message}`);
-  //   }
-  // }
 
 
-  async getAllCollections(tenantId: string): Promise<any[]> {
+  async getAllCollections(): Promise<any[]> {
     const query = `
       SELECT 
-        dt.destination_type_id,
         dt.name as collection_name,
         dt.collection_type,
-        dt.description as collection_description,
         dt.destination_type_id as destination_type_id,
         dt.destination_id as destination_id
       FROM destination d
       JOIN destination_type dt ON d.destination_id = dt.destination_id
-      WHERE d.tenant_id = $1
       ORDER BY dt.name
     `;
-    const result = await this.dbClient.query(query, [tenantId]);
+    const result = await this.dbClient.query(query);
     return result.rows;
   }
-  async getCollectionFields(collectionId: number): Promise<any[]> {
+  async getCollectionFields(collectionId: number,tenantId: string): Promise<any[]> {
     const query = `
       SELECT 
         dtf.field_id,
@@ -1131,12 +1111,12 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
         dtf.parent_id,
         dtf.serial_no,
         dtf.collection_id,
-        dtf.is_active
+        dtf.tenant_id
       FROM destination_type_fields dtf
-      WHERE dtf.collection_id = $1 AND dtf.is_active = true
+      WHERE dtf.collection_id = $1 AND dtf.tenant_id = $2 OR dtf.tenant_id = 'default'
       ORDER BY dtf.serial_no, dtf.field_id
     `;
-    const result = await this.dbClient.query(query, [collectionId]);
+    const result = await this.dbClient.query(query, [collectionId, tenantId]);
     return result.rows;
   }
   async createDestinationType(

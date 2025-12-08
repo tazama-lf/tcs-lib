@@ -9,20 +9,20 @@ export interface DestinationField {
   path: string;
   type: FieldType;
   isRequired: boolean;
-  isExtension: boolean; // Flag for data model extensions
+  isExtension: boolean;
 }
 export interface TransformationConfig {
   separator?: string;
-  concatFields?: string[]; // Source field paths to concatenate
+  concatFields?: string[]; 
   operation?: 'SUM' | 'AVERAGE' | 'COUNT';
-  sumFields?: string[]; // Source field paths to sum
+  sumFields?: string[]; 
   delimiter?: string;
-  targetFields?: string[]; // Destination field paths for split results
+  targetFields?: string[];
   customLogic?: string;
 }
 export interface ConstantValue {
-  path: string; // Destination field path
-  value: any; // Constant value to inject
+  path: string; 
+  value: any; 
   type: FieldType;
 }
 

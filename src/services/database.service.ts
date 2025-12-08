@@ -1144,7 +1144,7 @@ export class DatabaseService {
   }
 
   async destinationTypeExists(destinationTypeId: number, tenantId: string): Promise<boolean> {
-    const query = `SELECT destination_type_id FROM destination_type WHERE destination_type_id = $1 AND tenant_id = $2`;
+    const query = `SELECT destination_type_id FROM destination_type WHERE destination_type_id = $1 AND (tenant_id = $2 or tenant_id='default')`;
     const result = await this.dbClient.query(query, [destinationTypeId, tenantId]);
     return result.rows.length > 0;
   }

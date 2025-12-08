@@ -1123,7 +1123,6 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
   async createDestinationType(
     collectionType: string,
     name: string,
-    description: string | null,
     destinationId: number,
     tenantId: string
   ): Promise<any> {

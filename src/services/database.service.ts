@@ -679,46 +679,53 @@ export class DatabaseService {
     const countResult = await this.dbClient.query(countQuery, queryParams);
     const total = parseInt(countResult.rows[0].total, 10);
 
-    const dataQuery = `
-     SELECT *
-FROM (
-  SELECT 
-    id,
-    endpoint_name,
-    path,
-    mode,
-    table_name,
-    description,
-    version,
-    status,
-    publishing_status,
-    created_at,
-    updated_at,
-    'push' AS type
-  FROM push_jobs
-  ${whereClause}
+ const dataQuery = `
+  SELECT *
+  FROM (
+    SELECT 
+      pj.id,
+      pj.endpoint_name,
+      pj.path,
+      pj.mode,
+      pj.table_name,
+      pj.description,
+      pj.version,
+      pj.status,
+      pj.publishing_status,
+      pj.created_at,
+      pj.updated_at,
+      'push' AS type,
+      NULL AS cron_job_name,
+      pj.tenant_id
+    FROM push_jobs pj
 
-  UNION ALL
+    UNION ALL
 
-  SELECT 
-    id,
-    endpoint_name,
-    NULL AS path,
-    mode,
-    table_name,
-    description,
-    version,
-    status,
-    publishing_status,
-    created_at,
-    updated_at,
-    'pull' AS type
-  FROM pull_jobs
+    SELECT 
+      pl.id,
+      pl.endpoint_name,
+      NULL AS path,
+      pl.mode,
+      pl.table_name,
+      pl.description,
+      pl.version,
+      pl.status,
+      pl.publishing_status,
+      pl.created_at,
+      pl.updated_at,
+      'pull' AS type,
+      cj.name AS cron_job_name,
+      pl.tenant_id
+    FROM pull_jobs pl
+    LEFT JOIN cron_jobs cj ON cj.id = pl.schedule_id
+  ) AS all_jobs
   ${whereClause}
-) AS all_jobs
-ORDER BY all_jobs.updated_at DESC
-LIMIT $${paramIndex++} OFFSET $${paramIndex++};
-    `;
+  ORDER BY all_jobs.updated_at DESC
+  LIMIT $${paramIndex++} OFFSET $${paramIndex++};
+`;
+
+
+
     const dataParams = [...queryParams, limit, offset * 10];
     const dataResult = await this.dbClient.query(dataQuery, dataParams);
     return {
@@ -1088,7 +1095,7 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
 
 
 
-  async getAllCollections( tenantId: string): Promise<any[]> {
+  async getAllCollections(tenantId: string): Promise<any[]> {
     const query = `
       SELECT 
         dt.name as collection_name,
@@ -1142,7 +1149,7 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
   }
 
   async destinationTypeExists(destinationTypeId: number, tenantId: string): Promise<boolean> {
-    const query = `SELECT destination_type_id FROM destination_type WHERE destination_type_id = $1 AND (tenant_id = $2 OR tenant_id = 'default');`
+    const query = `SELECT destination_type_id FROM destination_type WHERE destination_type_id = $1 AND tenant_id = $2`;
     const result = await this.dbClient.query(query, [destinationTypeId, tenantId]);
     return result.rows.length > 0;
   }
@@ -1188,17 +1195,32 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
   async createTazamaDataModelTable(tableName: string, columns: Array<{ name: string; type: string; isPrimaryKey?: boolean | string }>): Promise<void> {
     validateTableName(tableName);
     
-    const defs = columns.map((c) => `"${c.name}" ${c.type}`);
-    const pks = columns
-      .filter((c) => c.isPrimaryKey === true || c.isPrimaryKey === 'true')
-      .map((c) => `"${c.name}"`);
-    const pk = pks.length ? `, PRIMARY KEY (${pks.join(',')})` : '';
-    
-    const query = `CREATE TABLE IF NOT EXISTS "${tableName}" (
-      ${defs.join(',')}
-      ${pk}
-    );`;
-    
+    const mapPgType = (type: string) => {
+    if (!type) return 'text';
+
+  const t = type.toLowerCase();
+
+  if (t === 'string') return 'text';
+  if (t === 'number') return 'integer';
+  if (t === 'boolean') return 'boolean';
+  if (t === 'json' || t === 'object') return 'jsonb';
+
+  return t;
+};
+
+const defs = columns.map((c) => `"${c.name}" ${mapPgType(c.type)}`);
+
+const pks = columns
+  .filter((c) => c.isPrimaryKey === true || c.isPrimaryKey === 'true')
+  .map((c) => `"${c.name}"`);
+
+const pk = pks.length ? `, PRIMARY KEY (${pks.join(',')})` : '';
+
+const query = `CREATE TABLE IF NOT EXISTS "${tableName}" (
+  ${defs.join(',')}
+  ${pk}
+);`;
+
     await this.dbClient.query(query);
   }
 

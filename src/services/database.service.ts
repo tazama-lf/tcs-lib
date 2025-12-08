@@ -1088,7 +1088,7 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
 
 
 
-  async getAllCollections(): Promise<any[]> {
+  async getAllCollections( tenantId: string): Promise<any[]> {
     const query = `
       SELECT 
         dt.name as collection_name,
@@ -1097,12 +1097,13 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
         dt.destination_id as destination_id
       FROM destination d
       JOIN destination_type dt ON d.destination_id = dt.destination_id
+      WHERE  dt.tenant_id = $1 OR dt.tenant_id = 'default'
       ORDER BY dt.name
     `;
-    const result = await this.dbClient.query(query);
+    const result = await this.dbClient.query(query, [tenantId]);
     return result.rows;
   }
-  async getCollectionFields(collectionId: number,tenantId: string): Promise<any[]> {
+  async getCollectionFields(collectionId: number, tenantId: string): Promise<any[]> {
     const query = `
       SELECT 
         dtf.field_id,
@@ -1113,7 +1114,7 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
         dtf.collection_id,
         dtf.tenant_id
       FROM destination_type_fields dtf
-      WHERE dtf.collection_id = $1 AND dtf.tenant_id = $2 OR dtf.tenant_id = 'default'
+      WHERE dtf.collection_id = $1 AND (dtf.tenant_id = $2 OR dtf.tenant_id = 'default')
       ORDER BY dtf.serial_no, dtf.field_id
     `;
     const result = await this.dbClient.query(query, [collectionId, tenantId]);
@@ -1124,19 +1125,20 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     name: string,
     description: string | null,
     destinationId: number,
+    tenantId: string
   ): Promise<any> {
     const query = `
-      INSERT INTO destination_type (collection_type, name, description, destination_id, created_at, updated_at)
+      INSERT INTO destination_type (collection_type, name, destination_id, tenant_id, created_at, updated_at)
       VALUES ($1, $2, $3, $4, NOW(), NOW())
-      RETURNING destination_type_id, collection_type, name, description, destination_id, created_at
+      RETURNING destination_type_id, collection_type, name, destination_id, tenant_id, created_at
     `;
-    const result = await this.dbClient.query(query, [collectionType, name, description, destinationId]);
+    const result = await this.dbClient.query(query, [collectionType, name, destinationId, tenantId]);
     return result.rows[0];
   }
 
-  async destinationTypeExists(destinationTypeId: number): Promise<boolean> {
-    const query = `SELECT destination_type_id FROM destination_type WHERE destination_type_id = $1`;
-    const result = await this.dbClient.query(query, [destinationTypeId]);
+  async destinationTypeExists(destinationTypeId: number, tenantId: string): Promise<boolean> {
+    const query = `SELECT destination_type_id FROM destination_type WHERE destination_type_id = $1 AND tenant_id = $2`;
+    const result = await this.dbClient.query(query, [destinationTypeId, tenantId]);
     return result.rows.length > 0;
   }
 
@@ -1154,16 +1156,16 @@ LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     name: string,
     fieldType: string,
     parentId: number | null,
-    isActive: boolean,
+    tenantId: string,
     serialNo: number | null,
     collectionId: number,
   ): Promise<any> {
     const query = `
-      INSERT INTO destination_type_fields (name, field_type, parent_id, is_active, serial_no, collection_id)
+      INSERT INTO destination_type_fields (name, field_type, parent_id, tenant_id, serial_no, collection_id)
       VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING field_id, name as field_name, field_type, parent_id, is_active, serial_no, collection_id
+      RETURNING field_id, name as field_name, field_type, parent_id, tenant_id, serial_no, collection_id
     `;
-    const result = await this.dbClient.query(query, [name, fieldType, parentId, isActive, serialNo, collectionId]);
+    const result = await this.dbClient.query(query, [name, fieldType, parentId, tenantId, serialNo, collectionId]);
     return result.rows[0];
   }
 

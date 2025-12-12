@@ -4,18 +4,18 @@ export interface JSONSchema {
   type: 'object' | 'array' | 'string' | 'number' | 'boolean' | 'null';
   title?: string;
   description?: string;
-  properties?: { [key: string]: JSONSchemaProperty };
+  properties?: Record<string, JSONSchemaProperty>;
   required?: string[];
   items?: JSONSchemaProperty;
   additionalProperties?: boolean | JSONSchemaProperty;
-  definitions?: { [key: string]: JSONSchemaProperty };
+  definitions?: Record<string, JSONSchemaProperty>;
   examples?: any[];
 }
 export interface JSONSchemaProperty {
   type?: 'object' | 'array' | 'string' | 'number' | 'boolean' | 'integer' | 'null';
   description?: string;
   title?: string;
-  properties?: { [key: string]: JSONSchemaProperty };
+  properties?: Record<string, JSONSchemaProperty>;
   items?: JSONSchemaProperty;
   required?: string[];
   enum?: any[];
@@ -59,7 +59,7 @@ export interface JSONSchemaValidationResult {
   }>;
   warnings?: string[];
 }
-/* eslint-disable no-unused-vars */
+ 
 export enum JSONSchemaType {
   STRING = 'string',
   NUMBER = 'number',
@@ -80,4 +80,4 @@ export enum JSONSchemaFormat {
   URI = 'uri',
   UUID = 'uuid',
 }
-/* eslint-enable no-unused-vars */
+ 

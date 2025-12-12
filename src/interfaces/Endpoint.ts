@@ -1,19 +1,19 @@
-import { ContentType, TransactionType } from './core.interfaces';
-import { JSONSchema } from './json-schema.interfaces';
-import { AdjustFieldDto } from 'src/dtos/schema-workflow.dto';
-import { FieldMapping } from './schema.interfaces';
-import { FunctionDefinition, AllowedFunctionName } from '../types/config.types';
+import type { ContentType, TransactionType } from './core.interfaces';
+import type { JSONSchema } from './json-schema.interfaces';
+import type { AdjustFieldDto } from 'src/dtos/schema-workflow.dto';
+import type { FieldMapping } from './schema.interfaces';
+import type { FunctionDefinition, AllowedFunctionName } from '../types/config.types';
 export interface CreateConfigDto {
   msgFam?: string;
   transactionType: TransactionType;
   version: string;
   contentType?: ContentType;
-  payload: string | Record<string, unknown>; 
-  endpointPath?: string; 
+  payload: string | Record<string, unknown>;
+  endpointPath?: string;
   mapping?: FieldMapping[];
   functions?: FunctionDefinition[];
   fieldAdjustments?: AdjustFieldDto[];
-  schema?: Record<string, unknown>; 
+  schema?: Record<string, unknown>;
 }
 export interface CloneConfigDto {
   sourceConfigId: number;
@@ -36,7 +36,7 @@ export interface UpdateConfigDto {
   status?: ConfigStatus; // Allow status updates with proper enum type
   comments?: string; // Comments from approvers to editors (CHANGES_REQUESTED)
 }
-/* eslint-disable no-unused-vars */
+ 
 export enum ConfigStatus {
   IN_PROGRESS = 'STATUS_01_IN_PROGRESS',
   ON_HOLD = 'STATUS_02_ON_HOLD',
@@ -47,7 +47,7 @@ export enum ConfigStatus {
   READY_FOR_DEPLOYMENT = 'STATUS_07_READY_FOR_DEPLOYMENT',
   DEPLOYED = 'STATUS_08_DEPLOYED',
 }
-/* eslint-enable no-unused-vars */
+ 
 export interface MappingSource {
   field: string; // Field path in source schema
 }
@@ -69,7 +69,7 @@ export interface Config {
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
-  comments?: string; 
+  comments?: string;
   publishing_status?: 'active' | 'inactive';
 }
 export interface AddMappingDto {
@@ -86,7 +86,7 @@ export interface AddMappingDto {
 }
 export interface AddFunctionDto {
   params?: string[];
-  columns?: Record<string, string>[];
+  columns?: Array<Record<string, string>>;
   tableName?: string;
   functionName: AllowedFunctionName;
 }
@@ -151,4 +151,3 @@ export type WorkflowAction =
   | 'export'
   | 'deploy'
   | 'return_to_progress';
-

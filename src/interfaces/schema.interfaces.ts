@@ -1,5 +1,5 @@
-import { JSONSchema } from './json-schema.interfaces';
-import { FieldType, HttpMethod, TransactionType, EndpointStatus } from './core.interfaces';
+import type { JSONSchema } from './json-schema.interfaces';
+import type { FieldType, HttpMethod, TransactionType, EndpointStatus } from './core.interfaces';
 
 export interface SchemaField {
   name: string;
@@ -11,12 +11,12 @@ export interface SchemaField {
 }
 
 export interface FieldMapping {
-  source?: string[]; 
+  source?: string[];
   destination: string | string[];
   transformation?: 'NONE' | 'CONCAT' | 'SUM' | 'SPLIT' | 'CONSTANT' | 'MATH';
-  delimiter?: string; 
-  constantValue?: any; 
-  operator?: 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'DIVIDE'; 
+  delimiter?: string;
+  constantValue?: any;
+  operator?: 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'DIVIDE';
   prefix?: string;
 }
 

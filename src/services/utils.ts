@@ -1,4 +1,4 @@
-import { RESERVED_KEYWORDS } from "src/utils/constants";
+import { RESERVED_KEYWORDS } from 'src/utils/constants';
 
 /**
  * Gets a value from an object using a dot-notation path
@@ -33,14 +33,10 @@ export function validateTableName(tableName: string): void {
   }
 
   if (tableName.length > 63) {
-    throw new Error(
-      `Invalid table name "${tableName}". Must not exceed 63 characters.`,
-    );
+    throw new Error(`Invalid table name "${tableName}". Must not exceed 63 characters.`);
   }
 
   if (RESERVED_KEYWORDS.has(tableName.toLowerCase())) {
-    throw new Error(
-      `Invalid table name "${tableName}". It is a reserved SQL keyword.`,
-    );
+    throw new Error(`Invalid table name "${tableName}". It is a reserved SQL keyword.`);
   }
 }

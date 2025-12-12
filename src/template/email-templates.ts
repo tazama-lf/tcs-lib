@@ -1,4 +1,4 @@
-import { Job, Schedule } from "src/interfaces/enrichment.interface";
+import type { Job, Schedule } from 'src/interfaces/enrichment.interface';
 
 export interface EmailTemplateContext {
   event: string;
@@ -43,11 +43,7 @@ export interface EmailTheme {
   actionDescription: string;
 }
 
-export function getEmailTheme(
-  event: string,
-  configName: string,
-  version?: string,
-): EmailTheme {
+export function getEmailTheme(event: string, configName: string, version?: string): EmailTheme {
   const themes: Record<string, Omit<EmailTheme, 'subject'>> = {
     editor_submit: {
       themeColor: '#2196F3',
@@ -114,8 +110,8 @@ export function getEmailTheme(
 export function generateWorkflowEmailHTML(context: EmailTemplateContext): string {
   const { config, actorName, actorEmail, comment } = context;
 
-  const configName = config.transactionType || config.cfg_name || 'Configuration';
-  const version = config.version || config.cfg_version || '1.0';
+  const configName = config.transactionType ?? config.cfg_name ?? 'Configuration';
+  const version = config.version ?? config.cfg_version ?? '1.0';
   const theme = getEmailTheme(context.event, configName, version);
 
   return `
@@ -267,8 +263,8 @@ From: ${actorName || actorEmail} (${actorEmail})${tenantId ? `\nTenant: ${tenant
 export function generateScheduleflowEmailHTML(context: ScheduleEmailTemplateContext): string {
   const { schedule, actorName, actorEmail, comment } = context;
 
-  const name = schedule.name;
-  const cron = schedule.cron;
+  const {name} = schedule;
+  const {cron} = schedule;
   const theme = getEmailTheme(context.event, name);
 
   return `
@@ -320,8 +316,8 @@ export function generateScheduleflowEmailHTML(context: ScheduleEmailTemplateCont
 export function generateScheduleflowEmailText(context: ScheduleEmailTemplateContext): string {
   const { schedule, actorName, actorEmail, comment, tenantId } = context;
 
-  const name = schedule.name;
-  const cron = schedule.cron;
+  const {name} = schedule;
+  const {cron} = schedule;
   const theme = getEmailTheme(context.event, name);
   return `
 Hello,
@@ -339,7 +335,6 @@ This is an automated notification from Tazama Connection Studio.
 From: ${actorName || actorEmail} (${actorEmail})${tenantId ? `\nTenant: ${tenantId}` : ''}
   `.trim();
 }
-
 
 export function generatePublishingStatusEmailHTML(
   configId: number,
@@ -506,7 +501,6 @@ export function generateChangesRequestedEmailHTML(
   `;
 }
 
-
 export function generateChangesRequestedEmailText(
   configName: string,
   version: string,
@@ -596,7 +590,6 @@ export function generateSubmitForApprovalEmailHTML(
   `;
 }
 
-
 export function generateSubmitForApprovalEmailText(
   configName: string,
   version: string,
@@ -680,7 +673,6 @@ export function generateRejectionEmailHTML(
 </div>
   `;
 }
-
 
 export function generateRejectionEmailText(
   configName: string,

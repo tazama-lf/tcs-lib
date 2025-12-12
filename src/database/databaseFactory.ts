@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { DatabaseConfig } from 'src/interfaces/DatabaseConfig';
+import type { DatabaseConfig } from 'src/interfaces/DatabaseConfig';
 
 export class DatabaseFactory {
   private static pgPool: Pool;

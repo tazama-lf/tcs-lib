@@ -1,6 +1,5 @@
 import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { ContentType } from '../interfaces/core.interfaces';
-
+import type { ContentType } from '../interfaces/core.interfaces';
 
 export interface ParsedFileResult {
   content: string;

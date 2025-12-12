@@ -1,5 +1,5 @@
-import Joi from 'joi';
-export declare const DatabaseConfigSchema: Joi.ObjectSchema<any>;
+import type Joi from 'joi';
+export declare const DatabaseConfigSchema: Joi.ObjectSchema;
 export declare const databaseConfig: {
     host: any;
     port: any;

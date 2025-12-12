@@ -1,5 +1,5 @@
 import { getValueByPath } from '../services/utils';
-import { TransactionDetails } from 'src/interfaces/iTransactionDetails';
+import type { TransactionDetails } from 'src/interfaces/iTransactionDetails';
 
 /**
  * Processes configured mappings to extract data cache and transaction relationship data
@@ -33,10 +33,10 @@ export async function processMappings(
   if (configuredMapping) {
     try {
       // Support both array format and object with mappings property
-      const mappingsArray = Array.isArray(configuredMapping) 
-        ? configuredMapping 
-        : (configuredMapping.mappings || []);
-      
+      const mappingsArray = Array.isArray(configuredMapping)
+        ? configuredMapping
+        : configuredMapping.mappings || [];
+
       for (const mapping of mappingsArray) {
         const sources = mapping.source || [];
         const destination =
@@ -48,7 +48,7 @@ export async function processMappings(
             ? mapping.destination.split('.')[0]
             : mapping.destination;
         const separator = mapping.delimiter;
-        const transformation = mapping.transformation;
+        const {transformation} = mapping;
 
         // Skip if no sources defined (unless it's a constant value)
         if (!mapping.constantValue && (!sources || sources.length === 0)) {
@@ -143,15 +143,15 @@ export async function processMappings(
       // Return valid objects even on error
       return {
         dataCache,
-        transactionRelationship: transactionRelationship,
+        transactionRelationship,
         endToEndId,
       };
     }
-  } 
+  }
 
   return {
     dataCache,
-    transactionRelationship: transactionRelationship,
+    transactionRelationship,
     endToEndId,
   };
 }

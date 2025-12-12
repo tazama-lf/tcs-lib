@@ -13,7 +13,6 @@ export enum ConfigStatus {
   DEPLOYED = 'STATUS_08_DEPLOYED',
 }
 
-
 export type AllowedFunctionName =
   | 'addAccountHolder'
   | 'addEntity'
@@ -21,14 +20,12 @@ export type AllowedFunctionName =
   | 'saveTransactionDetails'
   | 'transactionRelationship';
 
-
 export interface FunctionDefinition {
   params?: string[];
-  columns?: Record<string, string>[];
+  columns?: Array<Record<string, string>>;
   tableName?: string;
   functionName: AllowedFunctionName;
 }
-
 
 export interface Config {
   id: number;

@@ -1,5 +1,5 @@
-import { FieldType } from './core.interfaces';
-import { TransformationType } from './schema.interfaces';
+import type { FieldType } from './core.interfaces';
+import type { TransformationType } from './schema.interfaces';
 export interface SourceField {
   path: string;
   type: FieldType;
@@ -13,16 +13,16 @@ export interface DestinationField {
 }
 export interface TransformationConfig {
   separator?: string;
-  concatFields?: string[]; 
+  concatFields?: string[];
   operation?: 'SUM' | 'AVERAGE' | 'COUNT';
-  sumFields?: string[]; 
+  sumFields?: string[];
   delimiter?: string;
   targetFields?: string[];
   customLogic?: string;
 }
 export interface ConstantValue {
-  path: string; 
-  value: any; 
+  path: string;
+  value: any;
   type: FieldType;
 }
 

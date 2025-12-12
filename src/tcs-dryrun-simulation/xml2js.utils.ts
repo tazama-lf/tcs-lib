@@ -1,6 +1,6 @@
-import { LoggerService } from '@tazama-lf/frms-coe-lib';
-import { Request } from 'express';
-import { ReturnArrayFieldsFromSchema } from '../interfaces/iXml2js.interfaces';
+import type { LoggerService } from '@tazama-lf/frms-coe-lib';
+import type { Request } from 'express';
+import type { ReturnArrayFieldsFromSchema } from '../interfaces/iXml2js.interfaces';
 
 /**
  * Utility functions for XML2JS processing and schema-based transformations
@@ -12,7 +12,10 @@ import { ReturnArrayFieldsFromSchema } from '../interfaces/iXml2js.interfaces';
  * @param loggerService Logger service for error logging
  * @returns Object containing arrays of field paths for arrays and strings
  */
-export async function returnArrayFieldsFromSchema(schema: any, loggerService?: LoggerService): Promise<ReturnArrayFieldsFromSchema> {
+export async function returnArrayFieldsFromSchema(
+  schema: any,
+  loggerService?: LoggerService,
+): Promise<ReturnArrayFieldsFromSchema> {
   try {
     // Handle null/undefined schema
     if (!schema) {
@@ -26,7 +29,7 @@ export async function returnArrayFieldsFromSchema(schema: any, loggerService?: L
     const stringFields: string[] = [];
     const visited = new Set(); // Circular reference detection
 
-    const traverseSchema = (obj: any, path: string = '') => {
+    const traverseSchema = (obj: any, path = '') => {
       if (!obj || typeof obj !== 'object') {
         return;
       }
@@ -74,7 +77,7 @@ export async function returnArrayFieldsFromSchema(schema: any, loggerService?: L
           if (property.anyOf || property.oneOf || property.allOf) {
             const schemaVariants = property.anyOf || property.oneOf || property.allOf;
             schemaVariants.forEach((variant: any) => {
-              if (variant && variant.type === 'object' && variant.properties) {
+              if (variant?.type === 'object' && variant.properties) {
                 traverseSchema(variant, currentPath);
               }
             });
@@ -116,7 +119,12 @@ export async function returnArrayFieldsFromSchema(schema: any, loggerService?: L
  * @param loggerService Optional logger service for logging conversions
  * @returns Modified payload with objects converted to arrays and numbers converted to strings where needed
  */
-export function replaceObjectsWithArrays(payload: any, arrayFields: string[], stringFields: string[], loggerService?: LoggerService): any {
+export function replaceObjectsWithArrays(
+  payload: any,
+  arrayFields: string[],
+  stringFields: string[],
+  loggerService?: LoggerService,
+): any {
   try {
     // Handle null/undefined payload by throwing
     if (payload === null || payload === undefined) {
@@ -153,7 +161,11 @@ export function replaceObjectsWithArrays(payload: any, arrayFields: string[], st
  * @param path The dot-notation path to the field
  * @param loggerService Optional logger service for logging conversions
  */
-export function convertNumberToStringAtPath(obj: any, path: string, loggerService?: LoggerService): void {
+export function convertNumberToStringAtPath(
+  obj: any,
+  path: string,
+  loggerService?: LoggerService,
+): void {
   try {
     // Handle null/undefined objects by throwing
     if (obj === null || obj === undefined) {
@@ -165,7 +177,12 @@ export function convertNumberToStringAtPath(obj: any, path: string, loggerServic
 
     // Navigate to the parent of the target field
     for (let i = 0; i < pathParts.length - 1; i++) {
-      if (current && typeof current === 'object' && !Array.isArray(current) && current[pathParts[i]]) {
+      if (
+        current &&
+        typeof current === 'object' &&
+        !Array.isArray(current) &&
+        current[pathParts[i]]
+      ) {
         current = current[pathParts[i]];
       } else {
         // Path doesn't exist in the payload, skip this conversion
@@ -176,12 +193,17 @@ export function convertNumberToStringAtPath(obj: any, path: string, loggerServic
     const targetFieldName = pathParts[pathParts.length - 1];
 
     // Check if the target field exists and is a number
-    if (current && current[targetFieldName] !== undefined && typeof current[targetFieldName] === 'number') {
+    if (
+      current?.[targetFieldName] !== undefined &&
+      typeof current[targetFieldName] === 'number'
+    ) {
       // Convert the number to a string
       current[targetFieldName] = String(current[targetFieldName]);
 
       if (loggerService) {
-        loggerService.log(`Converted field '${path}' from number to string: ${current[targetFieldName]}`);
+        loggerService.log(
+          `Converted field '${path}' from number to string: ${current[targetFieldName]}`,
+        );
       }
     }
   } catch (error) {
@@ -198,7 +220,11 @@ export function convertNumberToStringAtPath(obj: any, path: string, loggerServic
  * @param path The dot-notation path to the field
  * @param loggerService Optional logger service for logging conversions
  */
-export function convertObjectToArrayAtPath(obj: any, path: string, loggerService?: LoggerService): void {
+export function convertObjectToArrayAtPath(
+  obj: any,
+  path: string,
+  loggerService?: LoggerService,
+): void {
   try {
     // Handle null/undefined objects by throwing
     if (obj === null || obj === undefined) {
@@ -210,7 +236,12 @@ export function convertObjectToArrayAtPath(obj: any, path: string, loggerService
 
     // Navigate to the parent of the target field
     for (let i = 0; i < pathParts.length - 1; i++) {
-      if (current && typeof current === 'object' && !Array.isArray(current) && current[pathParts[i]]) {
+      if (
+        current &&
+        typeof current === 'object' &&
+        !Array.isArray(current) &&
+        current[pathParts[i]]
+      ) {
         current = current[pathParts[i]];
       } else {
         // Path doesn't exist in the payload, skip this conversion
@@ -221,7 +252,11 @@ export function convertObjectToArrayAtPath(obj: any, path: string, loggerService
     const targetFieldName = pathParts[pathParts.length - 1];
 
     // Check if the target field exists and is an object (not already an array)
-    if (current?.[targetFieldName] && typeof current[targetFieldName] === 'object' && !Array.isArray(current[targetFieldName])) {
+    if (
+      current?.[targetFieldName] &&
+      typeof current[targetFieldName] === 'object' &&
+      !Array.isArray(current[targetFieldName])
+    ) {
       // Convert the object to an array containing that object
       current[targetFieldName] = [current[targetFieldName]];
 
@@ -249,7 +284,6 @@ export function createSchemaAwareNumberProcessor(stringFields: string[]) {
     const fullPath = path ? `${path}.${name}` : name;
     if (stringFieldSet.has(fullPath)) return value;
 
-    
     if (typeof value === 'string') {
       const trimmed = value.trim();
       if (trimmed !== value) {

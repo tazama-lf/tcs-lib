@@ -62,34 +62,34 @@ export class DatabaseService {
 
     const values = id
       ? [
-        id,
-        config.msgFam,
-        config.transactionType,
-        config.endpointPath,
-        config.version,
-        config.contentType,
-        JSON.stringify(config.schema),
-        config.mapping ? JSON.stringify(config.mapping) : null,
-        config.functions ? JSON.stringify(config.functions) : null,
-        this.convertStatusToDatabase(config.status ?? ConfigStatus.IN_PROGRESS),
-        config.tenantId,
-        config.createdBy,
-        config.publishing_status ?? 'inactive',
-      ]
+          id,
+          config.msgFam,
+          config.transactionType,
+          config.endpointPath,
+          config.version,
+          config.contentType,
+          JSON.stringify(config.schema),
+          config.mapping ? JSON.stringify(config.mapping) : null,
+          config.functions ? JSON.stringify(config.functions) : null,
+          this.convertStatusToDatabase(config.status ?? ConfigStatus.IN_PROGRESS),
+          config.tenantId,
+          config.createdBy,
+          config.publishing_status ?? 'inactive',
+        ]
       : [
-        config.msgFam,
-        config.transactionType,
-        config.endpointPath,
-        config.version,
-        config.contentType,
-        JSON.stringify(config.schema),
-        config.mapping ? JSON.stringify(config.mapping) : null,
-        config.functions ? JSON.stringify(config.functions) : null,
-        this.convertStatusToDatabase(config.status ?? ConfigStatus.IN_PROGRESS),
-        config.tenantId,
-        config.createdBy,
-        config.publishing_status ?? 'inactive',
-      ];
+          config.msgFam,
+          config.transactionType,
+          config.endpointPath,
+          config.version,
+          config.contentType,
+          JSON.stringify(config.schema),
+          config.mapping ? JSON.stringify(config.mapping) : null,
+          config.functions ? JSON.stringify(config.functions) : null,
+          this.convertStatusToDatabase(config.status ?? ConfigStatus.IN_PROGRESS),
+          config.tenantId,
+          config.createdBy,
+          config.publishing_status ?? 'inactive',
+        ];
 
     const result = await this.dbClient.query(query, values);
 
@@ -131,7 +131,9 @@ export class DatabaseService {
 
       return result.rowCount;
     } catch (error) {
-      throw new Error(`Failed to update config status: ${(error as Error).message}`, { cause: error });
+      throw new Error(`Failed to update config status: ${(error as Error).message}`, {
+        cause: error,
+      });
     }
   }
   async findConfigsByStatus(
@@ -412,7 +414,9 @@ export class DatabaseService {
       return result.rows[0]?.exists ?? false;
     } catch (error) {
       const err = error as Error;
-      throw new Error(`Failed to check if table "${tableName}" exists: ${err.message}`, { cause: error });
+      throw new Error(`Failed to check if table "${tableName}" exists: ${err.message}`, {
+        cause: error,
+      });
     }
   }
 
@@ -437,7 +441,9 @@ export class DatabaseService {
       return tableExists || jobExists || pushExists;
     } catch (error) {
       const err = error as Error;
-      throw new Error(`Failed to validate existing table "${tableName}": ${err.message}`, { cause: error });
+      throw new Error(`Failed to validate existing table "${tableName}": ${err.message}`, {
+        cause: error,
+      });
     }
   }
 
@@ -460,10 +466,7 @@ export class DatabaseService {
         throw err;
       }
 
-      throw new Error(
-        `Failed to validate active jobs for table "${tableName}"`,
-        { cause: err },
-      );
+      throw new Error(`Failed to validate active jobs for table "${tableName}"`, { cause: err });
     }
   }
 
@@ -611,9 +614,10 @@ export class DatabaseService {
       };
     } catch (error) {
       throw new Error(
-        `Error fetching job_history: ${error instanceof Error ? error.message : JSON.stringify(error)
+        `Error fetching job_history: ${
+          error instanceof Error ? error.message : JSON.stringify(error)
         }`,
-        { cause: error }
+        { cause: error },
       );
     }
   }
@@ -843,7 +847,9 @@ export class DatabaseService {
 
       return result.rows;
     } catch (error) {
-      throw new Error(`Failed to update job publishing status: ${(error as Error).message}`, { cause: error });
+      throw new Error(`Failed to update job publishing status: ${(error as Error).message}`, {
+        cause: error,
+      });
     }
   }
 
@@ -883,7 +889,7 @@ export class DatabaseService {
 
       return result.rowCount;
     } catch (error) {
-      throw new Error(`Failed to update job status: ${(error as Error).message}`,{cause : error});
+      throw new Error(`Failed to update job status: ${(error as Error).message}`, { cause: error });
     }
   }
 
@@ -910,7 +916,7 @@ export class DatabaseService {
 
       return insertedId;
     } catch (error) {
-      throw new Error(`Failed to create cron job: ${(error as Error).message}`,{cause : error});
+      throw new Error(`Failed to create cron job: ${(error as Error).message}`, { cause: error });
     }
   }
 
@@ -920,7 +926,7 @@ export class DatabaseService {
       const result = await this.dbClient.query(query, [id]);
       return result.rows[0] ?? null;
     } catch (error) {
-      throw new Error(`Failed to find cron job: ${(error as Error).message}`,{cause : error});
+      throw new Error(`Failed to find cron job: ${(error as Error).message}`, { cause: error });
     }
   }
 
@@ -944,7 +950,7 @@ export class DatabaseService {
       }
       return result.rowCount;
     } catch (error) {
-      throw new Error(`Failed to update cron job: ${(error as Error).message}`,{cause : error});
+      throw new Error(`Failed to update cron job: ${(error as Error).message}`, { cause: error });
     }
   }
 
@@ -1018,7 +1024,7 @@ export class DatabaseService {
 
       return result.rows;
     } catch (error) {
-      throw new Error(`Failed to fetch cron jobs: ${(error as Error).message}`,{cause : error});
+      throw new Error(`Failed to fetch cron jobs: ${(error as Error).message}`, { cause: error });
     }
   }
 
@@ -1055,7 +1061,9 @@ export class DatabaseService {
 
       return result.rowCount;
     } catch (error) {
-      throw new Error(`Failed to update cron job status: ${(error as Error).message}`,{cause : error});
+      throw new Error(`Failed to update cron job status: ${(error as Error).message}`, {
+        cause: error,
+      });
     }
   }
 

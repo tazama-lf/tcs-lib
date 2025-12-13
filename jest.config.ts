@@ -35,7 +35,7 @@ const config: Config.InitialOptions = {
 
   coveragePathIgnorePatterns: [
     '/node_modules/',
-    // '<rootDir>/test/',
+    '<rootDir>/test/',
     '.mock.ts',
     '.module.ts',
     '.*utils.*',
@@ -45,12 +45,11 @@ const config: Config.InitialOptions = {
     '.*dto.*',
     '.*interfaces.*',
     '.*enum.*',
-    '/services/',
-    '/database/',
   ],
 
   moduleNameMapper: {
     '^ioredis$': '<rootDir>/__mocks__/ioredis.js',
+    '^src/(.*)$': '<rootDir>/src/$1',
   },
   verbose: true,
 };

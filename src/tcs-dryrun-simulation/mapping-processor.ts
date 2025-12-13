@@ -36,7 +36,7 @@ export function processMappings(
       // Support both array format and object with mappings property
       const mappingsArray = Array.isArray(configuredMapping)
         ? configuredMapping
-        : configuredMapping.mappings ?? [];
+        : (configuredMapping.mappings ?? []);
 
       for (const mapping of mappingsArray) {
         const sources = mapping.source ?? [];
@@ -49,7 +49,7 @@ export function processMappings(
             ? mapping.destination.split('.')[0]
             : mapping.destination;
         const separator = mapping.delimiter;
-        const {transformation} = mapping;
+        const { transformation } = mapping;
 
         // Skip if no sources defined (unless it's a constant value)
         if (!mapping.constantValue && (!sources || sources.length === 0)) {

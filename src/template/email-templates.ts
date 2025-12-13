@@ -236,7 +236,7 @@ export function generateJobflowEmailText(context: JobEmailTemplateContext): stri
   const { job, actorName, actorEmail, comment, tenantId } = context;
 
   const jobName = job.endpoint_name;
-  const {version} = job;
+  const { version } = job;
   const theme = getEmailTheme(context.event, jobName, version);
   return `
 Hello,

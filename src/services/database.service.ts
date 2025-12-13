@@ -62,34 +62,34 @@ export class DatabaseService {
 
     const values = id
       ? [
-          id,
-          config.msgFam,
-          config.transactionType,
-          config.endpointPath,
-          config.version,
-          config.contentType,
-          JSON.stringify(config.schema),
-          config.mapping ? JSON.stringify(config.mapping) : null,
-          config.functions ? JSON.stringify(config.functions) : null,
-          this.convertStatusToDatabase(config.status ?? ConfigStatus.IN_PROGRESS),
-          config.tenantId,
-          config.createdBy,
-          config.publishing_status ?? 'inactive',
-        ]
+        id,
+        config.msgFam,
+        config.transactionType,
+        config.endpointPath,
+        config.version,
+        config.contentType,
+        JSON.stringify(config.schema),
+        config.mapping ? JSON.stringify(config.mapping) : null,
+        config.functions ? JSON.stringify(config.functions) : null,
+        this.convertStatusToDatabase(config.status ?? ConfigStatus.IN_PROGRESS),
+        config.tenantId,
+        config.createdBy,
+        config.publishing_status ?? 'inactive',
+      ]
       : [
-          config.msgFam,
-          config.transactionType,
-          config.endpointPath,
-          config.version,
-          config.contentType,
-          JSON.stringify(config.schema),
-          config.mapping ? JSON.stringify(config.mapping) : null,
-          config.functions ? JSON.stringify(config.functions) : null,
-          this.convertStatusToDatabase(config.status ?? ConfigStatus.IN_PROGRESS),
-          config.tenantId,
-          config.createdBy,
-          config.publishing_status ?? 'inactive',
-        ];
+        config.msgFam,
+        config.transactionType,
+        config.endpointPath,
+        config.version,
+        config.contentType,
+        JSON.stringify(config.schema),
+        config.mapping ? JSON.stringify(config.mapping) : null,
+        config.functions ? JSON.stringify(config.functions) : null,
+        this.convertStatusToDatabase(config.status ?? ConfigStatus.IN_PROGRESS),
+        config.tenantId,
+        config.createdBy,
+        config.publishing_status ?? 'inactive',
+      ];
 
     const result = await this.dbClient.query(query, values);
 
@@ -409,35 +409,35 @@ export class DatabaseService {
     `;
 
       const result = await this.dbClient.query(query, [cleanName]);
-      return result.rows[0]?.exists || false;
+      return result.rows[0]?.exists ?? false;
     } catch (error) {
       const err = error as Error;
-      throw new Error(`Failed to check if table "${tableName}" exists: ${err.message}`);
+      throw new Error(`Failed to check if table "${tableName}" exists: ${err.message}`, { cause: error });
     }
   }
 
-  async validateExisting(table_name: string): Promise<boolean> {
+  async validateExisting(tableName: string): Promise<boolean> {
     try {
-      validateTableName(table_name);
+      validateTableName(tableName);
 
       const jobResult = await this.dbClient.query(
         'SELECT * FROM pull_jobs WHERE table_name = $1 LIMIT 1;',
-        [table_name],
+        [tableName],
       );
 
       const endpointResult = await this.dbClient.query(
         'SELECT * FROM push_jobs WHERE table_name = $1 LIMIT 1;',
-        [table_name],
+        [tableName],
       );
 
       const jobExists = jobResult.rows.length > 0;
       const pushExists = endpointResult.rows.length > 0;
-      const tableExists = await this.tableExist(table_name);
+      const tableExists = await this.tableExist(tableName);
 
       return tableExists || jobExists || pushExists;
     } catch (error) {
       const err = error as Error;
-      throw new Error(`Failed to validate existing table "${table_name}": ${err.message}`);
+      throw new Error(`Failed to validate existing table "${tableName}": ${err.message}`, { cause: error });
     }
   }
 
@@ -456,8 +456,14 @@ export class DatabaseService {
         throw new Error('Deactivate jobs with the table name used');
       }
     } catch (err) {
-      const error = err as Error;
-      throw new Error(error.message);
+      if (err instanceof Error && err.message === 'Deactivate jobs with the table name used') {
+        throw err;
+      }
+
+      throw new Error(
+        `Failed to validate active jobs for table "${tableName}"`,
+        { cause: err },
+      );
     }
   }
 
@@ -487,7 +493,7 @@ export class DatabaseService {
         message: `Push Job Created Successfully ${exists ? 'with an existing table' : ''}`,
       };
     } catch (error) {
-      throw new Error(`Failed to create job: ${(error as Error).message}`);
+      throw new Error(`Failed to create job: ${(error as Error).message}`, { cause: error });
     }
   }
 
@@ -515,7 +521,7 @@ export class DatabaseService {
         message: `Pull Job Created Successfully ${exists ? 'with an existing table' : ''}`,
       };
     } catch (error) {
-      throw new Error(`Failed to create job: ${(error as Error).message}`);
+      throw new Error(`Failed to create job: ${(error as Error).message}`, { cause: error });
     }
   }
 
@@ -527,24 +533,26 @@ export class DatabaseService {
   ): Promise<PaginatedResult<PullJobHistory>> {
     try {
       const { endpointName, createdAt, exception } = payload;
-
       const whereClauses: string[] = ['ph.tenant_id = $1'];
       const queryParams: unknown[] = [tenantId];
       let paramIndex = 2;
 
       if (createdAt) {
-        whereClauses.push(`DATE(ph.created_at) = $${paramIndex++}`);
+        whereClauses.push(`DATE(ph.created_at) = $${paramIndex}`);
         queryParams.push(createdAt);
+        paramIndex += 1;
       }
 
       if (exception) {
-        whereClauses.push(`ph.exception LIKE $${paramIndex++}`);
+        whereClauses.push(`ph.exception LIKE $${paramIndex}`);
         queryParams.push(`%${exception}%`);
+        paramIndex += 1;
       }
 
       if (endpointName) {
-        whereClauses.push(`pj.endpoint_name ILIKE $${paramIndex++}`);
+        whereClauses.push(`pj.endpoint_name ILIKE $${paramIndex}`);
         queryParams.push(`%${endpointName}%`);
+        paramIndex += 1;
       }
 
       const whereClause = `WHERE ${whereClauses.join(' AND ')}`;
@@ -590,7 +598,7 @@ export class DatabaseService {
   LEFT JOIN push_jobs psh ON psh.id = ph.job_id AND ph.job_type = 'push'
   ${whereClause}
   ORDER BY ph.created_at DESC
-  LIMIT $${paramIndex++} OFFSET $${paramIndex++};
+  LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 1};
 `;
       const dataParams = [...queryParams, limit, offset * 10];
       const dataResult = await this.dbClient.query(dataQuery, dataParams);
@@ -603,9 +611,9 @@ export class DatabaseService {
       };
     } catch (error) {
       throw new Error(
-        `Error fetching job_history: ${
-          error instanceof Error ? error.message : JSON.stringify(error)
+        `Error fetching job_history: ${error instanceof Error ? error.message : JSON.stringify(error)
         }`,
+        { cause: error }
       );
     }
   }
@@ -622,16 +630,19 @@ export class DatabaseService {
     let paramIndex = 2;
     if (status) {
       const statusArray = status.split(',').map((s) => s.trim());
-      whereClauses.push(`status = ANY($${paramIndex++})`);
+      whereClauses.push(`status = ANY($${paramIndex})`);
       queryParams.push(statusArray);
+      paramIndex += 1;
     }
     if (endpointName) {
-      whereClauses.push(`endpoint_name LIKE $${paramIndex++}`);
+      whereClauses.push(`endpoint_name LIKE $${paramIndex}`);
       queryParams.push(`%${endpointName}%`);
+      paramIndex += 1;
     }
     if (createdAt) {
-      whereClauses.push(`DATE(created_at) = $${paramIndex++}`);
+      whereClauses.push(`DATE(created_at) = $${paramIndex}`);
       queryParams.push(createdAt);
+      paramIndex += 1;
     }
     const whereClause = `WHERE ${whereClauses.join(' AND ')}`;
     const countQuery = `
@@ -686,7 +697,7 @@ export class DatabaseService {
   ) AS all_jobs
   ${whereClause}
   ORDER BY all_jobs.updated_at DESC
-  LIMIT $${paramIndex++} OFFSET $${paramIndex++};
+  LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 1};
 `;
 
     const dataParams = [...queryParams, limit, offset * 10];
@@ -703,14 +714,14 @@ export class DatabaseService {
     try {
       const query = ` SELECT * FROM ${tableName} WHERE id = $1 LIMIT 1;`;
       const result = await this.dbClient.query(query, [id]);
-      return result.rows[0] || null;
+      return result.rows[0] ?? null;
     } catch (error) {
-      throw new Error(`Failed to find job: ${(error as Error).message}`);
+      throw new Error(`Failed to find job: ${(error as Error).message}`, { cause: error });
     }
   }
 
   async getJobsByStatus(
-    tenant_id: string,
+    tenantId: string,
     status: JobStatus,
     page: number,
     limit: number,
@@ -756,7 +767,7 @@ export class DatabaseService {
     `;
 
       const result = await this.dbClient.query<JobSummary>(query, [
-        tenant_id,
+        tenantId,
         status,
         limit,
         offset,
@@ -764,7 +775,7 @@ export class DatabaseService {
 
       return result.rows;
     } catch (error) {
-      throw new Error(`Failed to fetch jobs: ${(error as Error).message}`);
+      throw new Error(`Failed to fetch jobs: ${(error as Error).message}`, { cause: error });
     }
   }
 
@@ -803,7 +814,7 @@ export class DatabaseService {
       };
     } catch (error) {
       const err = error as Error;
-      throw new Error(`Failed to update job: ${err.message}`);
+      throw new Error(`Failed to update job: ${err.message}`, { cause: error });
     }
   }
 
@@ -832,7 +843,7 @@ export class DatabaseService {
 
       return result.rows;
     } catch (error) {
-      throw new Error(`Failed to update job publishing status: ${(error as Error).message}`);
+      throw new Error(`Failed to update job publishing status: ${(error as Error).message}`, { cause: error });
     }
   }
 
@@ -850,8 +861,9 @@ export class DatabaseService {
       let paramIndex = 2;
 
       if (status === JobStatus.REJECTED || (status === JobStatus.APPROVED && reason)) {
-        setClauses.push(`comments = $${paramIndex++}`);
+        setClauses.push(`comments = $${paramIndex}`);
         params.push(reason);
+        paramIndex += 1;
       }
 
       params.push(id);
@@ -871,8 +883,7 @@ export class DatabaseService {
 
       return result.rowCount;
     } catch (error) {
-      console.error('Error updating job status:', error);
-      throw new Error(`Failed to update job status: ${(error as Error).message}`);
+      throw new Error(`Failed to update job status: ${(error as Error).message}`,{cause : error});
     }
   }
 
@@ -899,7 +910,7 @@ export class DatabaseService {
 
       return insertedId;
     } catch (error) {
-      throw new Error(`Failed to create cron job: ${(error as Error).message}`);
+      throw new Error(`Failed to create cron job: ${(error as Error).message}`,{cause : error});
     }
   }
 
@@ -907,9 +918,9 @@ export class DatabaseService {
     try {
       const query = 'SELECT * FROM cron_jobs WHERE id = $1 LIMIT 1;';
       const result = await this.dbClient.query(query, [id]);
-      return result.rows[0] || null;
+      return result.rows[0] ?? null;
     } catch (error) {
-      throw new Error(`Failed to find cron job: ${(error as Error).message}`);
+      throw new Error(`Failed to find cron job: ${(error as Error).message}`,{cause : error});
     }
   }
 
@@ -933,7 +944,7 @@ export class DatabaseService {
       }
       return result.rowCount;
     } catch (error) {
-      throw new Error(`Failed to update cron job: ${(error as Error).message}`);
+      throw new Error(`Failed to update cron job: ${(error as Error).message}`,{cause : error});
     }
   }
 
@@ -949,16 +960,19 @@ export class DatabaseService {
     let paramIndex = 2;
     if (status) {
       const statusArray = status.split(',').map((s) => s.trim());
-      whereClauses.push(`status = ANY($${paramIndex++})`);
+      whereClauses.push(`status = ANY($${paramIndex})`);
       queryParams.push(statusArray);
+      paramIndex += 1;
     }
     if (name) {
-      whereClauses.push(`name LIKE $${paramIndex++}`);
+      whereClauses.push(`name LIKE $${paramIndex}`);
       queryParams.push(`%${name}%`);
+      paramIndex += 1;
     }
     if (createdAt) {
-      whereClauses.push(`DATE(created_at) = $${paramIndex++}`);
+      whereClauses.push(`DATE(created_at) = $${paramIndex}`);
       queryParams.push(createdAt);
+      paramIndex += 1;
     }
     const whereClause = `WHERE ${whereClauses.join(' AND ')}`;
     const countQuery = `
@@ -971,7 +985,7 @@ export class DatabaseService {
 
     const dataQuery = `
     SELECT * FROM cron_jobs ${whereClause}  ORDER BY updated_at DESC
-      LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+      LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 1}`;
     const dataParams = [...queryParams, limit, offset * 10];
     const dataResult = await this.dbClient.query(dataQuery, dataParams);
     return {
@@ -983,7 +997,7 @@ export class DatabaseService {
   }
 
   async getScheduleByStatus(
-    tenant_id: string,
+    tenantId: string,
     status: JobStatus,
     page: number,
     limit: number,
@@ -1000,11 +1014,11 @@ export class DatabaseService {
       LIMIT $3 OFFSET $4;
     `;
 
-      const result = await this.dbClient.query(query, [tenant_id, status, limit, offset]);
+      const result = await this.dbClient.query(query, [tenantId, status, limit, offset]);
 
       return result.rows;
     } catch (error) {
-      throw new Error(`Failed to fetch cron jobs: ${(error as Error).message}`);
+      throw new Error(`Failed to fetch cron jobs: ${(error as Error).message}`,{cause : error});
     }
   }
 
@@ -1019,8 +1033,9 @@ export class DatabaseService {
       let paramIndex = 2;
 
       if (status === JobStatus.REJECTED || (status === JobStatus.APPROVED && reason)) {
-        setClauses.push(`comments = $${paramIndex++}`);
+        setClauses.push(`comments = $${paramIndex}`);
         params.push(reason);
+        paramIndex += 1;
       }
 
       params.push(id);
@@ -1040,8 +1055,7 @@ export class DatabaseService {
 
       return result.rowCount;
     } catch (error) {
-      console.error('Error updating cron job status:', error);
-      throw new Error(`Failed to update cron job status: ${(error as Error).message}`);
+      throw new Error(`Failed to update cron job status: ${(error as Error).message}`,{cause : error});
     }
   }
 

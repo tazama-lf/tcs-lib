@@ -142,7 +142,7 @@ interface PullJobHistory {
 }
 
 interface PaginatedResult<T> {
-  data: unknown[];
+  data: T[];
   total: number;
   offset: number;
   limit: number;

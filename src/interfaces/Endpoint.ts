@@ -1,6 +1,5 @@
 import type { ContentType, TransactionType } from './core.interfaces';
 import type { JSONSchema } from './json-schema.interfaces';
-import type { AdjustFieldDto } from 'src/dtos/schema-workflow.dto';
 import type { FieldMapping } from './schema.interfaces';
 import type { FunctionDefinition, AllowedFunctionName } from '../types/config.types';
 export interface CreateConfigDto {
@@ -12,16 +11,7 @@ export interface CreateConfigDto {
   endpointPath?: string;
   mapping?: FieldMapping[];
   functions?: FunctionDefinition[];
-  fieldAdjustments?: AdjustFieldDto[];
   schema?: Record<string, unknown>;
-}
-export interface CloneConfigDto {
-  sourceConfigId: number;
-  newTransactionType: TransactionType;
-  newVersion?: string;
-  newMsgFam?: string;
-  functions?: FunctionDefinition[];
-  fieldAdjustments?: AdjustFieldDto[];
 }
 export interface UpdateConfigDto {
   msgFam?: string;
@@ -32,7 +22,6 @@ export interface UpdateConfigDto {
   schema?: JSONSchema;
   mapping?: FieldMapping[];
   functions?: FunctionDefinition[];
-  fieldAdjustments?: AdjustFieldDto[];
   status?: ConfigStatus; // Allow status updates with proper enum type
   comments?: string; // Comments from approvers to editors (CHANGES_REQUESTED)
 }

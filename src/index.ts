@@ -1,6 +1,3 @@
-// DTOs
-export type * from './dtos/file-upload.dto';
-export * from './dtos/schema-workflow.dto';
 
 // Interfaces - Core
 export * from './interfaces/core.interfaces';

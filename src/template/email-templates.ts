@@ -13,7 +13,7 @@ export interface EmailTemplateContext {
     endpoint_path?: string;
     status?: string;
   };
-  actorName: string;
+  actorName?: string;
   actorEmail: string;
   comment?: string;
   tenantId?: string;
@@ -21,7 +21,7 @@ export interface EmailTemplateContext {
 export interface JobEmailTemplateContext {
   event: string;
   job: Job;
-  actorName: string;
+  actorName?: string;
   actorEmail: string;
   comment?: string;
   tenantId?: string;
@@ -29,7 +29,7 @@ export interface JobEmailTemplateContext {
 export interface ScheduleEmailTemplateContext {
   event: string;
   schedule: Schedule;
-  actorName: string;
+  actorName?: string;
   actorEmail: string;
   comment?: string;
   tenantId?: string;
@@ -89,21 +89,16 @@ export function getEmailTheme(event: string, configName: string, version?: strin
     },
   };
 
-  const theme = themes[event] || {
+  const theme = themes[event] ?? {
     themeColor: '#2196F3',
     statusBadgeColor: '#e3f2fd',
     emailTitle: 'Workflow Update',
     actionDescription: 'updated',
   };
 
-  let subjectPrefix = theme.emailTitle;
-  if (event === 'publisher_activate' || event === 'publisher_deactivate') {
-    subjectPrefix = theme.emailTitle;
-  }
-
   return {
     ...theme,
-    subject: `${subjectPrefix}: ${configName} ${version ? version : ''}`.trim(),
+    subject: `${theme.emailTitle}: ${configName} ${version ?? ''}`.trim(),
   };
 }
 
@@ -119,7 +114,7 @@ export function generateWorkflowEmailHTML(context: EmailTemplateContext): string
   <h2 style="color: ${theme.themeColor}; margin-top: 0;">${theme.emailTitle}</h2>
   
   <div style="background-color: ${theme.statusBadgeColor}; padding: 15px; border-left: 4px solid ${theme.themeColor}; margin: 20px 0;">
-    <p style="margin: 0; font-weight: bold; font-size: 16px;">From: ${actorName || actorEmail}</p>
+    <p style="margin: 0; font-weight: bold; font-size: 16px;">From: ${actorName ?? actorEmail}</p>
     <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">
       <a href="mailto:${actorEmail}" style="color: ${theme.themeColor}; text-decoration: none;">${actorEmail}</a>
     </p>
@@ -139,13 +134,13 @@ export function generateWorkflowEmailHTML(context: EmailTemplateContext): string
       </tr>
       <tr>
         <td style="padding: 8px; font-weight: bold; color: #666;">Endpoint:</td>
-        <td style="padding: 8px;">${config.endpointPath || config.endpoint_path || 'N/A'}</td>
+        <td style="padding: 8px;">${config.endpointPath ?? config.endpoint_path ?? 'N/A'}</td>
       </tr>
       <tr style="background-color: #f5f5f5;">
         <td style="padding: 8px; font-weight: bold; color: #666;">Status:</td>
         <td style="padding: 8px;">
           <span style="background-color: ${theme.themeColor}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-            ${config.status || 'N/A'}
+            ${config.status ?? 'N/A'}
           </span>
         </td>
       </tr>
@@ -163,24 +158,24 @@ export function generateWorkflowEmailHTML(context: EmailTemplateContext): string
 export function generateWorkflowEmailText(context: EmailTemplateContext): string {
   const { config, actorName, actorEmail, comment, tenantId } = context;
 
-  const configName = config.transactionType || config.cfg_name || 'Configuration';
-  const version = config.version || config.cfg_version || '1.0';
+  const configName = config.transactionType ?? config.cfg_name ?? 'Configuration';
+  const version = config.version ?? config.cfg_version ?? '1.0';
   const theme = getEmailTheme(context.event, configName, version);
 
   return `
 Hello,
 
-${actorName || actorEmail} has ${theme.actionDescription}:
+${actorName ?? actorEmail} has ${theme.actionDescription}:
 
 Configuration: ${configName}
 Version: ${version}
-Endpoint: ${config.endpointPath || config.endpoint_path || 'N/A'}
-Status: ${config.status || 'N/A'}
+Endpoint: ${config.endpointPath ?? config.endpoint_path ?? 'N/A'}
+Status: ${config.status ?? 'N/A'}
 ${comment ? `\nComment:\n${comment}` : ''}
 
 ---
 This is an automated notification from Tazama Connection Studio.
-From: ${actorName || actorEmail} (${actorEmail})${tenantId ? `\nTenant: ${tenantId}` : ''}
+From: ${actorName ?? actorEmail} (${actorEmail})${tenantId ? `\nTenant: ${tenantId}` : ''}
   `.trim();
 }
 
@@ -196,7 +191,7 @@ export function generateJobflowEmailHTML(context: JobEmailTemplateContext): stri
   <h2 style="color: ${theme.themeColor}; margin-top: 0;">${theme.emailTitle}</h2>
   
   <div style="background-color: ${theme.statusBadgeColor}; padding: 15px; border-left: 4px solid ${theme.themeColor}; margin: 20px 0;">
-    <p style="margin: 0; font-weight: bold; font-size: 16px;">From: ${actorName || actorEmail}</p>
+    <p style="margin: 0; font-weight: bold; font-size: 16px;">From: ${actorName ?? actorEmail}</p>
     <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">
       <a href="mailto:${actorEmail}" style="color: ${theme.themeColor}; text-decoration: none;">${actorEmail}</a>
     </p>
@@ -222,7 +217,7 @@ export function generateJobflowEmailHTML(context: JobEmailTemplateContext): stri
         <td style="padding: 8px; font-weight: bold; color: #666;">Status:</td>
         <td style="padding: 8px;">
           <span style="background-color: ${theme.themeColor}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-            ${job.status || 'N/A'}
+            ${job.status ?? 'N/A'}
           </span>
         </td>
       </tr>
@@ -240,18 +235,18 @@ export function generateJobflowEmailHTML(context: JobEmailTemplateContext): stri
 export function generateJobflowEmailText(context: JobEmailTemplateContext): string {
   const { job, actorName, actorEmail, comment, tenantId } = context;
 
-  const jobName = job.endpoint_name || 'Job';
-  const version = job.version || '1.0';
+  const jobName = job.endpoint_name ?? 'Job';
+  const version = job.version ?? '1.0';
   const theme = getEmailTheme(context.event, jobName, version);
   return `
 Hello,
 
-${actorName || actorEmail} has ${theme.actionDescription}:
+${actorName ?? actorEmail} has ${theme.actionDescription}:
 
 Job: ${jobName}
 Version: ${version}
-Endpoint Name: ${job.endpoint_name || 'N/A'}
-Status: ${job.status || 'N/A'}
+Endpoint Name: ${job.endpoint_name ?? 'N/A'}
+Status: ${job.status ?? 'N/A'}
 ${comment ? `\nComment:\n${comment}` : ''}
 
 ---
@@ -272,7 +267,7 @@ export function generateScheduleflowEmailHTML(context: ScheduleEmailTemplateCont
   <h2 style="color: ${theme.themeColor}; margin-top: 0;">${theme.emailTitle}</h2>
   
   <div style="background-color: ${theme.statusBadgeColor}; padding: 15px; border-left: 4px solid ${theme.themeColor}; margin: 20px 0;">
-    <p style="margin: 0; font-weight: bold; font-size: 16px;">From: ${actorName || actorEmail}</p>
+    <p style="margin: 0; font-weight: bold; font-size: 16px;">From: ${actorName ?? actorEmail}</p>
     <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">
       <a href="mailto:${actorEmail}" style="color: ${theme.themeColor}; text-decoration: none;">${actorEmail}</a>
     </p>
@@ -368,15 +363,15 @@ export function generatePublishingStatusEmailHTML(
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
         <td style="padding: 8px; font-weight: bold; color: #666;">Configuration:</td>
-        <td style="padding: 8px;">${config.transactionType || 'Configuration'}</td>
+        <td style="padding: 8px;">${config.transactionType ?? 'Configuration'}</td>
       </tr>
       <tr style="background-color: #f5f5f5;">
         <td style="padding: 8px; font-weight: bold; color: #666;">Version:</td>
-        <td style="padding: 8px;">${config.version || '1.0'}</td>
+        <td style="padding: 8px;">${config.version ?? '1.0'}</td>
       </tr>
       <tr>
         <td style="padding: 8px; font-weight: bold; color: #666;">Endpoint:</td>
-        <td style="padding: 8px;">${config.endpointPath || 'N/A'}</td>
+        <td style="padding: 8px;">${config.endpointPath ?? 'N/A'}</td>
       </tr>
       <tr style="background-color: #f5f5f5;">
         <td style="padding: 8px; font-weight: bold; color: #666;">Publishing Status:</td>
@@ -388,7 +383,7 @@ export function generatePublishingStatusEmailHTML(
       </tr>
       <tr>
         <td style="padding: 8px; font-weight: bold; color: #666;">Config Status:</td>
-        <td style="padding: 8px;">${config.status || 'N/A'}</td>
+        <td style="padding: 8px;">${config.status ?? 'N/A'}</td>
       </tr>
       <tr style="background-color: #f5f5f5;">
         <td style="padding: 8px; font-weight: bold; color: #666;">Config ID:</td>
@@ -433,12 +428,12 @@ Hello,
 
 ${actorName || actorEmail} has ${actionDescription} the following configuration:
 
-Configuration: ${config.transactionType || 'Configuration'}
-Version: ${config.version || '1.0'}
-Endpoint: ${config.endpointPath || 'N/A'}
+Configuration: ${config.transactionType ?? 'Configuration'}
+Version: ${config.version ?? '1.0'}
+Endpoint: ${config.endpointPath ?? 'N/A'}
 Config ID: ${configId}
 Publishing Status: ${publishingStatus.toUpperCase()}
-Status: ${config.status || 'N/A'}
+Status: ${config.status ?? 'N/A'}
 
 ---
 This is an automated notification from Tazama Connection Studio.

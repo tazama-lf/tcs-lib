@@ -29,12 +29,7 @@ const config: Config.InitialOptions = {
 
   // Coverage settings
   collectCoverage: true,
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/main.ts',
-    '!src/**/index.ts',
-    '!src/**/*.module.ts',
-  ],
+  collectCoverageFrom: ['src/**/*.ts', '!src/main.ts', '!src/**/index.ts', '!src/**/*.module.ts'],
   coverageDirectory: '<rootDir>/coverage',
   coverageProvider: 'v8',
 
@@ -51,10 +46,9 @@ const config: Config.InitialOptions = {
     '.*interfaces.*',
     '.*enum.*',
     '/services/',
-    '/database/'
+    '/database/',
   ],
 
-  
   moduleNameMapper: {
     '^ioredis$': '<rootDir>/__mocks__/ioredis.js',
   },

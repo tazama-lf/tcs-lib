@@ -1,4 +1,3 @@
- 
 export type TransactionType = string;
 
 export enum HttpMethod {
@@ -32,4 +31,3 @@ export enum EndpointStatus {
   SUSPENDED = 'SUSPENDED',
   PUBLISHED = 'PUBLISHED',
 }
- 

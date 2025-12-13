@@ -193,10 +193,7 @@ export function convertNumberToStringAtPath(
     const targetFieldName = pathParts[pathParts.length - 1];
 
     // Check if the target field exists and is a number
-    if (
-      current?.[targetFieldName] !== undefined &&
-      typeof current[targetFieldName] === 'number'
-    ) {
+    if (current?.[targetFieldName] !== undefined && typeof current[targetFieldName] === 'number') {
       // Convert the number to a string
       current[targetFieldName] = String(current[targetFieldName]);
 

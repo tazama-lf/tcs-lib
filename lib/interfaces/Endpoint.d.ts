@@ -1,7 +1,7 @@
-import { ContentType, TransactionType } from './core.interfaces';
-import { JSONSchema } from './json-schema.interfaces';
-import { AdjustFieldDto } from 'src/dtos/schema-workflow.dto';
-import { FieldMapping } from './schema.interfaces';
+import type { ContentType, TransactionType } from './core.interfaces';
+import type { JSONSchema } from './json-schema.interfaces';
+import type { AdjustFieldDto } from 'src/dtos/schema-workflow.dto';
+import type { FieldMapping } from './schema.interfaces';
 export interface CreateConfigDto {
     msgFam?: string;
     transactionType: TransactionType;
@@ -40,12 +40,12 @@ export interface FunctionDefinition {
 }
 export type AllowedFunctionName = 'addAccountHolder' | 'addEntity' | 'addAccount' | 'transactionRelationship';
 export declare enum ConfigStatus {
-    IN_PROGRESS = "IN_PROGRESS",
-    UNDER_REVIEW = "UNDER_REVIEW",
-    APPROVED = "APPROVED",
-    DEPLOYED = "DEPLOYED",
-    REJECTED = "REJECTED",
-    CHANGES_REQUESTED = "CHANGES_REQUESTED"
+    IN_PROGRESS = 'IN_PROGRESS',
+    UNDER_REVIEW = 'UNDER_REVIEW',
+    APPROVED = 'APPROVED',
+    DEPLOYED = 'DEPLOYED',
+    REJECTED = 'REJECTED',
+    CHANGES_REQUESTED = 'CHANGES_REQUESTED'
 }
 export interface MappingSource {
     field: string;

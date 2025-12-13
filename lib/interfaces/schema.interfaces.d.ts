@@ -1,5 +1,5 @@
-import { JSONSchema } from './json-schema.interfaces';
-import { FieldType, HttpMethod, TransactionType, EndpointStatus } from './core.interfaces';
+import type { JSONSchema } from './json-schema.interfaces';
+import type { FieldType, HttpMethod, TransactionType, EndpointStatus } from './core.interfaces';
 export interface SchemaField {
     name: string;
     path: string;

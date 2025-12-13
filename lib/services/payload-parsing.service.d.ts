@@ -1,7 +1,7 @@
-import { SchemaField } from '../interfaces/schema.interfaces';
-import { FieldType, ContentType } from '../interfaces/core.interfaces';
-import { JSONSchema } from '../interfaces/json-schema.interfaces';
-import { SchemaValidationResultDto, AdjustFieldDto } from '../dtos/schema-workflow.dto';
+import type { SchemaField } from '../interfaces/schema.interfaces';
+import type { FieldType, ContentType } from '../interfaces/core.interfaces';
+import type { JSONSchema } from '../interfaces/json-schema.interfaces';
+import type { SchemaValidationResultDto, AdjustFieldDto } from '../dtos/schema-workflow.dto';
 export interface PayloadParsingResult {
     success: boolean;
     jsonSchema: JSONSchema;
@@ -32,8 +32,8 @@ export declare const validateGeneratedSchema: (fields: SchemaField[]) => SchemaV
 export declare const validateFieldsRecursively: (fields: SchemaField[], errors: string[], warnings: string[], invalidTypes: string[], conflictingPaths: string[]) => void;
 export declare const collectAllPaths: (fields: SchemaField[]) => string[];
 export declare const applyAdjustmentsRecursively: (fields: SchemaField[], adjustmentMap: Map<string, AdjustFieldDto>) => SchemaField[];
-export declare const calculateSchemaMetadata: (fields: SchemaField[], originalPayload: string, processingTime: number) => PayloadParsingResult["metadata"];
+export declare const calculateSchemaMetadata: (fields: SchemaField[], originalPayload: string, processingTime: number) => PayloadParsingResult['metadata'];
 export declare const flattenFields: (fields: SchemaField[]) => SchemaField[];
 export declare const calculateMaxNestedLevels: (fields: SchemaField[], currentLevel?: number) => number;
-export declare const createEmptyMetadata: (payload: string, processingTime: number) => PayloadParsingResult["metadata"];
+export declare const createEmptyMetadata: (payload: string, processingTime: number) => PayloadParsingResult['metadata'];
 export declare const createEmptyJSONSchema: () => JSONSchema;

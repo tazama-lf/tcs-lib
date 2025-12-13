@@ -1,5 +1,5 @@
-import { ContentType } from '../interfaces/core.interfaces';
-import { ParsedFileResult } from '../dtos/file-upload.dto';
+import type { ContentType } from '../interfaces/core.interfaces';
+import type { ParsedFileResult } from '../dtos/file-upload.dto';
 export declare const parseUploadedFile: (file: Express.Multer.File, expectedContentType: ContentType) => ParsedFileResult;
 export declare const validateFileType: (file: Express.Multer.File, expectedContentType: ContentType, content: string) => {
     isValid: boolean;

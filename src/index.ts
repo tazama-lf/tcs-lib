@@ -1,4 +1,3 @@
-
 // Interfaces - Core
 export * from './interfaces/core.interfaces';
 export type * from './interfaces/schema.interfaces';
@@ -21,7 +20,7 @@ export * from './interfaces/Endpoint';
 
 // Services
 export { DatabaseService } from './services/database.service';
-export { DatabaseFactory } from './database/databaseFactory';
+export { initializeDatabase, getPool } from './database/databaseFactory';
 
 export { convertToJSONSchema } from './schemas/json-schema-converter.service';
 

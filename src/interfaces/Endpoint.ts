@@ -25,7 +25,7 @@ export interface UpdateConfigDto {
   status?: ConfigStatus; // Allow status updates with proper enum type
   comments?: string; // Comments from approvers to editors (CHANGES_REQUESTED)
 }
- 
+
 export enum ConfigStatus {
   IN_PROGRESS = 'STATUS_01_IN_PROGRESS',
   ON_HOLD = 'STATUS_02_ON_HOLD',
@@ -36,7 +36,7 @@ export enum ConfigStatus {
   READY_FOR_DEPLOYMENT = 'STATUS_07_READY_FOR_DEPLOYMENT',
   DEPLOYED = 'STATUS_08_DEPLOYED',
 }
- 
+
 export interface MappingSource {
   field: string; // Field path in source schema
 }

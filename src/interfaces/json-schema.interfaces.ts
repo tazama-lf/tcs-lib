@@ -59,7 +59,7 @@ export interface JSONSchemaValidationResult {
   }>;
   warnings?: string[];
 }
- 
+
 export enum JSONSchemaType {
   STRING = 'string',
   NUMBER = 'number',
@@ -80,4 +80,3 @@ export enum JSONSchemaFormat {
   URI = 'uri',
   UUID = 'uuid',
 }
- 

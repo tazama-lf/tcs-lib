@@ -1,22 +1,20 @@
 import { Pool } from 'pg';
 import type { DatabaseConfig } from 'src/interfaces/DatabaseConfig';
 
-export class DatabaseFactory {
-  private static pgPool: Pool;
+let pgPool: Pool;
 
-  static async initializeDatabase(config: DatabaseConfig): Promise<void> {
-    this.pgPool = new Pool({
-      host: config.host,
-      port: config.port,
-      database: config.database,
-      user: config.user,
-      password: config.password,
-    });
+export async function initializeDatabase(config: DatabaseConfig): Promise<void> {
+  pgPool = new Pool({
+    host: config.host,
+    port: config.port,
+    database: config.database,
+    user: config.user,
+    password: config.password,
+  });
 
-    await this.pgPool.connect();
-  }
+  await pgPool.connect();
+}
 
-  static getPool(): Pool {
-    return this.pgPool;
-  }
+export function getPool(): Pool {
+  return pgPool;
 }

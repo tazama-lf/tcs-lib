@@ -217,7 +217,7 @@ export function generateJobflowEmailHTML(context: JobEmailTemplateContext): stri
         <td style="padding: 8px; font-weight: bold; color: #666;">Status:</td>
         <td style="padding: 8px;">
           <span style="background-color: ${theme.themeColor}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-            ${job.status ?? 'N/A'}
+            ${job.status}
           </span>
         </td>
       </tr>
@@ -235,8 +235,8 @@ export function generateJobflowEmailHTML(context: JobEmailTemplateContext): stri
 export function generateJobflowEmailText(context: JobEmailTemplateContext): string {
   const { job, actorName, actorEmail, comment, tenantId } = context;
 
-  const jobName = job.endpoint_name ?? 'Job';
-  const version = job.version ?? '1.0';
+  const jobName = job.endpoint_name;
+  const {version} = job;
   const theme = getEmailTheme(context.event, jobName, version);
   return `
 Hello,
@@ -245,21 +245,21 @@ ${actorName ?? actorEmail} has ${theme.actionDescription}:
 
 Job: ${jobName}
 Version: ${version}
-Endpoint Name: ${job.endpoint_name ?? 'N/A'}
-Status: ${job.status ?? 'N/A'}
+Endpoint Name: ${job.endpoint_name}
+Status: ${job.status}
 ${comment ? `\nComment:\n${comment}` : ''}
 
 ---
 This is an automated notification from Tazama Connection Studio.
-From: ${actorName || actorEmail} (${actorEmail})${tenantId ? `\nTenant: ${tenantId}` : ''}
+From: ${actorName ?? actorEmail} (${actorEmail})${tenantId ? `\nTenant: ${tenantId}` : ''}
   `.trim();
 }
 
 export function generateScheduleflowEmailHTML(context: ScheduleEmailTemplateContext): string {
   const { schedule, actorName, actorEmail, comment } = context;
 
-  const {name} = schedule;
-  const {cron} = schedule;
+  const { name } = schedule;
+  const { cron } = schedule;
   const theme = getEmailTheme(context.event, name);
 
   return `
@@ -293,7 +293,7 @@ export function generateScheduleflowEmailHTML(context: ScheduleEmailTemplateCont
         <td style="padding: 8px; font-weight: bold; color: #666;">Status:</td>
         <td style="padding: 8px;">
           <span style="background-color: ${theme.themeColor}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-            ${schedule.status || 'N/A'}
+            ${schedule.status}
           </span>
         </td>
       </tr>
@@ -311,23 +311,23 @@ export function generateScheduleflowEmailHTML(context: ScheduleEmailTemplateCont
 export function generateScheduleflowEmailText(context: ScheduleEmailTemplateContext): string {
   const { schedule, actorName, actorEmail, comment, tenantId } = context;
 
-  const {name} = schedule;
-  const {cron} = schedule;
+  const { name } = schedule;
+  const { cron } = schedule;
   const theme = getEmailTheme(context.event, name);
   return `
 Hello,
 
-${actorName || actorEmail} has ${theme.actionDescription}:
+${actorName ?? actorEmail} has ${theme.actionDescription}:
 
 Cron Job: ${name}
 Cron Expression: ${cron}
 Iterations: ${schedule.iterations}
-Status: ${schedule.status || 'N/A'}
+Status: ${schedule.status}
 ${comment ? `\nComment:\n${comment}` : ''}
 
 ---
 This is an automated notification from Tazama Connection Studio.
-From: ${actorName || actorEmail} (${actorEmail})${tenantId ? `\nTenant: ${tenantId}` : ''}
+From: ${actorName ?? actorEmail} (${actorEmail})${tenantId ? `\nTenant: ${tenantId}` : ''}
   `.trim();
 }
 

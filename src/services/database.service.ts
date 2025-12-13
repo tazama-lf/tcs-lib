@@ -12,7 +12,7 @@ import {
   type Schedule,
   ScheduleStatus,
 } from 'src/interfaces/enrichment.interface';
-import { DatabaseFactory } from '../database/databaseFactory';
+import { initializeDatabase, getPool } from '../database/databaseFactory';
 import type { Config } from '../types/config.types';
 import { ConfigStatus } from '../types/config.types';
 import type { DatabaseConfig } from '../interfaces/database.interfaces';
@@ -24,10 +24,10 @@ export class DatabaseService {
 
   constructor(config?: DatabaseConfig) {
     if (config) {
-      DatabaseFactory.initializeDatabase(config);
+      void initializeDatabase(config);
     }
 
-    this.dbClient = DatabaseFactory.getPool();
+    this.dbClient = getPool();
   }
 
   getPool(): Pool {
@@ -71,10 +71,10 @@ export class DatabaseService {
           JSON.stringify(config.schema),
           config.mapping ? JSON.stringify(config.mapping) : null,
           config.functions ? JSON.stringify(config.functions) : null,
-          this.convertStatusToDatabase(config.status || ConfigStatus.IN_PROGRESS),
+          this.convertStatusToDatabase(config.status ?? ConfigStatus.IN_PROGRESS),
           config.tenantId,
           config.createdBy,
-          config.publishing_status || 'inactive',
+          config.publishing_status ?? 'inactive',
         ]
       : [
           config.msgFam,
@@ -85,10 +85,10 @@ export class DatabaseService {
           JSON.stringify(config.schema),
           config.mapping ? JSON.stringify(config.mapping) : null,
           config.functions ? JSON.stringify(config.functions) : null,
-          this.convertStatusToDatabase(config.status || ConfigStatus.IN_PROGRESS),
+          this.convertStatusToDatabase(config.status ?? ConfigStatus.IN_PROGRESS),
           config.tenantId,
           config.createdBy,
-          config.publishing_status || 'inactive',
+          config.publishing_status ?? 'inactive',
         ];
 
     const result = await this.dbClient.query(query, values);
@@ -131,8 +131,7 @@ export class DatabaseService {
 
       return result.rowCount;
     } catch (error) {
-      console.error('Error updating config status:', error);
-      throw new Error(`Failed to update config status: ${(error as Error).message}`);
+      throw new Error(`Failed to update config status: ${(error as Error).message}`, { cause: error });
     }
   }
   async findConfigsByStatus(
@@ -149,17 +148,18 @@ export class DatabaseService {
 
     if (status) {
       const statusArray = status.split(',').map((s) => s.trim());
-      whereClauses.push(`status = ANY($${paramIndex++})`);
+      whereClauses.push(`status = ANY($${paramIndex})`);
       queryParams.push(statusArray);
     }
 
     if (endpointPath) {
-      whereClauses.push(`endpoint_path LIKE $${paramIndex++}`);
+      whereClauses.push(`endpoint_path LIKE $${paramIndex}`);
       queryParams.push(`%${endpointPath}%`);
+      paramIndex += 1;
     }
 
     if (createdAt) {
-      whereClauses.push(`DATE(created_at) = $${paramIndex++}`);
+      whereClauses.push(`DATE(created_at) = $${paramIndex}`);
       queryParams.push(createdAt);
     }
 
@@ -181,7 +181,7 @@ export class DatabaseService {
       FROM config
       ${whereClause}
       ORDER BY updated_at DESC
-      LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
     const dataParams = [...queryParams, limit, offset * 10];
@@ -208,73 +208,73 @@ export class DatabaseService {
     let paramIndex = 1;
 
     if (updates.msgFam !== undefined) {
-      updateFields.push(`msg_fam = $${paramIndex++}`);
+      updateFields.push(`msg_fam = $${paramIndex}`);
 
       values.push(updates.msgFam);
     }
 
     if (updates.transactionType !== undefined) {
-      updateFields.push(`transaction_type = $${paramIndex++}`);
+      updateFields.push(`transaction_type = $${paramIndex}`);
 
       values.push(updates.transactionType);
     }
 
     if (updates.endpointPath !== undefined) {
-      updateFields.push(`endpoint_path = $${paramIndex++}`);
-
+      updateFields.push(`endpoint_path = $${paramIndex}`);
+      paramIndex += 1;
       values.push(updates.endpointPath);
     }
 
     if (updates.version !== undefined) {
-      updateFields.push(`version = $${paramIndex++}`);
-
+      updateFields.push(`version = $${paramIndex}`);
+      paramIndex += 1;
       values.push(updates.version);
     }
 
     if (updates.contentType !== undefined) {
-      updateFields.push(`content_type = $${paramIndex++}`);
-
+      updateFields.push(`content_type = $${paramIndex}`);
+      paramIndex += 1;
       values.push(updates.contentType);
     }
 
     if (updates.schema !== undefined) {
-      updateFields.push(`schema = $${paramIndex++}`);
+      updateFields.push(`schema = $${paramIndex}`);
 
       values.push(JSON.stringify(updates.schema));
     }
 
     if (updates.mapping !== undefined) {
-      updateFields.push(`mapping = $${paramIndex++}`);
+      updateFields.push(`mapping = $${paramIndex}`);
 
-      values.push(updates.mapping ? JSON.stringify(updates.mapping) : null);
+      values.push(JSON.stringify(updates.mapping));
     }
 
     if (updates.functions !== undefined) {
-      updateFields.push(`functions = $${paramIndex++}`);
+      updateFields.push(`functions = $${paramIndex}`);
 
-      values.push(updates.functions ? JSON.stringify(updates.functions) : null);
+      values.push(JSON.stringify(updates.functions));
     }
 
     if (updates.status !== undefined) {
-      updateFields.push(`status = $${paramIndex++}`);
+      updateFields.push(`status = $${paramIndex}`);
 
       values.push(this.convertStatusToDatabase(updates.status));
     }
 
     if (updates.createdBy !== undefined) {
-      updateFields.push(`created_by = $${paramIndex++}`);
+      updateFields.push(`created_by = $${paramIndex}`);
 
       values.push(updates.createdBy);
     }
 
     if (updates.comments !== undefined) {
-      updateFields.push(`comments = $${paramIndex++}`);
+      updateFields.push(`comments = $${paramIndex}`);
 
       values.push(updates.comments);
     }
 
     if (updates.publishing_status !== undefined) {
-      updateFields.push(`publishing_status = $${paramIndex++}`);
+      updateFields.push(`publishing_status = $${paramIndex}`);
 
       values.push(updates.publishing_status);
     }
@@ -289,7 +289,7 @@ export class DatabaseService {
 
       SET ${updateFields.join(', ')}
 
-      WHERE id = $${paramIndex++} AND tenant_id = $${paramIndex++}
+      WHERE id = $${paramIndex} AND tenant_id = $${paramIndex}
 
       returning id;
 
@@ -322,16 +322,10 @@ export class DatabaseService {
             for (const field of schema) {
               if (field.type === 'ARRAY') {
                 if (!field.arrayElementType) {
-                  console.warn(
-                    ` Array field missing arrayElementType at path: ${path}.${field.name}`,
-                  );
-
                   hasIssues = true;
                 }
 
                 if (field.arrayElementType === 'OBJECT' && !field.children) {
-                  console.warn(` Object array missing children at path: ${path}.${field.name}`);
-
                   hasIssues = true;
                 }
               }
@@ -349,19 +343,9 @@ export class DatabaseService {
           return hasIssues;
         };
 
-        const hasArrayIssues = validateArrayFields(parsedSchema);
-
-        if (hasArrayIssues) {
-          console.error(
-            `Schema integrity check failed for config ${row.id} - arrays lost metadata`,
-          );
-
-          console.error(`Schema preview: ${JSON.stringify(parsedSchema).substring(0, 500)}...`);
-        }
+        validateArrayFields(parsedSchema);
       }
     } catch (error) {
-      console.error(`Failed to parse schema for config ${row.id}:`, error);
-
       parsedSchema = row.schema;
     }
 
@@ -406,7 +390,7 @@ export class DatabaseService {
 
       publishing_status: row.publishing_status,
 
-      comments: row.comment || row.comments,
+      comments: row.comment ?? row.comments,
     };
   }
 
@@ -1115,7 +1099,8 @@ export class DatabaseService {
   }
 
   async destinationTypeExists(destinationTypeId: number, tenantId: string): Promise<boolean> {
-    const query = 'SELECT destination_type_id FROM destination_type WHERE destination_type_id = $1 AND (tenant_id = $2 or tenant_id=\'default\')';
+    const query =
+      'SELECT destination_type_id FROM destination_type WHERE destination_type_id = $1 AND (tenant_id = $2 or tenant_id=\'default\')';
     const result = await this.dbClient.query(query, [destinationTypeId, tenantId]);
     return result.rows.length > 0;
   }

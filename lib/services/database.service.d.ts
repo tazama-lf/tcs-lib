@@ -1,8 +1,8 @@
-import { Pool, PoolClient } from 'pg';
-import { Config, ConfigStatus } from '../interfaces/Endpoint';
-import { JSONSchema } from '../interfaces/json-schema.interfaces';
-import { FieldMapping } from '../interfaces/schema.interfaces';
-import { FunctionDefinition } from '../interfaces/Endpoint';
+import type { Pool, PoolClient } from 'pg';
+import type { Config, ConfigStatus , FunctionDefinition } from '../interfaces/Endpoint';
+import type { JSONSchema } from '../interfaces/json-schema.interfaces';
+import type { FieldMapping } from '../interfaces/schema.interfaces';
+
 export interface AuditLogEntry {
     action: string;
     entityType: string;
@@ -31,7 +31,7 @@ export interface DatabaseConfig {
     password: string;
 }
 export declare class DatabaseService {
-    private dbClient;
+    private readonly dbClient;
     constructor(config?: DatabaseConfig);
     getPool(): Pool;
     getClient(): Promise<PoolClient>;
@@ -65,6 +65,6 @@ export declare class DatabaseService {
     getEmailByUserId(tenantId: string, userId: string): Promise<string | null>;
     getConfigEditorEmail(configId: number, tenantId: string): Promise<string | null>;
     cleanupStaleUsers(daysInactive?: number): Promise<number>;
-    private mapRowToConfig;
+    private readonly mapRowToConfig;
     close(): Promise<void>;
 }

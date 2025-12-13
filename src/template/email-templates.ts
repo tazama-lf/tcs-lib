@@ -1,3 +1,5 @@
+/* eslint-disable max-lines -- Email template file contains multiple template variations for different notification types */
+/* eslint-disable @typescript-eslint/max-params -- Email generation functions require multiple configuration parameters for complete template customization */
 import type { Job, Schedule } from 'src/interfaces/enrichment.interface';
 
 export interface EmailTemplateContext {
@@ -698,4 +700,6 @@ You can review the feedback and make necessary changes before resubmitting.
 This is an automated notification from Tazama Connection Studio.
 Tenant: ${tenantId}
   `.trim();
+  /* eslint-enable max-lines */
+  /* eslint-enable @typescript-eslint/max-params */
 }

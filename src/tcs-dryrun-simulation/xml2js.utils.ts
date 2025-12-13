@@ -29,6 +29,7 @@ export function returnArrayFieldsFromSchema(
     const stringFields: string[] = [];
     const visited = new Set(); // Circular reference detection
 
+    // eslint-disable-next-line complexity -- Schema traversal requires handling multiple JSON Schema constructs (anyOf, oneOf, allOf, nested objects, arrays)
     const traverseSchema = (obj: any, path = ''): void => {
       if (!obj || typeof obj !== 'object') {
         return;

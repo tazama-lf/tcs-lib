@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Database service contains comprehensive CRUD operations for multiple entities (configs, jobs, schedules) requiring significant code */
 import type { Pool, PoolClient } from 'pg';
 
 import {
@@ -1121,8 +1122,8 @@ export class DatabaseService {
   }
 
   async destinationTypeExists(destinationTypeId: number, tenantId: string): Promise<boolean> {
-    const query =
-      'SELECT destination_type_id FROM destination_type WHERE destination_type_id = $1 AND (tenant_id = $2 or tenant_id=\'default\')';
+    // eslint-disable-next-line @stylistic/quotes -- SQL queries require specific quote syntax
+    const query = `SELECT destination_type_id FROM destination_type WHERE destination_type_id = $1 AND (tenant_id = $2 or tenant_id='default')`;
     const result = await this.dbClient.query(query, [destinationTypeId, tenantId]);
     return result.rows.length > 0;
   }
@@ -1187,3 +1188,4 @@ export class DatabaseService {
     await this.dbClient.end();
   }
 }
+/* eslint-enable max-lines */

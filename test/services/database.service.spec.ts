@@ -225,7 +225,185 @@ describe('DatabaseService', () => {
       ).rejects.toThrow('Failed to update config status');
     });
   });
+describe('updateConfig', () => {
+  it('should update provided fields only', async () => {
+    (mockPool.query as jest.Mock).mockResolvedValue({
+      rows: [{ id: 1 }],
+      rowCount: 1,
+    });
 
+    const result = await databaseService.updateConfig(1, 'tenant-1', {
+      endpointPath: '/updated',
+      version: '2.0',
+      status: ConfigStatus.APPROVED,
+    });
+
+    expect(result).toEqual({ id: 1 });
+    expect(mockPool.query).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE config'),
+      expect.arrayContaining(['/updated', '2.0', ConfigStatus.APPROVED, 1, 'tenant-1']),
+    );
+  });
+
+  it('should return undefined if no rows updated', async () => {
+    (mockPool.query as jest.Mock).mockResolvedValue({
+      rows: [],
+      rowCount: 0,
+    });
+
+    const result = await databaseService.updateConfig(999, 'tenant-1', {
+      endpointPath: '/none',
+    });
+
+    expect(result).toBeUndefined();
+  });
+});
+describe('getAllCollections', () => {
+  it('should return collections for tenant and default', async () => {
+    (mockPool.query as jest.Mock).mockResolvedValue({
+      rows: [
+        { collection_name: 'col1', collection_type: 'json' },
+        { collection_name: 'col2', collection_type: 'xml' },
+      ],
+    });
+
+    const result = await databaseService.getAllCollections('tenant-1');
+
+    expect(result).toHaveLength(2);
+    expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), ['tenant-1']);
+  });
+});
+describe('getCollectionFields', () => {
+  it('should return fields for collection', async () => {
+    (mockPool.query as jest.Mock).mockResolvedValue({
+      rows: [
+        {
+          field_id: 1,
+          field_name: 'amount',
+          field_type: 'NUMBER',
+          parent_id: null,
+        },
+      ],
+    });
+
+    const result = await databaseService.getCollectionFields(10, 'tenant-1');
+
+    expect(result).toHaveLength(1);
+    expect(result[0].field_name).toBe('amount');
+  });
+});
+describe('createDestinationType', () => {
+  it('should create destination type', async () => {
+    (mockPool.query as jest.Mock).mockResolvedValue({
+      rows: [
+        {
+          destination_type_id: 1,
+          name: 'Account',
+          tenant_id: 'tenant-1',
+        },
+      ],
+    });
+
+    const result = await databaseService.createDestinationType(
+      'json',
+      'Account',
+      5,
+      'tenant-1',
+    );
+
+    expect(result.destination_type_id).toBe(1);
+  });
+});
+describe('destinationTypeExists', () => {
+  it('should return true if destination type exists', async () => {
+    (mockPool.query as jest.Mock).mockResolvedValue({
+      rows: [{ destination_type_id: 1 }],
+    });
+
+    const exists = await databaseService.destinationTypeExists(1, 'tenant-1');
+
+    expect(exists).toBe(true);
+  });
+
+  it('should return false if destination type does not exist', async () => {
+    (mockPool.query as jest.Mock).mockResolvedValue({
+      rows: [],
+    });
+
+    const exists = await databaseService.destinationTypeExists(99, 'tenant-1');
+
+    expect(exists).toBe(false);
+  });
+});
+describe('getNextSerialNumber', () => {
+  it('should return next serial number', async () => {
+    (mockPool.query as jest.Mock).mockResolvedValue({
+      rows: [{ next_serial: 4 }],
+    });
+
+    const serial = await databaseService.getNextSerialNumber(10);
+
+    expect(serial).toBe(4);
+  });
+});
+describe('addFieldToDestinationType', () => {
+  it('should add field to destination type', async () => {
+    (mockPool.query as jest.Mock).mockResolvedValue({
+      rows: [
+        {
+          field_id: 1,
+          field_name: 'amount',
+          field_type: 'NUMBER',
+        },
+      ],
+    });
+
+    const result = await databaseService.addFieldToDestinationType(
+      'amount',
+      'NUMBER',
+      null,
+      'tenant-1',
+      1,
+      10,
+    );
+
+    expect(result.field_name).toBe('amount');
+  });
+});
+describe('createTransactionTypeTable', () => {
+  it('should create transaction type table', async () => {
+    (mockPool.query as jest.Mock).mockResolvedValue(undefined);
+
+    await databaseService.createTransactionTypeTable('pacs_008');
+
+    expect(mockPool.query).toHaveBeenCalledWith(
+      expect.stringContaining('CREATE TABLE IF NOT EXISTS'),
+    );
+  });
+
+  it('should throw error for invalid table name', async () => {
+    await expect(
+      databaseService.createTransactionTypeTable('invalid-name'),
+    ).rejects.toThrow();
+  });
+});
+describe('createTransactionTypeTable', () => {
+  it('should create transaction type table', async () => {
+    (mockPool.query as jest.Mock).mockResolvedValue(undefined);
+
+    await databaseService.createTransactionTypeTable('pacs_008');
+
+    expect(mockPool.query).toHaveBeenCalledWith(
+      expect.stringContaining('CREATE TABLE IF NOT EXISTS'),
+    );
+  });
+
+  it('should throw error for invalid table name', async () => {
+    await expect(
+      databaseService.createTransactionTypeTable('invalid-name'),
+    ).rejects.toThrow();
+  });
+});
   describe('findConfigsByStatus', () => {
     it('should return paginated configs by status', async () => {
       const mockConfigs = [
@@ -253,6 +431,7 @@ describe('DatabaseService', () => {
         { status: 'ACTIVE' },
         'tenant-1',
       );
+      
 
       expect(result.data).toHaveLength(1);
       expect(result.total).toBe(10);
@@ -260,4 +439,19 @@ describe('DatabaseService', () => {
       expect(mockPool.query).toHaveBeenCalledTimes(2);
     });
   });
+describe('close', () => {
+  it('should close database connection pool', async () => {
+    (mockPool.end as jest.Mock).mockResolvedValue(undefined);
+
+    await databaseService.close();
+
+    expect(mockPool.end).toHaveBeenCalledTimes(1);
+  });
+
+  it('should throw error if closing pool fails', async () => {
+    (mockPool.end as jest.Mock).mockRejectedValue(new Error('Close failed'));
+
+    await expect(databaseService.close()).rejects.toThrow('Close failed');
+  });
+});
 });

@@ -22,7 +22,6 @@ export * from './interfaces/Endpoint';
 export { DatabaseService } from './services/database.service';
 export { initializeDatabase, getPool } from './database/databaseFactory';
 
-export { convertToJSONSchema } from './schemas/json-schema-converter.service';
 
 export * from './template/email-templates';
 

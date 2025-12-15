@@ -184,6 +184,83 @@ describe('DatabaseService', () => {
       expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), [1, 'tenant-1']);
     });
 
+    it('should handle invalid JSON in schema field gracefully', async () => {
+      const mockConfig = {
+        id: 1,
+        msg_fam: 'pacs',
+        transaction_type: '008',
+        endpoint_path: '/test',
+        version: '1.0',
+        content_type: 'application/json',
+        schema: 'invalid-json-{broken',
+        mapping: null,
+        functions: null,
+        status: 'ACTIVE',
+        created_by: 'test-user',
+        tenant_id: 'tenant-1',
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: [mockConfig],
+        rowCount: 1,
+      });
+
+      const result = await databaseService.findConfigById(1, 'tenant-1');
+
+      expect(result).toBeDefined();
+      expect(result?.schema).toBe('invalid-json-{broken');
+    });
+
+    it('should validate schema with ARRAY fields', async () => {
+      const schemaWithArrays = [
+        {
+          name: 'arrayField',
+          type: 'ARRAY',
+          arrayElementType: 'STRING',
+        },
+        {
+          name: 'objectArray',
+          type: 'ARRAY',
+          arrayElementType: 'OBJECT',
+          children: [
+            {
+              name: 'nestedField',
+              type: 'STRING',
+            },
+          ],
+        },
+      ];
+
+      const mockConfig = {
+        id: 1,
+        msg_fam: 'pacs',
+        transaction_type: '008',
+        endpoint_path: '/test',
+        version: '1.0',
+        content_type: 'application/json',
+        schema: JSON.stringify(schemaWithArrays),
+        mapping: null,
+        functions: null,
+        status: 'ACTIVE',
+        created_by: 'test-user',
+        tenant_id: 'tenant-1',
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: [mockConfig],
+        rowCount: 1,
+      });
+
+      const result = await databaseService.findConfigById(1, 'tenant-1');
+
+      expect(result).toBeDefined();
+      expect(result?.schema).toEqual(schemaWithArrays);
+    });
+
     it('should return null if config not found', async () => {
       (mockPool.query as jest.Mock).mockResolvedValue({
         rows: [],
@@ -242,6 +319,40 @@ describe('DatabaseService', () => {
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('UPDATE config'),
         expect.arrayContaining(['/updated', '2.0', ConfigStatus.APPROVED, 1, 'tenant-1']),
+      );
+    });
+
+    it('should update comments field', async () => {
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: [{ id: 1 }],
+        rowCount: 1,
+      });
+
+      const result = await databaseService.updateConfig(1, 'tenant-1', {
+        comments: 'Test comment',
+      });
+
+      expect(result).toEqual({ id: 1 });
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('comments ='),
+        expect.arrayContaining(['Test comment', 1, 'tenant-1']),
+      );
+    });
+
+    it('should update publishing_status field', async () => {
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: [{ id: 1 }],
+        rowCount: 1,
+      });
+
+      const result = await databaseService.updateConfig(1, 'tenant-1', {
+        publishing_status: 'active',
+      });
+
+      expect(result).toEqual({ id: 1 });
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('publishing_status ='),
+        expect.arrayContaining(['active', 1, 'tenant-1']),
       );
     });
 
@@ -1767,6 +1878,41 @@ describe('DatabaseService', () => {
       await expect(
         databaseService.validateActive('test_table', ConfigType.PUSH),
       ).rejects.toThrow('Failed to validate active jobs');
+    });
+  });
+
+  describe('createTazamaDataModelTable', () => {
+    it('should create Tazama data model table with correct schema', async () => {
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: [],
+        rowCount: 0,
+      });
+
+      await databaseService.createTazamaDataModelTable('tazama_test_table');
+
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('CREATE TABLE IF NOT EXISTS "tazama_test_table"'),
+      );
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('_key text PRIMARY KEY'),
+      );
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('data jsonb NOT NULL'),
+      );
+    });
+
+    it('should validate table name before creating table', async () => {
+      await expect(
+        databaseService.createTazamaDataModelTable('invalid-table-name!'),
+      ).rejects.toThrow('Invalid table name');
+    });
+
+    it('should handle database errors during table creation', async () => {
+      (mockPool.query as jest.Mock).mockRejectedValue(new Error('Database error'));
+
+      await expect(
+        databaseService.createTazamaDataModelTable('test_table'),
+      ).rejects.toThrow('Database error');
     });
   });
 

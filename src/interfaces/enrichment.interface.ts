@@ -78,7 +78,7 @@ interface Job {
   id: string;
   tenant_id: string;
   endpoint_name: string;
-  path: string | null;
+  path: string;
   source_type?: SourceType;
   description: string | null;
   connection?: HTTPConnection | SFTPConnection;

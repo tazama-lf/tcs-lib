@@ -214,13 +214,13 @@ export class DatabaseService {
 
     if (updates.msgFam !== undefined) {
       updateFields.push(`msg_fam = $${paramIndex}`);
-
+      paramIndex += 1;
       values.push(updates.msgFam);
     }
 
     if (updates.transactionType !== undefined) {
       updateFields.push(`transaction_type = $${paramIndex}`);
-
+      paramIndex += 1;
       values.push(updates.transactionType);
     }
 
@@ -244,43 +244,43 @@ export class DatabaseService {
 
     if (updates.schema !== undefined) {
       updateFields.push(`schema = $${paramIndex}`);
-
+      paramIndex += 1;
       values.push(JSON.stringify(updates.schema));
     }
 
     if (updates.mapping !== undefined) {
       updateFields.push(`mapping = $${paramIndex}`);
-
+      paramIndex += 1;
       values.push(JSON.stringify(updates.mapping));
     }
 
     if (updates.functions !== undefined) {
       updateFields.push(`functions = $${paramIndex}`);
-
+      paramIndex += 1;
       values.push(JSON.stringify(updates.functions));
     }
 
     if (updates.status !== undefined) {
       updateFields.push(`status = $${paramIndex}`);
-
+      paramIndex += 1;
       values.push(this.convertStatusToDatabase(updates.status));
     }
 
     if (updates.createdBy !== undefined) {
       updateFields.push(`created_by = $${paramIndex}`);
-
+      paramIndex += 1;
       values.push(updates.createdBy);
     }
 
     if (updates.comments !== undefined) {
       updateFields.push(`comments = $${paramIndex}`);
-
+      paramIndex += 1;
       values.push(updates.comments);
     }
 
     if (updates.publishing_status !== undefined) {
       updateFields.push(`publishing_status = $${paramIndex}`);
-
+      paramIndex += 1;
       values.push(updates.publishing_status);
     }
 
@@ -294,7 +294,7 @@ export class DatabaseService {
 
       SET ${updateFields.join(', ')}
 
-      WHERE id = $${paramIndex} AND tenant_id = $${paramIndex}
+      WHERE id = $${paramIndex} AND tenant_id = $${paramIndex + 1}
 
       returning id;
 

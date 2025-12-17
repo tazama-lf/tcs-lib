@@ -9,14 +9,14 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 
 export default defineConfig([
   eslintConfigPrettier,
-  globalIgnores(['**/coverage/**', '**/build/**', '**/node_modules/**', '**/__tests__/**', '**/dist/**', '**/test/**', '*.ts', '**/*.spec.ts',]),
+  globalIgnores(['**/coverage/**', '**/build/**', '**/node_modules/**', '**/__tests__/**', '**/dist/**', '*.ts', '**/*.spec.ts']),
   {
     files: ['**/*.ts'],
     plugins: {
       ...eslintStandard.plugins,
-      ['@eslint-community/eslint-comments']: eslintPluginEslintComments,
-      ['@stylistic']: stylistic,
-      ['@typescript-eslint']: tsEslint,
+      '@eslint-community/eslint-comments': eslintPluginEslintComments,
+      '@stylistic': stylistic,
+      '@typescript-eslint': tsEslint,
     },
     languageOptions: {
       ...eslintStandard.languageOptions,
@@ -31,7 +31,7 @@ export default defineConfig([
       ...eslintStandard.rules,
       ...eslintPluginEslintComments.configs.recommended.rules,
       '@eslint-community/eslint-comments/require-description': ['error', { ignore: ['eslint-enable'] }],
-      '@eslint-community/eslint-comments/disable-enable-pair': 'error',
+      '@eslint-community/eslint-comments/disable-enable-pair': 'error', // Enforce matching disable/enable pairs
       '@typescript-eslint/init-declarations': 'off',
       '@typescript-eslint/max-params': ['warn', { max: 7 }],
       '@typescript-eslint/no-non-null-assertion': 'off',
@@ -48,18 +48,20 @@ export default defineConfig([
       '@typescript-eslint/strict-boolean-expressions': 'off',
 
       // Add these rules to disable all 'any' related errors
-      '@typescript-eslint/no-unsafe-assignment': 'off', //111
-      '@typescript-eslint/no-unsafe-member-access': 'off', // 250
-      '@typescript-eslint/no-unsafe-call': 'off', //121
-      '@typescript-eslint/no-unsafe-return': 'off', //50
-      '@typescript-eslint/no-unsafe-argument': 'off', // 41
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
 
       '@stylistic/quotes': ['error', 'single'],
       'max-lines': ['warn', { max: 450 }],
-      complexity: ['warn', { max: 15 }],
+      'complexity': ['warn', { max: 15 }],
+      'max-depth': ['error', { max: 6 }],
       'no-console': 'error',
       'no-unneeded-ternary': 'off',
-      /* eslint-comments are bundled with eslint-config-love but they are using the unmaintained plugin. Replaced with @eslint-community/eslint-plugin-eslint-comments */
+
+      // Remove deprecated eslint-comments rules
       'eslint-comments/require-description': 'off',
       'eslint-comments/disable-enable-pair': 'off',
       'eslint-comments/no-aggregating-enable': 'off',

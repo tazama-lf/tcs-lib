@@ -2,7 +2,12 @@ import { DatabaseService } from '../../src/services/database.service';
 import { initializeDatabase, getPool } from '../../src/database/databaseFactory';
 import type { Pool, PoolClient } from 'pg';
 import { ConfigStatus } from '../../src/types/config.types';
-import { ConfigType, IngestMode, JobStatus, ScheduleStatus } from '../../src/interfaces/enrichment.interface';
+import {
+  ConfigType,
+  IngestMode,
+  JobStatus,
+  ScheduleStatus,
+} from '../../src/interfaces/enrichment.interface';
 import type { Config } from '../../src/types/config.types';
 
 // Mock the database factory
@@ -415,12 +420,7 @@ describe('DatabaseService', () => {
         ],
       });
 
-      const result = await databaseService.createDestinationType(
-        'json',
-        'Account',
-        5,
-        'tenant-1',
-      );
+      const result = await databaseService.createDestinationType('json', 'Account', 5, 'tenant-1');
 
       expect(result.destination_type_id).toBe(1);
     });
@@ -493,9 +493,7 @@ describe('DatabaseService', () => {
     });
 
     it('should throw error for invalid table name', async () => {
-      await expect(
-        databaseService.createTransactionTypeTable('invalid-name'),
-      ).rejects.toThrow();
+      await expect(databaseService.createTransactionTypeTable('invalid-name')).rejects.toThrow();
     });
   });
   describe('createTransactionTypeTable', () => {
@@ -510,9 +508,7 @@ describe('DatabaseService', () => {
     });
 
     it('should throw error for invalid table name', async () => {
-      await expect(
-        databaseService.createTransactionTypeTable('invalid-name'),
-      ).rejects.toThrow();
+      await expect(databaseService.createTransactionTypeTable('invalid-name')).rejects.toThrow();
     });
   });
   describe('findConfigsByStatus', () => {
@@ -542,7 +538,6 @@ describe('DatabaseService', () => {
         { status: 'ACTIVE' },
         'tenant-1',
       );
-
 
       expect(result.data).toHaveLength(1);
       expect(result.total).toBe(10);
@@ -606,9 +601,7 @@ describe('DatabaseService', () => {
 
       (mockPool.query as jest.Mock).mockRejectedValue(new Error('Database error'));
 
-      await expect(databaseService.createPushJob(jobData)).rejects.toThrow(
-        'Failed to create job',
-      );
+      await expect(databaseService.createPushJob(jobData)).rejects.toThrow('Failed to create job');
     });
   });
 
@@ -649,9 +642,7 @@ describe('DatabaseService', () => {
 
       (mockPool.query as jest.Mock).mockRejectedValue(new Error('Database error'));
 
-      await expect(databaseService.createPullJob(jobData)).rejects.toThrow(
-        'Failed to create job',
-      );
+      await expect(databaseService.createPullJob(jobData)).rejects.toThrow('Failed to create job');
     });
   });
 
@@ -827,9 +818,9 @@ describe('DatabaseService', () => {
     it('should throw error on database error', async () => {
       (mockPool.query as jest.Mock).mockRejectedValue(new Error('Database error'));
 
-      await expect(
-        databaseService.findJobById('job-123', 'push_jobs'),
-      ).rejects.toThrow('Failed to find job');
+      await expect(databaseService.findJobById('job-123', 'push_jobs')).rejects.toThrow(
+        'Failed to find job',
+      );
     });
   });
 
@@ -855,12 +846,7 @@ describe('DatabaseService', () => {
         rowCount: 2,
       });
 
-      const result = await databaseService.getJobsByStatus(
-        'tenant-1',
-        JobStatus.APPROVED,
-        1,
-        10,
-      );
+      const result = await databaseService.getJobsByStatus('tenant-1', JobStatus.APPROVED, 1, 10);
 
       expect(result).toHaveLength(2);
       expect(mockPool.query).toHaveBeenCalledWith(
@@ -877,10 +863,12 @@ describe('DatabaseService', () => {
 
       await databaseService.getJobsByStatus('tenant-1', JobStatus.REJECTED, 3, 20);
 
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.any(String),
-        ['tenant-1', JobStatus.REJECTED, 20, 40],
-      );
+      expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), [
+        'tenant-1',
+        JobStatus.REJECTED,
+        20,
+        40,
+      ]);
     });
 
     it('should throw error on database error', async () => {
@@ -934,9 +922,9 @@ describe('DatabaseService', () => {
     });
 
     it('should throw error if no fields provided', async () => {
-      await expect(databaseService.updateJob('job-123', {} as any, ConfigType.PUSH)).rejects.toThrow(
-        'No fields provided to update',
-      );
+      await expect(
+        databaseService.updateJob('job-123', {} as any, ConfigType.PUSH),
+      ).rejects.toThrow('No fields provided to update');
     });
 
     it('should throw error if job not found', async () => {
@@ -945,7 +933,11 @@ describe('DatabaseService', () => {
       });
 
       await expect(
-        databaseService.updateJob('nonexistent', { status: JobStatus.APPROVED } as any, ConfigType.PUSH),
+        databaseService.updateJob(
+          'nonexistent',
+          { status: JobStatus.APPROVED } as any,
+          ConfigType.PUSH,
+        ),
       ).rejects.toThrow('Job with id "nonexistent" not found');
     });
 
@@ -953,7 +945,11 @@ describe('DatabaseService', () => {
       (mockPool.query as jest.Mock).mockRejectedValue(new Error('Database error'));
 
       await expect(
-        databaseService.updateJob('job-123', { status: JobStatus.APPROVED } as any, ConfigType.PUSH),
+        databaseService.updateJob(
+          'job-123',
+          { status: JobStatus.APPROVED } as any,
+          ConfigType.PUSH,
+        ),
       ).rejects.toThrow('Failed to update job');
     });
   });
@@ -978,10 +974,10 @@ describe('DatabaseService', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].publishing_status).toBe(JobStatus.APPROVED);
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE push_jobs'),
-        [ScheduleStatus.ACTIVE, 'job-123'],
-      );
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('UPDATE push_jobs'), [
+        ScheduleStatus.ACTIVE,
+        'job-123',
+      ]);
     });
 
     it('should throw error on database error', async () => {
@@ -1006,10 +1002,10 @@ describe('DatabaseService', () => {
       );
 
       expect(result).toBe(1);
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE push_jobs'),
-        [JobStatus.APPROVED, 'job-123'],
-      );
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('UPDATE push_jobs'), [
+        JobStatus.APPROVED,
+        'job-123',
+      ]);
     });
 
     it('should update job status for pull job', async () => {
@@ -1024,10 +1020,10 @@ describe('DatabaseService', () => {
       );
 
       expect(result).toBe(1);
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE pull_jobs'),
-        [JobStatus.REVIEW, 'job-456'],
-      );
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('UPDATE pull_jobs'), [
+        JobStatus.REVIEW,
+        'job-456',
+      ]);
     });
 
     it('should update job with rejection reason', async () => {
@@ -1043,10 +1039,11 @@ describe('DatabaseService', () => {
       );
 
       expect(result).toBe(1);
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('comments = $2'),
-        [JobStatus.REJECTED, 'Invalid configuration', 'job-123'],
-      );
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('comments = $2'), [
+        JobStatus.REJECTED,
+        'Invalid configuration',
+        'job-123',
+      ]);
     });
 
     it('should throw error if job not found', async () => {
@@ -1194,9 +1191,9 @@ describe('DatabaseService', () => {
         rowCount: 0,
       });
 
-      await expect(
-        databaseService.updateSchedule('nonexistent', { name: 'Test' }),
-      ).rejects.toThrow('No cron job found with id: nonexistent');
+      await expect(databaseService.updateSchedule('nonexistent', { name: 'Test' })).rejects.toThrow(
+        'No cron job found with id: nonexistent',
+      );
     });
 
     it('should throw error on database error', async () => {
@@ -1255,12 +1252,7 @@ describe('DatabaseService', () => {
           rowCount: 0,
         });
 
-      await databaseService.getAllSchedule(
-        10,
-        0,
-        { status: JobStatus.APPROVED },
-        'tenant-1',
-      );
+      await databaseService.getAllSchedule(10, 0, { status: JobStatus.APPROVED }, 'tenant-1');
 
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('status = ANY'),
@@ -1279,12 +1271,7 @@ describe('DatabaseService', () => {
           rowCount: 0,
         });
 
-      await databaseService.getAllSchedule(
-        10,
-        0,
-        { name: 'sync' },
-        'tenant-1',
-      );
+      await databaseService.getAllSchedule(10, 0, { name: 'sync' }, 'tenant-1');
 
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('name LIKE'),
@@ -1303,12 +1290,7 @@ describe('DatabaseService', () => {
           rowCount: 0,
         });
 
-      await databaseService.getAllSchedule(
-        10,
-        0,
-        { createdAt: '2025-12-15' },
-        'tenant-1',
-      );
+      await databaseService.getAllSchedule(10, 0, { createdAt: '2025-12-15' }, 'tenant-1');
 
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('DATE(created_at) ='),
@@ -1345,10 +1327,12 @@ describe('DatabaseService', () => {
       );
 
       expect(result).toHaveLength(2);
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('WHERE tenant_id = $1'),
-        ['tenant-1', JobStatus.APPROVED, 10, 0],
-      );
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('WHERE tenant_id = $1'), [
+        'tenant-1',
+        JobStatus.APPROVED,
+        10,
+        0,
+      ]);
     });
 
     it('should calculate offset correctly for different pages', async () => {
@@ -1359,10 +1343,12 @@ describe('DatabaseService', () => {
 
       await databaseService.getScheduleByStatus('tenant-1', JobStatus.REJECTED, 2, 15);
 
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.any(String),
-        ['tenant-1', JobStatus.REJECTED, 15, 15],
-      );
+      expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), [
+        'tenant-1',
+        JobStatus.REJECTED,
+        15,
+        15,
+      ]);
     });
 
     it('should throw error on database error', async () => {
@@ -1387,10 +1373,11 @@ describe('DatabaseService', () => {
       );
 
       expect(result).toBe(1);
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE cron_jobs'),
-        [JobStatus.APPROVED, 'tenant-1', 'schedule-123'],
-      );
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('UPDATE cron_jobs'), [
+        JobStatus.APPROVED,
+        'tenant-1',
+        'schedule-123',
+      ]);
     });
 
     it('should update schedule with rejection reason', async () => {
@@ -1405,10 +1392,11 @@ describe('DatabaseService', () => {
       );
 
       expect(result).toBe(1);
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('comments = $2'),
-        [JobStatus.REJECTED, 'Invalid cron expression', 'schedule-123'],
-      );
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('comments = $2'), [
+        JobStatus.REJECTED,
+        'Invalid cron expression',
+        'schedule-123',
+      ]);
     });
 
     it('should throw error if schedule not found', async () => {
@@ -1417,11 +1405,7 @@ describe('DatabaseService', () => {
       });
 
       await expect(
-        databaseService.updateScheduleByStatus(
-          JobStatus.APPROVED,
-          'nonexistent',
-          'tenant-1',
-        ),
+        databaseService.updateScheduleByStatus(JobStatus.APPROVED, 'nonexistent', 'tenant-1'),
       ).rejects.toThrow('No cron job found with id: nonexistent');
     });
 
@@ -1429,11 +1413,7 @@ describe('DatabaseService', () => {
       (mockPool.query as jest.Mock).mockRejectedValue(new Error('Database error'));
 
       await expect(
-        databaseService.updateScheduleByStatus(
-          JobStatus.APPROVED,
-          'schedule-123',
-          'tenant-1',
-        ),
+        databaseService.updateScheduleByStatus(JobStatus.APPROVED, 'schedule-123', 'tenant-1'),
       ).rejects.toThrow('Failed to update cron job status');
     });
   });
@@ -1667,19 +1647,17 @@ describe('DatabaseService', () => {
     it('should handle database errors', async () => {
       (mockPool.query as jest.Mock).mockRejectedValue(new Error('Database error'));
 
-      await expect(
-        databaseService.getJobHistory(10, 0, 'tenant-1', {}),
-      ).rejects.toThrow('Error fetching job_history');
+      await expect(databaseService.getJobHistory(10, 0, 'tenant-1', {})).rejects.toThrow(
+        'Error fetching job_history',
+      );
     });
 
     it('should handle query errors with detailed message', async () => {
-      (mockPool.query as jest.Mock).mockRejectedValue(
-        new Error('Connection timeout'),
-      );
+      (mockPool.query as jest.Mock).mockRejectedValue(new Error('Connection timeout'));
 
-      await expect(
-        databaseService.getJobHistory(10, 0, 'tenant-1', {}),
-      ).rejects.toThrow('Connection timeout');
+      await expect(databaseService.getJobHistory(10, 0, 'tenant-1', {})).rejects.toThrow(
+        'Connection timeout',
+      );
     });
   });
 
@@ -1720,10 +1698,7 @@ describe('DatabaseService', () => {
 
       await databaseService.tableExist('TEST_TABLE');
 
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.any(String),
-        ['test_table'],
-      );
+      expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), ['test_table']);
     });
 
     it('should return false if query returns no rows', async () => {
@@ -1828,9 +1803,9 @@ describe('DatabaseService', () => {
         rowCount: 1,
       });
 
-      await expect(
-        databaseService.validateActive('test_table', ConfigType.PUSH),
-      ).rejects.toThrow('Deactivate jobs with the table name used');
+      await expect(databaseService.validateActive('test_table', ConfigType.PUSH)).rejects.toThrow(
+        'Deactivate jobs with the table name used',
+      );
     });
 
     it('should throw error if active pull jobs exist', async () => {
@@ -1839,9 +1814,9 @@ describe('DatabaseService', () => {
         rowCount: 1,
       });
 
-      await expect(
-        databaseService.validateActive('test_table', ConfigType.PULL),
-      ).rejects.toThrow('Deactivate jobs with the table name used');
+      await expect(databaseService.validateActive('test_table', ConfigType.PULL)).rejects.toThrow(
+        'Deactivate jobs with the table name used',
+      );
     });
 
     it('should query pull_jobs table for PULL type', async () => {
@@ -1852,10 +1827,9 @@ describe('DatabaseService', () => {
 
       await databaseService.validateActive('test_table', ConfigType.PULL);
 
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('FROM pull_jobs'),
-        ['test_table'],
-      );
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('FROM pull_jobs'), [
+        'test_table',
+      ]);
     });
 
     it('should query push_jobs table for PUSH type', async () => {
@@ -1866,18 +1840,17 @@ describe('DatabaseService', () => {
 
       await databaseService.validateActive('test_table', ConfigType.PUSH);
 
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('FROM push_jobs'),
-        ['test_table'],
-      );
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('FROM push_jobs'), [
+        'test_table',
+      ]);
     });
 
     it('should handle database errors', async () => {
       (mockPool.query as jest.Mock).mockRejectedValue(new Error('Database error'));
 
-      await expect(
-        databaseService.validateActive('test_table', ConfigType.PUSH),
-      ).rejects.toThrow('Failed to validate active jobs');
+      await expect(databaseService.validateActive('test_table', ConfigType.PUSH)).rejects.toThrow(
+        'Failed to validate active jobs',
+      );
     });
   });
 
@@ -1893,12 +1866,8 @@ describe('DatabaseService', () => {
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('CREATE TABLE IF NOT EXISTS "tazama_test_table"'),
       );
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('_key text PRIMARY KEY'),
-      );
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('data jsonb NOT NULL'),
-      );
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('_key text PRIMARY KEY'));
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('data jsonb NOT NULL'));
     });
 
     it('should validate table name before creating table', async () => {
@@ -1910,10 +1879,9 @@ describe('DatabaseService', () => {
     it('should handle database errors during table creation', async () => {
       (mockPool.query as jest.Mock).mockRejectedValue(new Error('Database error'));
 
-      await expect(
-        databaseService.createTazamaDataModelTable('test_table'),
-      ).rejects.toThrow('Database error');
+      await expect(databaseService.createTazamaDataModelTable('test_table')).rejects.toThrow(
+        'Database error',
+      );
     });
   });
-
 });

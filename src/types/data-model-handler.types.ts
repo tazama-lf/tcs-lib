@@ -8,6 +8,7 @@ export interface CollectionRow {
 }
 
 export interface FieldRow {
+  field_id: number;
   field_name: string;
   field_type: string;
   parent_id: number | null;

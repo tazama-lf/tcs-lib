@@ -1075,8 +1075,8 @@ export class DatabaseService {
         dt.collection_type,
         dt.destination_type_id as destination_type_id,
         dt.destination_id as destination_id
-      FROM destination d
-      JOIN destination_type dt ON d.destination_id = dt.destination_id
+      FROM destination_type dt
+      LEFT JOIN destination d ON d.destination_id = dt.destination_id
       WHERE  dt.tenant_id = $1 OR dt.tenant_id = 'default'
       ORDER BY dt.name
     `;

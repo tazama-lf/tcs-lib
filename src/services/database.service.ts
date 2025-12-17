@@ -1079,7 +1079,7 @@ export class DatabaseService {
         dt.destination_id as destination_id
       FROM destination_type dt
       LEFT JOIN destination d ON d.destination_id = dt.destination_id
-      WHERE  dt.tenant_id = $1 OR dt.tenant_id = 'default'
+      WHERE  LOWER(dt.tenant_id) = LOWER($1) OR LOWER(dt.tenant_id) = 'default'
       ORDER BY dt.name
     `;
     const result = await this.dbClient.query(query, [tenantId]);
@@ -1096,7 +1096,7 @@ export class DatabaseService {
         dtf.collection_id,
         dtf.tenant_id
       FROM destination_type_fields dtf
-      WHERE dtf.collection_id = $1 AND (dtf.tenant_id = $2 OR dtf.tenant_id = 'default')
+      WHERE dtf.collection_id = $1 AND (LOWER(dtf.tenant_id) = LOWER($2) OR LOWER(dtf.tenant_id) = 'default')
       ORDER BY dtf.serial_no, dtf.field_id
     `;
     const result = await this.dbClient.query(query, [collectionId, tenantId]);
@@ -1125,7 +1125,7 @@ export class DatabaseService {
 
   async destinationTypeExists(destinationTypeId: number, tenantId: string): Promise<boolean> {
     // eslint-disable-next-line @stylistic/quotes -- SQL queries require specific quote syntax
-    const query = `SELECT destination_type_id FROM destination_type WHERE destination_type_id = $1 AND (tenant_id = $2 or tenant_id='default')`;
+    const query = `SELECT destination_type_id FROM destination_type WHERE destination_type_id = $1 AND (LOWER(tenant_id) = LOWER($2) or LOWER(tenant_id)='default')`;
     const result = await this.dbClient.query(query, [destinationTypeId, tenantId]);
     return result.rows.length > 0;
   }

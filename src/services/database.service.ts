@@ -153,6 +153,7 @@ export class DatabaseService {
       const statusArray = status.split(',').map((s) => s.trim());
       whereClauses.push(`status = ANY($${paramIndex})`);
       queryParams.push(statusArray);
+      paramIndex += 1;
     }
 
     if (endpointPath) {
@@ -164,6 +165,7 @@ export class DatabaseService {
     if (createdAt) {
       whereClauses.push(`DATE(created_at) = $${paramIndex}`);
       queryParams.push(createdAt);
+      paramIndex += 1;
     }
 
     const whereClause = `WHERE ${whereClauses.join(' AND ')}`;
@@ -702,7 +704,7 @@ export class DatabaseService {
   ) AS all_jobs
   ${whereClause}
   ORDER BY all_jobs.updated_at DESC
-  LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 1};
+  LIMIT $${paramIndex} OFFSET $${paramIndex + 1};
 `;
 
     const dataParams = [...queryParams, limit, offset * 10];
@@ -992,7 +994,7 @@ export class DatabaseService {
 
     const dataQuery = `
     SELECT * FROM cron_jobs ${whereClause}  ORDER BY updated_at DESC
-      LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 1}`;
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     const dataParams = [...queryParams, limit, offset * 10];
     const dataResult = await this.dbClient.query(dataQuery, dataParams);
     return {

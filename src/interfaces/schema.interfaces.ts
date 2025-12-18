@@ -18,6 +18,7 @@ export interface FieldMapping {
   constantValue?: any;
   operator?: 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'DIVIDE';
   prefix?: string;
+  type?: string;
 }
 
 export type TransformationType = 'NONE' | 'CONCAT' | 'SUM' | 'SPLIT';

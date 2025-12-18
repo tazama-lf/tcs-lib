@@ -72,6 +72,7 @@ export interface AddMappingDto {
   prefix?: string;
   transformation?: 'NONE' | 'CONCAT' | 'SUM' | 'SPLIT' | 'CONSTANT' | 'MATH';
   operator?: 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'DIVIDE';
+  type?: string;
 }
 export interface AddFunctionDto {
   params?: string[];

@@ -32,9 +32,7 @@ export function processMappings(
   // dynamic object creation logic
   const dynamicMapping: any = {};
   let endToEndId = '';
-  this.loggerService.log(`Processing mappings for endpoint: ${endpoint}`, this.LOG_CONTEXT);
   if (configuredMapping) {
-    this.loggerService.log('configuredMapping is: ', JSON.stringify(configuredMapping));
     try {
       for (const mapping of configuredMapping) {
         const sources = mapping.source;
@@ -59,11 +57,6 @@ export function processMappings(
           const PropertyName: string = mapping.destination.split('.')[1]; // e.g., model
           const nestedPropertyName: string = mapping.destination.split('.')[2]; // e.g., name (if any)
           // if (mapping.datasource === 'dataModel') {
-          this.loggerService.log('dataModel case for dynamic mapping source: ', mapping.source[0]);
-          this.loggerService.log(
-            'dataModel case for dynamic mapping value: ',
-            getValueByPath(payload, mapping.source[0]),
-          );
           dynamicMapping[ObjectName] ??= {};
           if (nestedPropertyName) {
             dynamicMapping[ObjectName][PropertyName] ??= {};
@@ -74,8 +67,7 @@ export function processMappings(
           } else {
             dynamicMapping[ObjectName][PropertyName] = getValueByPath(payload, mapping.source[0]);
           }
-          // }
-          this.loggerService.log('dynamicMapping object is now: ', JSON.stringify(dynamicMapping));
+
           continue;
         }
         //constant value injection logic
@@ -144,7 +136,6 @@ export function processMappings(
         }
       }
     } catch (error) {
-      this.loggerService.error(`Failed to process mapping data: ${String(error)}`);
       return {
         dataCache,
         transactionRelationship,
@@ -152,17 +143,8 @@ export function processMappings(
         dynamicMapping,
       };
     }
-  } else {
-    this.loggerService.log(`No mapping configured for endpoint: ${endpoint}`);
   }
-  this.loggerService.log(
-    `Completed processing mappings for endpoint: ${endpoint}`,
-    this.LOG_CONTEXT,
-  );
-  this.loggerService.log(
-    `Transaction Relationship: ${JSON.stringify(transactionRelationship)}`,
-    this.LOG_CONTEXT,
-  );
+
   return {
     dataCache,
     transactionRelationship,

@@ -7,7 +7,6 @@ export interface TazamaField {
   parent_id: number | null;
   serial_no: number;
   collection_id: number;
-  field_id: number;
   properties?: TazamaField[];
 }
 

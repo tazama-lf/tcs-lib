@@ -50,6 +50,26 @@ export function processMappings(
         const stringSize =
           typeof mapping.destination === 'string' ? mapping.destination.split('.').length : -1;
         const separator = mapping.delimiter;
+
+        // handling multiple destinations for single source - split value usecase
+        if (typeof destination !== 'string' || typeof type !== 'string') {
+          const sourceValue = getValueByPath(payload, mapping.source[0]);
+          const splitValues = sourceValue.split(mapping.delimiter);
+
+          for (let j = 0; j < mapping.destination.length; j += 1) {
+            const dest = mapping.destination[j].split('.')[1];
+            const destType = mapping.destination[j].split('.')[0];
+            if (destType === 'redis') {
+              dataCache[dest] = splitValues[j];
+            }
+            if (destType === 'transactionDetails') {
+              transactionRelationship[dest] = splitValues[j];
+            }
+          }
+
+          continue;
+        }
+
         // dynamic mapping logic based on datasource(datamodel ya payload)
         if (type !== 'redis' && type !== 'transactionDetails') {
           // append to dynamic mapping object
@@ -80,22 +100,7 @@ export function processMappings(
           }
           continue;
         }
-        // handling multiple destinations for single source - split value usecase
-        if (typeof destination !== 'string' || typeof type !== 'string') {
-          const sourceValue = getValueByPath(payload, mapping.source[0]);
-          const splitValues = sourceValue.split(mapping.delimiter);
-          for (let j = 0; j < mapping.destination.length; j += 1) {
-            const dest = mapping.destination[j].split('.')[1];
-            const destType = mapping.destination[j].split('.')[0];
-            if (destType === 'redis') {
-              dataCache[dest] = splitValues[j];
-            }
-            if (destType === 'transactionDetails') {
-              transactionRelationship[dest] = splitValues[j];
-            }
-          }
-          continue;
-        }
+
         let dataCacheValue = mapping.prefix ?? '';
         let transactionRelationshipValue = mapping.prefix ?? '';
         // REAL LOGIC STARTS HERE
@@ -106,7 +111,7 @@ export function processMappings(
             if (i < sources.length - 1) {
               dataCacheValue += separator;
             }
-          } else if (type === 'transactionDetails') {
+          } else {
             transactionRelationshipValue += getValueByPath(payload, sources[i]);
             if (i < sources.length - 1) {
               transactionRelationshipValue += separator;
@@ -125,7 +130,7 @@ export function processMappings(
           } else {
             dataCache[destination] = dataCacheValue;
           }
-        } else if (type === 'transactionDetails') {
+        } else {
           transactionRelationshipValue += mapping.suffix ?? '';
           transactionRelationship[destination] = transactionRelationshipValue;
           // Fix the case sensitivity issue

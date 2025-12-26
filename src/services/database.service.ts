@@ -1221,7 +1221,7 @@ export class DatabaseService {
 
     if (updatedBy) {
       whereClauses.push(`updated_by ILIKE $${paramIndex}`);
-      queryParams.push(updatedBy);
+      queryParams.push(`%${updatedBy}%`);
       paramIndex += 1;
     }
 

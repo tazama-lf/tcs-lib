@@ -18,6 +18,7 @@ import type { Config } from '../types/config.types';
 import { ConfigStatus } from '../types/config.types';
 import type { DatabaseConfig } from '../interfaces/database.interfaces';
 import { validateTableName } from './utils';
+import type { RuleEntity } from 'src/interfaces/rule.interfaces';
 export type { AuditLogEntry, DatabaseConfig } from '../interfaces/database.interfaces';
 
 export class DatabaseService {
@@ -1184,6 +1185,134 @@ export class DatabaseService {
     )`;
 
     await this.dbClient.query(query);
+  }
+  // ===========================TRS OPERATIONS ==========================
+
+  async findRulesWithFilters(
+    limit = 10,
+    offset = 0,
+    payload: Record<string, string>,
+    tenantId: string,
+  ): Promise<{ data: unknown; total: number; limit: number; offset: number }> {
+    const { status, createdAt, startDate, endDate, ruleName, txtp, updatedBy } = payload;
+
+    const whereClauses: string[] = ['tenant_id = $1'];
+    const queryParams: unknown[] = [tenantId];
+    let paramIndex = 2;
+
+    if (status) {
+      const statusArray = status.split(',').map((s) => s.trim());
+      whereClauses.push(`status = ANY($${paramIndex})`);
+      queryParams.push(statusArray);
+      paramIndex += 1;
+    }
+
+    if (ruleName) {
+      whereClauses.push(`rule_name ILIKE $${paramIndex}`);
+      queryParams.push(`%${ruleName}%`);
+      paramIndex += 1;
+    }
+
+    if (txtp) {
+      whereClauses.push(`txtp = $${paramIndex}`);
+      queryParams.push(txtp);
+      paramIndex += 1;
+    }
+
+    if (updatedBy) {
+      whereClauses.push(`updated_by ILIKE $${paramIndex}`);
+      queryParams.push(updatedBy);
+      paramIndex += 1;
+    }
+
+    if (createdAt) {
+      whereClauses.push(`DATE(created_at) = $${paramIndex}`);
+      queryParams.push(createdAt);
+      paramIndex += 1;
+    }
+
+    if (startDate && endDate) {
+      whereClauses.push(`DATE(created_at) BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
+      queryParams.push(startDate, endDate);
+      paramIndex += 2;
+    } else if (startDate) {
+      whereClauses.push(`DATE(created_at) >= $${paramIndex}`);
+      queryParams.push(startDate);
+      paramIndex += 1;
+    } else if (endDate) {
+      whereClauses.push(`DATE(created_at) <= $${paramIndex}`);
+      queryParams.push(endDate);
+      paramIndex += 1;
+    }
+
+    const whereClause = `WHERE ${whereClauses.join(' AND ')}`;
+
+    const countQuery = `
+    SELECT COUNT(*) AS total
+    FROM trs_rules
+    ${whereClause}
+  `;
+
+    const countResult = await this.dbClient.query(countQuery, queryParams);
+    const total = parseInt(countResult.rows[0].total, 10);
+
+    const dataQuery = `
+    SELECT
+      rule_id,
+      rule_name,
+      description,
+      tenant_id,
+      txtp,
+      version,
+      status,
+      publishing_status,
+      updated_by,
+      created_at,
+      updated_at
+    FROM trs_rules
+    ${whereClause}
+    ORDER BY updated_at DESC
+    LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+  `;
+
+    const dataParams = [...queryParams, limit, offset * limit];
+
+    const dataResult = await this.dbClient.query(dataQuery, dataParams);
+
+    return {
+      data: dataResult.rows,
+      total,
+      limit,
+      offset,
+    };
+  }
+
+  async findRuleById(id: number, tenantId: string): Promise<RuleEntity | null> {
+    const query = `
+      SELECT rule_id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, created_at, updated_at
+      FROM trs_rules
+      WHERE rule_id = $1 AND tenant_id = $2
+    `;
+
+    const result = await this.dbClient.query(query, [id, tenantId]);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return result.rows[0];
+  }
+
+  async countRulesByStatus(tenantId: string): Promise<unknown> {
+    const query = `
+      SELECT COUNT(*) AS total_count, status
+      FROM trs_rules
+      WHERE tenant_id = $1 GROUP BY status
+
+    `;
+
+    const result = await this.dbClient.query(query, [tenantId]);
+    return result;
   }
 
   async close(): Promise<void> {

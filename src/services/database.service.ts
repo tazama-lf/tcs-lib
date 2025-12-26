@@ -1194,7 +1194,7 @@ export class DatabaseService {
     payload: Record<string, string>,
     tenantId: string,
   ): Promise<{ data: unknown; total: number; limit: number; offset: number }> {
-    const { status, createdAt, startDate, endDate, ruleName, txtp, updatedBy } = payload;
+    const { status, createdAt, startDate, endDate, ruleName, ruleType, updatedBy } = payload;
 
     const whereClauses: string[] = ['tenant_id = $1'];
     const queryParams: unknown[] = [tenantId];
@@ -1213,9 +1213,9 @@ export class DatabaseService {
       paramIndex += 1;
     }
 
-    if (txtp) {
-      whereClauses.push(`txtp = $${paramIndex}`);
-      queryParams.push(txtp);
+    if (ruleType) {
+      whereClauses.push(`rule_type = $${paramIndex}`);
+      queryParams.push(ruleType);
       paramIndex += 1;
     }
 
@@ -1268,7 +1268,8 @@ export class DatabaseService {
       publishing_status,
       updated_by,
       created_at,
-      updated_at
+      updated_at,
+      rule_type
     FROM trs_rules
     ${whereClause}
     ORDER BY updated_at DESC
@@ -1301,18 +1302,6 @@ export class DatabaseService {
     }
 
     return result.rows[0];
-  }
-
-  async countRulesByStatus(tenantId: string): Promise<unknown> {
-    const query = `
-      SELECT COUNT(*) AS total_count, status
-      FROM trs_rules
-      WHERE tenant_id = $1 GROUP BY status
-
-    `;
-
-    const result = await this.dbClient.query(query, [tenantId]);
-    return result;
   }
 
   async close(): Promise<void> {

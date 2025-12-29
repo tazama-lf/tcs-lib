@@ -1314,6 +1314,7 @@ export class DatabaseService {
     status: string;
     publishing_status: string;
     updated_by: string;
+    rule_type: string;
   }): Promise<RuleEntity> {
     const query = `
     INSERT INTO trs_rules (
@@ -1326,10 +1327,11 @@ export class DatabaseService {
       status,
       publishing_status,
       updated_by,
+      rule_type,
       updated_at,
       created_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
-    RETURNING rule_id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, created_at, updated_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+    RETURNING rule_id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, created_at, updated_at
   `;
 
     const values = [
@@ -1342,6 +1344,7 @@ export class DatabaseService {
       ruleData.status,
       ruleData.publishing_status,
       ruleData.updated_by,
+      ruleData.rule_type,
     ];
 
     const result = await this.dbClient.query(query, values);

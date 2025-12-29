@@ -1304,6 +1304,55 @@ export class DatabaseService {
     return result.rows[0];
   }
 
+  async createRule(ruleData: {
+    rule_id: string;
+    rule_name: string;
+    description: string;
+    tenant_id: string;
+    txtp: string;
+    version: string;
+    status: string;
+    publishing_status: string;
+    updated_by: string;
+  }): Promise<RuleEntity> {
+    const query = `
+    INSERT INTO trs_rules (
+      rule_id,
+      rule_name,
+      description,
+      tenant_id,
+      txtp,
+      version,
+      status,
+      publishing_status,
+      updated_by,
+      updated_at,
+      created_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+    RETURNING rule_id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, created_at, updated_at
+  `;
+
+    const values = [
+      ruleData.rule_id,
+      ruleData.rule_name,
+      ruleData.description,
+      ruleData.tenant_id,
+      ruleData.txtp,
+      ruleData.version,
+      ruleData.status,
+      ruleData.publishing_status,
+      ruleData.updated_by,
+    ];
+
+    const result = await this.dbClient.query(query, values);
+
+    if (result.rows.length === 0) {
+      throw new Error('Failed to create rule: No data returned');
+    }
+
+    return result.rows[0];
+  }
+
   async close(): Promise<void> {
     await this.dbClient.end();
   }

@@ -1374,8 +1374,7 @@ export class DatabaseService {
     const query = `
       SELECT configuration
       FROM rule
-      WHERE "ruleid" = $1 AND "tenantid" = $2
-    `;
+      WHERE "ruleid" = $1 AND "tenantid" = $2`;
 
     const result = await this.dbClient.query(query, [ruleId, tenantId]);
 
@@ -1391,6 +1390,11 @@ export class DatabaseService {
       SELECT DISTINCT transaction_type
       FROM config
       WHERE tenant_id = $1
+        AND (
+          (status = 'STATUS_04_APPROVED') 
+          OR 
+          (status = 'STATUS_06_EXPORTED')
+        )
       ORDER BY transaction_type
     `;
 

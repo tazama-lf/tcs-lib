@@ -1356,6 +1356,36 @@ export class DatabaseService {
     return result.rows[0];
   }
 
+  async findAllRuleIds(
+    tenantId: string,
+  ): Promise<Array<{ ruleId: string; ruleCfg: any; tenantId: string }>> {
+    const query = `
+      SELECT "ruleId", "ruleCfg", "tenantId"
+      FROM rule
+      WHERE "tenantId" = $1
+      ORDER BY "ruleId"
+    `;
+
+    const result = await this.dbClient.query(query, [tenantId]);
+    return result.rows;
+  }
+
+  async findRuleConfiguration(ruleId: string, tenantId: string): Promise<any> {
+    const query = `
+      SELECT configuration
+      FROM rule
+      WHERE "ruleId" = $1 AND "tenantId" = $2
+    `;
+
+    const result = await this.dbClient.query(query, [ruleId, tenantId]);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return result.rows[0].configuration;
+  }
+
   async close(): Promise<void> {
     await this.dbClient.end();
   }

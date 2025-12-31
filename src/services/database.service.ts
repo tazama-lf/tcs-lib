@@ -1360,10 +1360,10 @@ export class DatabaseService {
     tenantId: string,
   ): Promise<Array<{ ruleId: string; ruleCfg: any; tenantId: string }>> {
     const query = `
-      SELECT "ruleId", "ruleCfg", "tenantId"
+      SELECT "ruleid", "rulecfg", "tenantid"
       FROM rule
-      WHERE "tenantId" = $1
-      ORDER BY "ruleId"
+      WHERE "tenantid" = $1
+      ORDER BY "ruleid"
     `;
 
     const result = await this.dbClient.query(query, [tenantId]);
@@ -1374,7 +1374,7 @@ export class DatabaseService {
     const query = `
       SELECT configuration
       FROM rule
-      WHERE "ruleId" = $1 AND "tenantId" = $2
+      WHERE "ruleid" = $1 AND "tenantid" = $2
     `;
 
     const result = await this.dbClient.query(query, [ruleId, tenantId]);

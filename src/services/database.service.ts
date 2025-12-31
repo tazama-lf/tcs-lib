@@ -1386,6 +1386,18 @@ export class DatabaseService {
     return result.rows[0].configuration;
   }
 
+  async findAllTransactionTypes(tenantId: string): Promise<string[]> {
+    const query = `
+      SELECT DISTINCT transaction_type
+      FROM config
+      WHERE tenant_id = $1
+      ORDER BY transaction_type
+    `;
+
+    const result = await this.dbClient.query(query, [tenantId]);
+    return result.rows.map((row) => row.transaction_type);
+  }
+
   async close(): Promise<void> {
     await this.dbClient.end();
   }

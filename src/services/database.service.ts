@@ -1266,7 +1266,7 @@ export class DatabaseService {
 
     const dataQuery = `
     SELECT
-      rule_id,
+      id,
       rule_name,
       description,
       tenant_id,
@@ -1298,9 +1298,9 @@ export class DatabaseService {
 
   async findRuleById(id: number, tenantId: string): Promise<RuleEntity | null> {
     const query = `
-      SELECT rule_id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, created_at, updated_at
+      SELECT id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, created_at, updated_at
       FROM trs_rules
-      WHERE rule_id = $1 AND tenant_id = $2
+      WHERE id = $1 AND tenant_id = $2
     `;
 
     const result = await this.dbClient.query(query, [id, tenantId]);
@@ -1326,7 +1326,7 @@ export class DatabaseService {
   }): Promise<RuleEntity> {
     const query = `
     INSERT INTO trs_rules (
-      rule_id,
+      id,
       rule_name,
       description,
       tenant_id,
@@ -1339,7 +1339,7 @@ export class DatabaseService {
       updated_at,
       created_at
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
-    RETURNING rule_id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, created_at, updated_at
+    RETURNING id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, created_at, updated_at
   `;
 
     const values = [
@@ -1400,9 +1400,9 @@ export class DatabaseService {
     const query = `
       UPDATE trs_rules
       SET ${setClauses.join(', ')}
-      WHERE rule_id = $${ruleIdParam}
+      WHERE id = $${ruleIdParam}
         AND tenant_id = $${tenantIdParam}
-      RETURNING rule_id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, created_at, updated_at
+      RETURNING id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, created_at, updated_at
     `;
 
     values.push(ruleId, tenantId);

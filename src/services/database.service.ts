@@ -1356,6 +1356,54 @@ export class DatabaseService {
     return result.rows[0];
   }
 
+  async updateRule(
+    ruleId: string,
+    tenantId: string,
+    updateData: Partial<{
+      rule_name: string;
+      description: string;
+      txtp: string;
+      version: string;
+      status: string;
+      publishing_status: string;
+      rule_type: string;
+      updated_by: string;
+    }>,
+  ): Promise<RuleEntity | null> {
+    // Build dynamic SET clause based on provided fields
+    const setClauses: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    // Always update updated_at
+    setClauses.push('updated_at = NOW()');
+
+    // Dynamically add fields from updateData
+    Object.entries(updateData).forEach(([key, value]) => {
+      setClauses.push(`${key} = $${paramIndex}`);
+      values.push(value);
+      paramIndex += 1;
+    });
+
+    // Add WHERE clause parameters (rule_id and tenant_id)
+    const ruleIdParam = paramIndex;
+    const tenantIdParam = paramIndex + 1;
+
+    const query = `
+      UPDATE trs_rules
+      SET ${setClauses.join(', ')}
+      WHERE rule_id = $${ruleIdParam}
+        AND tenant_id = $${tenantIdParam}
+      RETURNING rule_id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, created_at, updated_at
+    `;
+
+    values.push(ruleId, tenantId);
+
+    const result = await this.dbClient.query(query, values);
+
+    return result.rows.length > 0 ? result.rows[0] : null;
+  }
+
   async findAllRuleIds(
     tenantId: string,
   ): Promise<Array<{ ruleId: string; ruleCfg: any; tenantId: string }>> {

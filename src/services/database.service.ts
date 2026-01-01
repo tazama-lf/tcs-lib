@@ -1458,6 +1458,29 @@ export class DatabaseService {
     return result.rows.map((row) => row.transaction_type);
   }
 
+  async findActiveNetworkMap(tenantId: string): Promise<any> {
+    const query = `
+      SELECT configuration
+      FROM network_map
+      WHERE tenantId = $1
+        AND configuration->>'active' = 'true'
+    `;
+
+    const result = await this.dbClient.query(query, [tenantId]);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    if (result.rows.length > 1) {
+      throw new Error(
+        `Multiple active network maps found for tenant ${tenantId}. Expected only one active network map.`,
+      );
+    }
+
+    return result.rows[0].configuration;
+  }
+
   async close(): Promise<void> {
     await this.dbClient.end();
   }

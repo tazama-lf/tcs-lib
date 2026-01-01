@@ -7,7 +7,7 @@ export interface CreateConfigDto {
     transactionType: TransactionType;
     version?: string;
     contentType?: ContentType;
-    payload?: string | any;
+    payload?: unknown | JSONSchema;
     endpointPath?: string;
     mapping?: FieldMapping[];
     functions?: FunctionDefinition[];

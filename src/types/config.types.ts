@@ -44,4 +44,5 @@ export interface Config {
   updatedAt?: string;
   comments?: string;
   publishing_status?: 'active' | 'inactive';
+  payload?: JSONSchema;
 }

@@ -50,15 +50,15 @@ export class DatabaseService {
       ? `
       INSERT INTO config (
         id, msg_fam, transaction_type, endpoint_path, version, content_type,
-        schema, mapping, functions, status, tenant_id, created_by, publishing_status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        schema, mapping, functions, status, tenant_id, created_by, publishing_status, payload
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING id
     `
       : `
       INSERT INTO config (
         msg_fam, transaction_type, endpoint_path, version, content_type,
-        schema, mapping, functions, status, tenant_id, created_by, publishing_status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        schema, mapping, functions, status, tenant_id, created_by, publishing_status, payload
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING id
     `;
 
@@ -77,6 +77,7 @@ export class DatabaseService {
           config.tenantId,
           config.createdBy,
           config.publishing_status ?? 'inactive',
+          JSON.stringify(config.payload),
         ]
       : [
           config.msgFam,
@@ -91,6 +92,7 @@ export class DatabaseService {
           config.tenantId,
           config.createdBy,
           config.publishing_status ?? 'inactive',
+          JSON.stringify(config.payload),
         ];
 
     const result = await this.dbClient.query(query, values);
@@ -397,6 +399,12 @@ export class DatabaseService {
       publishing_status: row.publishing_status,
 
       comments: row.comment ?? row.comments,
+      payload:
+        row.payload === null
+          ? null
+          : typeof row.payload === 'string'
+            ? JSON.parse(row.payload)
+            : row.payload,
     };
   }
 

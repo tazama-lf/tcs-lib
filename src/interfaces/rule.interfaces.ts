@@ -8,6 +8,8 @@ export interface RuleEntity {
   status: string;
   publishing_status: string;
   updated_by: string;
+  rule_type?: string;
+  rule_config_id?: string;
   created_at: Date;
   updated_at: Date;
 }

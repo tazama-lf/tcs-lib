@@ -1277,7 +1277,8 @@ export class DatabaseService {
       updated_by,
       created_at,
       updated_at,
-      rule_type
+      rule_type,
+      rule_config_id
     FROM trs_rules
     ${whereClause}
     ORDER BY updated_at DESC
@@ -1298,7 +1299,7 @@ export class DatabaseService {
 
   async findRuleById(id: number, tenantId: string): Promise<RuleEntity | null> {
     const query = `
-      SELECT id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, created_at, updated_at
+      SELECT id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
       FROM trs_rules
       WHERE id = $1 AND tenant_id = $2
     `;
@@ -1323,6 +1324,7 @@ export class DatabaseService {
     publishing_status?: string;
     updated_by: string;
     rule_type: string;
+    rule_config_id?: string;
   }): Promise<RuleEntity> {
     const query = `
     INSERT INTO trs_rules (
@@ -1375,6 +1377,7 @@ export class DatabaseService {
       status: string;
       publishing_status: string;
       rule_type: string;
+      rule_config_id: string;
       updated_by: string;
     }>,
   ): Promise<RuleEntity | null> {
@@ -1402,7 +1405,7 @@ export class DatabaseService {
       SET ${setClauses.join(', ')}
       WHERE id = $${ruleIdParam}
         AND tenant_id = $${tenantIdParam}
-      RETURNING id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, created_at, updated_at
+      RETURNING id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
     `;
 
     values.push(ruleId, tenantId);

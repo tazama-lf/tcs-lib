@@ -1461,6 +1461,23 @@ export class DatabaseService {
     return result.rows.map((row) => row.transaction_type);
   }
 
+  async getPayloadByTransactionType(transactionType: string, tenantId: string): Promise<any> {
+    const query = `
+      SELECT payload
+      FROM config
+      WHERE transaction_type = $1 AND tenant_id = $2
+      LIMIT 1
+    `;
+
+    const result = await this.dbClient.query(query, [transactionType, tenantId]);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return result.rows[0].payload;
+  }
+
   async findActiveNetworkMap(tenantId: string): Promise<any> {
     const query = `
       SELECT configuration

@@ -1319,8 +1319,8 @@ export class DatabaseService {
     tenant_id: string;
     txtp: string;
     version: string;
-    status: string;
-    publishing_status: string;
+    status?: string;
+    publishing_status?: string;
     updated_by: string;
     rule_type: string;
   }): Promise<RuleEntity> {
@@ -1338,7 +1338,7 @@ export class DatabaseService {
       rule_type,
       updated_at,
       created_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+    ) VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'ACTIVE'), COALESCE($8, 'STATUS_01_IN_PROGRESS'), $9, $10, NOW(), NOW())
     RETURNING id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, created_at, updated_at
   `;
 
@@ -1349,8 +1349,8 @@ export class DatabaseService {
       ruleData.tenant_id,
       ruleData.txtp,
       ruleData.version,
-      ruleData.status,
-      ruleData.publishing_status,
+      ruleData.status ?? null,
+      ruleData.publishing_status ?? null,
       ruleData.updated_by,
       ruleData.rule_type,
     ];

@@ -1462,20 +1462,51 @@ export class DatabaseService {
   }
 
   async getPayloadByTransactionType(transactionType: string, tenantId: string): Promise<any> {
+    if (!transactionType || !tenantId) {
+      throw new Error('Transaction type and tenant ID are required');
+    }
+
     const query = `
       SELECT payload
       FROM config
       WHERE transaction_type = $1 AND tenant_id = $2
+      AND status = 'active'
+      ORDER BY updated_at DESC
       LIMIT 1
     `;
 
-    const result = await this.dbClient.query(query, [transactionType, tenantId]);
+    try {
+      const result = await this.dbClient.query(query, [transactionType, tenantId]);
 
-    if (result.rows.length === 0) {
-      return null;
+      return result.rows[0].payload;
+    } catch (error) {
+      const err = error as Error;
+      throw new Error(`Failed to fetch config payload: ${err.message}`, { cause: error });
+    }
+  }
+
+  async getSchemaByTransactionType(transactionType: string, tenantId: string): Promise<any> {
+    if (!transactionType || !tenantId) {
+      throw new Error('Transaction type and tenant ID are required');
     }
 
-    return result.rows[0].payload;
+    const query = `
+      SELECT schema
+      FROM config
+      WHERE transaction_type = $1 AND tenant_id = $2
+      AND status = 'active'
+      ORDER BY updated_at DESC
+      LIMIT 1
+    `;
+
+    try {
+      const result = await this.dbClient.query(query, [transactionType, tenantId]);
+
+      return result.rows[0].schema;
+    } catch (error) {
+      const err = error as Error;
+      throw new Error(`Failed to fetch config schema: ${err.message}`, { cause: error });
+    }
   }
 
   async findActiveNetworkMap(tenantId: string): Promise<any> {

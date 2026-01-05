@@ -1494,9 +1494,6 @@ export class DatabaseService {
       SELECT schema
       FROM config
       WHERE transaction_type = $1 AND tenant_id = $2
-      AND status = 'active'
-      ORDER BY updated_at DESC
-      LIMIT 1
     `;
 
     try {

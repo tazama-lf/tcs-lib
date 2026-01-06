@@ -1529,6 +1529,127 @@ export class DatabaseService {
     return result.rows[0].configuration;
   }
 
+  async createNode(
+    nodeData:
+      | {
+          name: string;
+          description: string;
+          type: string;
+          color: string;
+          label: string;
+          category: string;
+          code_template: string;
+          default_data?: Record<string, unknown>;
+          tenant_id: string;
+          created_by: string;
+        }
+      | Array<{
+          name: string;
+          description: string;
+          type: string;
+          color: string;
+          label: string;
+          category: string;
+          code_template: string;
+          default_data?: Record<string, unknown>;
+          tenant_id: string;
+          created_by: string;
+        }>,
+  ): Promise<any> {
+    const nodes = Array.isArray(nodeData) ? nodeData : [nodeData];
+
+    if (nodes.length === 0) {
+      throw new Error('No node data provided');
+    }
+
+    // Build values placeholders for batch insert (without id - auto-generated)
+    const valuesPerNode = 10; // name, description, type, color, label, category, code_template, default_data, tenant_id, created_by
+    const valuePlaceholders = nodes
+      .map((_, index) => {
+        const offset = index * valuesPerNode;
+        return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, NOW(), NOW())`;
+      })
+      .join(', ');
+
+    const query = `
+      INSERT INTO nodes (
+        name,
+        description,
+        type,
+        color,
+        label,
+        category,
+        code_template,
+        default_data,
+        tenant_id,
+        created_by,
+        updated_at,
+        created_at
+      ) VALUES ${valuePlaceholders}
+      RETURNING id, name, description, type, color, label, category, code_template, default_data, tenant_id, created_by, created_at, updated_at
+    `;
+
+    // Flatten all node data into a single array of values
+    const values = nodes.flatMap((node) => [
+      node.name,
+      node.description,
+      node.type,
+      node.color,
+      node.label,
+      node.category,
+      node.code_template,
+      node.default_data ? JSON.stringify(node.default_data) : null,
+      node.tenant_id,
+      node.created_by,
+    ]);
+
+    const result = await this.dbClient.query(query, values);
+
+    if (result.rows.length === 0) {
+      throw new Error('Failed to create node(s): No data returned');
+    }
+
+    // Return single object if input was single, array if input was array
+    return Array.isArray(nodeData) ? result.rows : result.rows[0];
+  }
+
+  async findAll(
+    tenantId: string,
+    query: { tenantId?: string; type?: string; category?: string },
+  ): Promise<any[]> {
+    const whereClauses: string[] = [];
+    const queryParams: unknown[] = [];
+    let paramIndex = 1;
+
+    if (query.tenantId) {
+      whereClauses.push(`tenant_id = $${paramIndex}`);
+      queryParams.push(query.tenantId);
+      paramIndex += 1;
+    }
+
+    if (query.type) {
+      whereClauses.push(`type = $${paramIndex}`);
+      queryParams.push(query.type);
+      paramIndex += 1;
+    }
+
+    if (query.category) {
+      whereClauses.push(`category = $${paramIndex}`);
+      queryParams.push(query.category);
+    }
+
+    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+    const dbquery = `
+      SELECT id, name, description, type, color, label, category, code_template, default_data, tenant_id, created_by, created_at, updated_at
+      FROM nodes
+      ${whereClause}
+      ORDER BY created_at DESC
+    `;
+    const result = await this.dbClient.query(dbquery, queryParams);
+    return result.rows;
+  }
+
   async close(): Promise<void> {
     await this.dbClient.end();
   }

@@ -1884,4 +1884,85 @@ describe('DatabaseService', () => {
       );
     });
   });
+
+  describe('createNode', () => {
+    it('should create multiple nodes and return an array of inserted rows', async () => {
+      const nodes = [
+        {
+          name: 'NodeA',
+          description: 'A',
+          type: 'basic',
+          color: '#ffffff',
+          label: 'A',
+          category: 'rule_builder',
+          code_template: 't1',
+          default_data: null,
+          tenant_id: 'tenant-1',
+          created_by: 'tester',
+        },
+        {
+          name: 'NodeB',
+          description: 'B',
+          type: 'basic',
+          color: '#ffffff',
+          label: 'B',
+          category: 'test_case',
+          code_template: 't2',
+          default_data: null,
+          tenant_id: 'tenant-1',
+          created_by: 'tester',
+        },
+      ];
+
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: [
+          { id: 10, ...nodes[0] },
+          { id: 11, ...nodes[1] },
+        ],
+        rowCount: 2,
+      });
+
+      const result = await databaseService.createNode(nodes as any);
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).toHaveLength(2);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO nodes'),
+        expect.any(Array),
+      );
+    });
+  });
+
+  describe('findAll (nodes)', () => {
+    it('should return all nodes when no filters provided', async () => {
+      const mockNodes = [
+        { id: 1, name: 'n1' },
+        { id: 2, name: 'n2' },
+      ];
+      (mockPool.query as jest.Mock).mockResolvedValue({ rows: mockNodes, rowCount: 2 });
+
+      const result = await databaseService.findAll('default', {} as any);
+
+      expect(result).toHaveLength(2);
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('FROM nodes'), []);
+    });
+
+    it('should apply filters for tenantId, type and category', async () => {
+      const mockNodes = [{ id: 3, name: 'filtered' }];
+      (mockPool.query as jest.Mock).mockResolvedValue({ rows: mockNodes, rowCount: 1 });
+
+      const result = await databaseService.findAll('default', {
+        tenantId: 'default',
+        type: 'basic',
+        category: 'rule_builder',
+      });
+
+      expect(result).toHaveLength(1);
+      expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), [
+        'default',
+        'basic',
+        'rule_builder',
+      ]);
+    });
+  });
 });

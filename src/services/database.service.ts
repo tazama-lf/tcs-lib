@@ -1530,32 +1530,35 @@ export class DatabaseService {
   }
 
   async createNode(
-    nodeData:
-      | {
-          name: string;
-          description: string;
-          type: string;
-          color: string;
-          label: string;
-          category: string;
-          code_template: string;
-          default_data?: Record<string, unknown>;
-          tenant_id: string;
-          created_by: string;
-        }
-      | Array<{
-          name: string;
-          description: string;
-          type: string;
-          color: string;
-          label: string;
-          category: string;
-          code_template: string;
-          default_data?: Record<string, unknown>;
-          tenant_id: string;
-          created_by: string;
-        }>,
-  ): Promise<any> {
+    nodeData: Array<{
+      name: string;
+      description: string;
+      type: string;
+      color: string;
+      label: string;
+      category: string;
+      code_template: string;
+      default_data?: Record<string, unknown>;
+      tenant_id: string;
+      created_by: string;
+    }>,
+  ): Promise<
+    Array<{
+      name: string;
+      description: string;
+      type: string;
+      color: string;
+      label: string;
+      category: string;
+      code_template: string;
+      default_data?: Record<string, unknown>;
+      tenant_id: string;
+      created_by: string;
+      created_at: Date;
+      updated_at: Date;
+      id: number;
+    }>
+  > {
     const nodes = Array.isArray(nodeData) ? nodeData : [nodeData];
 
     if (nodes.length === 0) {
@@ -1609,8 +1612,7 @@ export class DatabaseService {
       throw new Error('Failed to create node(s): No data returned');
     }
 
-    // Return single object if input was single, array if input was array
-    return Array.isArray(nodeData) ? result.rows : result.rows[0];
+    return result.rows;
   }
 
   async findAll(

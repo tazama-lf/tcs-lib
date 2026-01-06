@@ -1485,7 +1485,10 @@ export class DatabaseService {
     }
   }
 
-  async getSchemaByTransactionType(transactionType: string, tenantId: string): Promise<any> {
+  async getSchemaByTransactionType(
+    transactionType: string,
+    tenantId: string,
+  ): Promise<{ schema: any; mapping: any }> {
     if (!transactionType || !tenantId) {
       throw new Error('Transaction type and tenant ID are required');
     }
@@ -1499,7 +1502,7 @@ export class DatabaseService {
     try {
       const result = await this.dbClient.query(query, [transactionType, tenantId]);
 
-      return result.rows[0].schema;
+      return { schema: result.rows[0].schema, mapping: result.rows[0].mapping };
     } catch (error) {
       const err = error as Error;
       throw new Error(`Failed to fetch config schema: ${err.message}`, { cause: error });

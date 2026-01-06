@@ -1491,7 +1491,7 @@ export class DatabaseService {
     }
 
     const query = `
-      SELECT schema
+      SELECT schema, mapping
       FROM config
       WHERE transaction_type = $1 AND tenant_id = $2
     `;

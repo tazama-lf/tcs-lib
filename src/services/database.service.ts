@@ -1455,6 +1455,7 @@ export class DatabaseService {
     `;
 
     const result = await this.dbClient.query(query, [tenantId]);
+
     return result.rows.map((row) => row.transaction_type);
   }
 
@@ -1467,8 +1468,6 @@ export class DatabaseService {
       SELECT payload
       FROM config
       WHERE transaction_type = $1 AND tenant_id = $2
-      AND status = 'active'
-      ORDER BY updated_at DESC
       LIMIT 1
     `;
 

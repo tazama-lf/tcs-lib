@@ -1687,6 +1687,22 @@ export class DatabaseService {
     return result.rows;
   }
 
+  async findRuleFlow(ruleId: string): Promise<any> {
+    const query = `
+      SELECT *
+      FROM trs_rule_flow
+      WHERE rule_id = $1
+      LIMIT 1
+    `;
+
+    const result = await this.dbClient.query(query, [ruleId]);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return result.rows[0];
+  }
   async close(): Promise<void> {
     await this.dbClient.end();
   }

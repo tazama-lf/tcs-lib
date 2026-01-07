@@ -1652,6 +1652,41 @@ export class DatabaseService {
     return result.rows;
   }
 
+  async createRuleFlow(ruleFlowData: {
+    rule_id: string;
+    flow_json: Record<string, unknown>;
+  }): Promise<
+    Array<{
+      id: number;
+      rule_id: string;
+      flow_json: Record<string, unknown>;
+      created_at: Date;
+      updated_at: Date;
+    }>
+  > {
+    const query = `
+      INSERT INTO trs_rule_flow (
+        rule_id,
+        flow_json,
+        updated_at,
+        created_at
+      ) VALUES (
+        $1, $2, NOW(), NOW()
+      )
+      RETURNING id, rule_id, flow_json, created_at, updated_at;
+    `;
+    const result = await this.dbClient.query(query, [
+      ruleFlowData.rule_id,
+      JSON.stringify(ruleFlowData.flow_json),
+    ]);
+
+    if (result.rows.length === 0) {
+      throw new Error('Failed to create rule flow: No data returned');
+    }
+
+    return result.rows;
+  }
+
   async close(): Promise<void> {
     await this.dbClient.end();
   }

@@ -1965,4 +1965,84 @@ describe('DatabaseService', () => {
       ]);
     });
   });
+
+  describe('createRuleFlow', () => {
+    it('should create rule flow successfully', async () => {
+      const flowData = {
+        rule_id: '12',
+        flow_json: {
+          nodes: [
+            {
+              id: 'node-1',
+              type: 'Start',
+              label: 'Start',
+              params: {},
+              position: { x: 100, y: 50 },
+            },
+            {
+              id: 'node-2',
+              type: 'HandleTransaction',
+              label: 'Handle Transaction',
+              params: {},
+              position: { x: 100, y: 200 },
+              nestedFlow: {
+                nodes: [
+                  {
+                    id: 'nested-node-1',
+                    type: 'Start',
+                    label: 'Start',
+                    params: {},
+                    position: { x: 100, y: 50 },
+                  },
+                  {
+                    id: 'nested-node-2',
+                    type: 'End',
+                    label: 'End',
+                    params: {},
+                    position: { x: 100, y: 300 },
+                  },
+                ],
+                edges: [],
+              },
+            },
+            {
+              id: 'node-3',
+              type: 'End',
+              label: 'End',
+              params: {},
+              position: { x: 100, y: 350 },
+            },
+          ],
+          edges: [
+            { id: 'edge-1', source: 'node-1', target: 'node-2' },
+            { id: 'edge-2', source: 'node-2', target: 'node-3' },
+          ],
+        },
+      };
+
+      // Mock the dbClient.query response
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: [
+          {
+            rule_id: flowData.rule_id,
+            flow_json: flowData.flow_json,
+          },
+        ],
+      });
+
+      const result = await databaseService.createRuleFlow(flowData as any);
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).toHaveLength(1); // one row returned
+      expect(result[0]).toMatchObject({
+        rule_id: flowData.rule_id,
+        flow_json: flowData.flow_json,
+      });
+
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO trs_rule_flow'),
+        [flowData.rule_id, JSON.stringify(flowData.flow_json)],
+      );
+    });
+  });
 });

@@ -1314,7 +1314,6 @@ export class DatabaseService {
   }
 
   async createRule(ruleData: {
-    rule_id: string;
     rule_name: string;
     description: string;
     tenant_id: string;
@@ -1328,7 +1327,6 @@ export class DatabaseService {
   }): Promise<RuleEntity> {
     const query = `
     INSERT INTO trs_rules (
-      id,
       rule_name,
       description,
       tenant_id,
@@ -1345,7 +1343,6 @@ export class DatabaseService {
   `;
 
     const values = [
-      ruleData.rule_id,
       ruleData.rule_name,
       ruleData.description,
       ruleData.tenant_id,

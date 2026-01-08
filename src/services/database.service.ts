@@ -1718,6 +1718,25 @@ export class DatabaseService {
 
     return result.rows[0];
   }
+
+  async updateRuleFlow(ruleId: string, flowData: Record<string, unknown>): Promise<any> {
+    const query = `
+      UPDATE trs_rule_flow
+      SET 
+        flow_json = $2,
+        updated_at = NOW()
+      WHERE rule_id = $1
+      RETURNING id, rule_id, flow_json, created_at, updated_at;
+    `;
+
+    const result = await this.dbClient.query(query, [ruleId, JSON.stringify(flowData)]);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return result.rows[0];
+  }
   async close(): Promise<void> {
     await this.dbClient.end();
   }

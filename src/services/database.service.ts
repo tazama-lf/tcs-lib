@@ -1313,6 +1313,22 @@ export class DatabaseService {
     return result.rows[0];
   }
 
+  async getVersionsOfTransactionType(transactionType: string): Promise<string[]> {
+    const query = `
+      SELECT DISTINCT version
+      FROM config
+      WHERE transaction_type = $1
+  `;
+
+    const result = await this.dbClient.query(query, [transactionType]);
+
+    if (result.rows.length > 0) {
+      return result.rows.map((row) => row.version);
+    } else {
+      return [];
+    }
+  }
+
   async createRule(ruleData: {
     rule_name: string;
     description: string;

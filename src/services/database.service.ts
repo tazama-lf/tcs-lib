@@ -1313,14 +1313,14 @@ export class DatabaseService {
     return result.rows[0];
   }
 
-  async getVersionsOfTransactionType(transactionType: string): Promise<string[]> {
+  async getVersionsOfTransactionType(transactionType: string, tenantId: string): Promise<string[]> {
     const query = `
       SELECT DISTINCT version
       FROM config
-      WHERE transaction_type = $1
+      WHERE transaction_type = $1 and tenant_id = $2;
   `;
 
-    const result = await this.dbClient.query(query, [transactionType]);
+    const result = await this.dbClient.query(query, [transactionType, tenantId]);
 
     if (result.rows.length > 0) {
       return result.rows.map((row) => row.version);

@@ -1334,6 +1334,7 @@ export class DatabaseService {
     description: string;
     tenant_id: string;
     txtp: string;
+    txtp_version: string;
     version: string;
     status?: string;
     publishing_status?: string;
@@ -1347,6 +1348,7 @@ export class DatabaseService {
       description,
       tenant_id,
       txtp,
+      txtp_version
       version,
       status,
       publishing_status,
@@ -1354,7 +1356,7 @@ export class DatabaseService {
       rule_type,
       updated_at,
       created_at
-    ) VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'STATUS_01_IN_PROGRESS'),COALESCE($7, 'ACTIVE'), $8, $9, NOW(), NOW())
+    ) VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'STATUS_01_IN_PROGRESS'),COALESCE($8, 'ACTIVE'), $9, $10, NOW(), NOW())
     RETURNING id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, created_at, updated_at
   `;
 
@@ -1363,6 +1365,7 @@ export class DatabaseService {
       ruleData.description,
       ruleData.tenant_id,
       ruleData.txtp,
+      ruleData.txtp_version,
       ruleData.version,
       ruleData.status,
       ruleData.publishing_status,

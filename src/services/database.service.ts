@@ -1202,7 +1202,16 @@ export class DatabaseService {
     payload: Record<string, string>,
     tenantId: string,
   ): Promise<{ data: unknown; total: number; limit: number; offset: number }> {
-    const { status, createdAt, startDate, endDate, ruleName, ruleType, updatedBy } = payload;
+    const {
+      status,
+      publishingStatus,
+      createdAt,
+      startDate,
+      endDate,
+      ruleName,
+      ruleType,
+      updatedBy,
+    } = payload;
 
     const whereClauses: string[] = ['tenant_id = $1'];
     const queryParams: unknown[] = [tenantId];
@@ -1212,6 +1221,12 @@ export class DatabaseService {
       const statusArray = status.split(',').map((s) => s.trim());
       whereClauses.push(`status = ANY($${paramIndex})`);
       queryParams.push(statusArray);
+      paramIndex += 1;
+    }
+
+    if (publishingStatus) {
+      whereClauses.push(`publishing_status = $${paramIndex}`);
+      queryParams.push(publishingStatus.toLowerCase());
       paramIndex += 1;
     }
 
@@ -1334,7 +1349,7 @@ export class DatabaseService {
     description: string;
     tenant_id: string;
     txtp: string;
-    txtp_version: string;
+    txtp_version?: string;
     version: string;
     status?: string;
     publishing_status?: string;
@@ -1348,7 +1363,7 @@ export class DatabaseService {
       description,
       tenant_id,
       txtp,
-      txtp_version
+      txtp_version,
       version,
       status,
       publishing_status,

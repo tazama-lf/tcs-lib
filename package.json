@@ -1,6 +1,6 @@
 {
   "name": "@tazama-lf/tcs-lib",
-  "version": "1.0.105",
+  "version": "1.0.106",
   "description": "A TypeScript package containing interfaces and Data Transfer Objects (DTOs).",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",

@@ -1350,13 +1350,14 @@ export class DatabaseService {
     ruleRequest: Record<string, unknown>,
   ): Promise<void> {
     const query = `
-      INSERT INTO trs_rules (rulerequest)
-      VALUES ($1);
-      WHERE "tenantid" = $2 AND "txtp" = $3
+      UPDATE trs_rules
+      SET rulerequest = $1
+      WHERE tenant_id = $2
+      AND txtp = $3;
+
     `;
 
     const values = [ruleRequest, tenantId, txTp];
-
     await this.dbClient.query(query, values);
   }
 

@@ -1344,6 +1344,22 @@ export class DatabaseService {
     }
   }
 
+  async saveRuleRequest(
+    txTp: string,
+    tenantId: string,
+    ruleRequest: Record<string, unknown>,
+  ): Promise<void> {
+    const query = `
+      INSERT INTO trs_rules (rulerequest)
+      VALUES ($1);
+      WHERE "tenantid" = $2 AND "txtp" = $3
+    `;
+
+    const values = [ruleRequest, tenantId, txTp];
+
+    await this.dbClient.query(query, values);
+  }
+
   async createRule(ruleData: {
     rule_name: string;
     description: string;

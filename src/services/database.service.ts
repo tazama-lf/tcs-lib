@@ -1339,7 +1339,7 @@ export class DatabaseService {
 
   async findRuleById(id: number, tenantId: string): Promise<RuleEntity | null> {
     const query = `
-      SELECT id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
+      SELECT id, rule_name, description, tenant_id, txtp, version,txtp_version, status, publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
       FROM trs_rules
       WHERE id = $1 AND tenant_id = $2
     `;

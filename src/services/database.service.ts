@@ -1317,7 +1317,8 @@ export class DatabaseService {
       created_at,
       updated_at,
       rule_type,
-      rule_config_id
+      rule_config_id,
+      txtp_version
     FROM trs_rules
     ${whereClause}
     ORDER BY updated_at DESC

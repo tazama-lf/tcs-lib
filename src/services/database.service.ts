@@ -1196,6 +1196,30 @@ export class DatabaseService {
   }
   // ===========================TRS OPERATIONS ==========================
 
+  // endpoint for cloning a rule
+  cloneRule(ruleId: number, token: string): string {
+    return `yet to be done, ${ruleId}, ${token}`;
+
+    // Promise<RuleEntity>
+    // const query = `
+    //   INSERT INTO trs_rules (rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at)
+    //   SELECT $1 AS rule_name, description, tenant_id, txtp, version, status, publishing_status, $2 AS updated_by, rule_type, rule_config_id, NOW() AS created_at, NOW() AS updated_at
+    //   FROM trs_rules
+    //   WHERE id = $3 AND tenant_id = $4
+    //   RETURNING id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
+    // `;
+
+    // const values = [newRuleName, createdBy, ruleId, tenantId];
+
+    // const result = await this.dbClient.query(query, values);
+
+    // if (result.rows.length === 0) {
+    //   throw new Error('Rule not found or could not be cloned');
+    // }
+
+    // return result.rows[0];
+  }
+
   async findRulesWithFilters(
     limit = 10,
     offset = 0,

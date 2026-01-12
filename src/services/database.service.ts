@@ -1361,6 +1361,43 @@ export class DatabaseService {
     await this.dbClient.query(query, values);
   }
 
+  async getGlobalVariables(
+    ruleId: string,
+    tenantId: string,
+  ): Promise<{
+    ruleRequest: any;
+    configuration: any;
+  } | null> {
+    const ruleRequestQuery = `
+      SELECT rulerequest
+      FROM trs_rules
+      WHERE rule_config_id = $1 AND tenant_id = $2
+    `;
+
+    const ruleRequestResult = await this.dbClient.query(ruleRequestQuery, [ruleId, tenantId]);
+
+    if (ruleRequestResult.rows.length === 0) {
+      return null;
+    }
+
+    const configurationQuery = `
+      SELECT configuration
+      FROM rule
+      WHERE "ruleid" = $1 AND "tenantid" = $2
+    `;
+
+    const configurationResult = await this.dbClient.query(configurationQuery, [ruleId, tenantId]);
+
+    if (configurationResult.rows.length === 0) {
+      return null;
+    }
+
+    return {
+      ruleRequest: ruleRequestResult.rows[0].rulerequest,
+      configuration: configurationResult.rows[0].configuration,
+    };
+  }
+
   async createRule(ruleData: {
     rule_name: string;
     description: string;

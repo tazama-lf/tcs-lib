@@ -1889,28 +1889,64 @@ describe('DatabaseService', () => {
     it('should create multiple nodes and return an array of inserted rows', async () => {
       const nodes = [
         {
-          name: 'NodeA',
-          description: 'A',
+          name: 'Custom Code Node',
+          node_type: 'Code',
+          label: 'Custom Code',
+          description: 'Executes custom JavaScript/TypeScript code',
           type: 'basic',
-          color: '#ffffff',
-          label: 'A',
           category: 'rule_builder',
-          code_template: 't1',
-          default_data: null,
-          tenant_id: 'tenant-1',
-          created_by: 'tester',
+          color: '#607D8B',
+          handles: {
+            source: true,
+            target: true,
+          },
+          inputs: [
+            {
+              key: 'code',
+              label: 'Code',
+              type: 'textarea',
+              defaultValue: "console.log('Hello');",
+              required: true,
+              placeholder: 'Enter custom code',
+            },
+          ],
+          code_template: "${params.code || '// Custom code'}",
+          default_data: {
+            code: "console.log('Hello');",
+          },
+          tenant_id: 'cbe',
+          created_by: 'tester-user',
         },
         {
-          name: 'NodeB',
-          description: 'B',
+          name: 'Error Throwing Node',
+          node_type: 'ThrowError',
+          label: 'Throw Error',
+          description: 'Throws an error with a custom message to halt execution',
           type: 'basic',
-          color: '#ffffff',
-          label: 'B',
-          category: 'test_case',
-          code_template: 't2',
-          default_data: null,
-          tenant_id: 'tenant-1',
-          created_by: 'tester',
+          category: 'rule_builder',
+          color: '#E91E63',
+          handles: {
+            source: true,
+            target: true,
+          },
+          inputs: [
+            {
+              key: 'text',
+              label: 'Error Message',
+              type: 'text',
+              defaultValue: "'Error occurred'",
+              required: true,
+              placeholder: 'Enter error message',
+            },
+          ],
+          code_template: "throw new Error('${params.text || 'Error occurred'}');",
+          default_data: {
+            text: "'Error occurred'",
+          },
+          tenant_id: 'cbe',
+          created_by: 'tester-user',
+          created_at: '2026-01-08T00:00:00.000Z',
+          updated_at: '2026-01-08T00:00:00.000Z',
         },
       ];
 
@@ -1941,7 +1977,7 @@ describe('DatabaseService', () => {
       ];
       (mockPool.query as jest.Mock).mockResolvedValue({ rows: mockNodes, rowCount: 2 });
 
-      const result = await databaseService.findAll('default', {} as any);
+      const result = await databaseService.findAllNodes({} as any);
 
       expect(result).toHaveLength(2);
       expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('FROM nodes'), []);
@@ -1951,7 +1987,7 @@ describe('DatabaseService', () => {
       const mockNodes = [{ id: 3, name: 'filtered' }];
       (mockPool.query as jest.Mock).mockResolvedValue({ rows: mockNodes, rowCount: 1 });
 
-      const result = await databaseService.findAll('default', {
+      const result = await databaseService.findAllNodes({
         tenantId: 'default',
         type: 'basic',
         category: 'rule_builder',
@@ -2042,6 +2078,46 @@ describe('DatabaseService', () => {
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO trs_rule_flow'),
         [flowData.rule_id, JSON.stringify(flowData.flow_json)],
+      );
+    });
+  });
+
+  describe('deleteNodeById', () => {
+    it('should delete a node by its ID and tenant ID', async () => {
+      const nodeId = 123;
+      const tenantId = 'tenant-abc';
+
+      // Mock a successful deletion
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rowCount: 1,
+      });
+
+      // Call the method
+      await expect(databaseService.deleteNodeById(nodeId, tenantId)).resolves.toBeUndefined();
+
+      // Verify the correct SQL query and parameters were used
+      const expectedQuery = `
+      DELETE FROM nodes
+      WHERE id = $1 AND tenant_id = $2
+    `;
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining(expectedQuery.trim()), [
+        nodeId,
+        tenantId,
+      ]);
+    });
+
+    it('should throw an error if no node was deleted', async () => {
+      const nodeId = 456;
+      const tenantId = 'tenant-xyz';
+
+      // Mock the case where no rows are affected
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rowCount: 0,
+      });
+
+      // Expect the method to throw an error
+      await expect(databaseService.deleteNodeById(nodeId, tenantId)).rejects.toThrow(
+        `Node with id "${nodeId}" not found for tenant "${tenantId}"`,
       );
     });
   });

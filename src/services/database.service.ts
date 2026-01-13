@@ -1651,11 +1651,23 @@ export class DatabaseService {
   async createNode(
     nodeData: Array<{
       name: string;
+      node_type: string;
+      label: string;
       description: string;
       type: string;
-      color: string;
-      label: string;
       category: string;
+      color: string;
+      handles: {
+        source: boolean;
+        target: boolean;
+      };
+      inputs: Array<{
+        key: string;
+        label: string;
+        type: string;
+        required: boolean;
+        placeholder?: string;
+      }>;
       code_template: string;
       default_data?: Record<string, unknown>;
       tenant_id: string;
@@ -1664,12 +1676,24 @@ export class DatabaseService {
   ): Promise<
     Array<{
       name: string;
+      node_type: string;
+      label: string;
       description: string;
       type: string;
       color: string;
-      label: string;
       category: string;
       code_template: string;
+      handles: {
+        source: boolean;
+        target: boolean;
+      };
+      inputs: Array<{
+        key: string;
+        label: string;
+        type: string;
+        required: boolean;
+        placeholder?: string;
+      }>;
       default_data?: Record<string, unknown>;
       tenant_id: string;
       created_by: string;
@@ -1684,6 +1708,26 @@ export class DatabaseService {
       throw new Error('No node data provided');
     }
 
+    const findNodeAlreadyExists = async (name: string, tenantId: string): Promise<boolean> => {
+      const query = `
+        SELECT id FROM nodes
+        WHERE name = $1 AND tenant_id = $2
+        LIMIT 1
+      `;
+      const result = await this.dbClient.query(query, [name, tenantId]);
+      return result.rows.length > 0;
+    };
+
+    if (nodes.length === 1) {
+      nodes.map(async (node) => {
+        const exists = await findNodeAlreadyExists(node.name, node.tenant_id);
+        if (exists) {
+          throw new Error(
+            `Node with name "${node.name}" already exists for tenant "${node.tenant_id}"`,
+          );
+        }
+      });
+    }
     // Build values placeholders for batch insert (without id - auto-generated)
     const valuesPerNode = 10; // name, description, type, color, label, category, code_template, default_data, tenant_id, created_by
     const valuePlaceholders = nodes
@@ -1696,11 +1740,14 @@ export class DatabaseService {
     const query = `
       INSERT INTO nodes (
         name,
+        node_type,
+        label,
         description,
         type,
-        color,
-        label,
         category,
+        color,
+        handles,
+        inputs,
         code_template,
         default_data,
         tenant_id,
@@ -1714,11 +1761,14 @@ export class DatabaseService {
     // Flatten all node data into a single array of values
     const values = nodes.flatMap((node) => [
       node.name,
+      node.node_type,
+      node.label,
       node.description,
       node.type,
-      node.color,
-      node.label,
       node.category,
+      node.color,
+      node.handles,
+      node.inputs,
       node.code_template,
       node.default_data ? JSON.stringify(node.default_data) : null,
       node.tenant_id,
@@ -1734,10 +1784,47 @@ export class DatabaseService {
     return result.rows;
   }
 
-  async findAll(
-    tenantId: string,
-    query: { tenantId?: string; type?: string; category?: string },
-  ): Promise<any[]> {
+  async deleteNodeById(nodeId: number, tenantId: string): Promise<void> {
+    const query = `
+      DELETE FROM nodes
+      WHERE id = $1 AND tenant_id = $2
+    `;
+    const result = await this.dbClient.query(query, [nodeId, tenantId]);
+
+    if (result.rowCount === 0) {
+      throw new Error(`Node with id "${nodeId}" not found for tenant "${tenantId}"`);
+    }
+  }
+
+  async findAllNodes(query: { tenantId?: string; type?: string; category?: string }): Promise<
+    Array<{
+      name: string;
+      node_type: string;
+      label: string;
+      description: string;
+      type: string;
+      color: string;
+      category: string;
+      code_template: string;
+      handles: {
+        source: boolean;
+        target: boolean;
+      };
+      inputs: Array<{
+        key: string;
+        label: string;
+        type: string;
+        required: boolean;
+        placeholder?: string;
+      }>;
+      default_data?: Record<string, unknown>;
+      tenant_id: string;
+      created_by: string;
+      created_at: Date;
+      updated_at: Date;
+      id: number;
+    }>
+  > {
     const whereClauses: string[] = [];
     const queryParams: unknown[] = [];
     let paramIndex = 1;

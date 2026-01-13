@@ -1449,9 +1449,10 @@ export class DatabaseService {
       updated_by,
       rule_type,
       updated_at,
-      created_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'STATUS_01_IN_PROGRESS'),COALESCE($8, 'ACTIVE'), $9, $10, NOW(), NOW())
-    RETURNING id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, created_at, updated_at
+      created_at,
+      rule_config_id
+    ) VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'STATUS_01_IN_PROGRESS'),COALESCE($8, 'ACTIVE'), $9, $10, NOW(), NOW(), $11)
+    RETURNING id, rule_name, description, tenant_id, txtp, txtp_version, version, status, publishing_status, updated_by, rule_type, created_at, updated_at, rule_config_id
   `;
 
     const values = [
@@ -1465,9 +1466,14 @@ export class DatabaseService {
       ruleData.publishing_status,
       ruleData.updated_by,
       ruleData.rule_type,
+      ruleData.rule_config_id ?? null,
     ];
 
+    // console.log("hitting API for create rule with values:", values);
+
     const result = await this.dbClient.query(query, values);
+
+    // console.log("create rule result:", result.rows[0]);
 
     if (result.rows.length === 0) {
       throw new Error('Failed to create rule: No data returned');
@@ -1476,6 +1482,7 @@ export class DatabaseService {
     return result.rows[0];
   }
 
+  // i need to understand this part more
   async updateRule(
     ruleId: string,
     tenantId: string,

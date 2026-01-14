@@ -1672,131 +1672,59 @@ export class DatabaseService {
   }
 
   async createNode(
-    nodeData: Array<{
-      name: string;
-      node_type: string;
-      label: string;
-      description: string;
-      type: string;
-      category: string;
-      color: string;
-      handles: {
-        source: boolean;
-        target: boolean;
-      };
-      inputs: Array<{
-        key: string;
-        label: string;
-        type: string;
-        required: boolean;
-        placeholder?: string;
-      }>;
-      code_template: string;
-      default_data?: Record<string, unknown>;
-      tenant_id: string;
-      created_by: string;
-    }>,
-  ): Promise<
-    Array<{
-      name: string;
-      node_type: string;
-      label: string;
-      description: string;
-      type: string;
-      color: string;
-      category: string;
-      code_template: string;
-      handles: {
-        source: boolean;
-        target: boolean;
-      };
-      inputs: Array<{
-        key: string;
-        label: string;
-        type: string;
-        required: boolean;
-        placeholder?: string;
-      }>;
-      default_data?: Record<string, unknown>;
-      tenant_id: string;
-      created_by: string;
-      created_at: Date;
-      updated_at: Date;
-      id: number;
-    }>
-  > {
+    nodeData: Array<{ tenant_id: string; node_json: Record<string, unknown>; created_by: string }>,
+  ): Promise<Array<{ tenant_id: string; node_json: Record<string, unknown>; created_by: string }>> {
     const nodes = Array.isArray(nodeData) ? nodeData : [nodeData];
 
     if (nodes.length === 0) {
       throw new Error('No node data provided');
     }
 
-    const findNodeAlreadyExists = async (name: string, tenantId: string): Promise<boolean> => {
-      const query = `
+    const isNodeExist = nodes.map(async (node) => {
+      const nodeDetails = node.node_json;
+      const nodeName = nodeDetails.name as string;
+
+      if (!nodeName) {
+        throw new Error('Node name is missing in node_json for one of the nodes');
+      }
+
+      const findQuery = `
         SELECT id FROM nodes
-        WHERE name = $1 AND tenant_id = $2
+        WHERE (node_json->>'name') = $1 AND tenant_id = $2
         LIMIT 1
       `;
-      const result = await this.dbClient.query(query, [name, tenantId]);
-      return result.rows.length > 0;
-    };
+      const result = await this.dbClient.query(findQuery, [nodeName, node.tenant_id]);
 
-    if (nodes.length === 1) {
-      nodes.map(async (node) => {
-        const exists = await findNodeAlreadyExists(node.name, node.tenant_id);
-        if (exists) {
-          throw new Error(
-            `Node with name "${node.name}" already exists for tenant "${node.tenant_id}"`,
-          );
-        }
-      });
-    }
-    // Build values placeholders for batch insert (without id - auto-generated)
-    const valuesPerNode = 10; // name, description, type, color, label, category, code_template, default_data, tenant_id, created_by
+      if (result.rows.length > 0) {
+        throw new Error(
+          `Node with name "${nodeName}" already exists for tenant "${node.tenant_id}"`,
+        );
+      }
+    });
+
+    await Promise.all(isNodeExist);
+
+    // Build values placeholders for batch insert
+    const valuesPerNode = 3;
     const valuePlaceholders = nodes
       .map((_, index) => {
         const offset = index * valuesPerNode;
-        return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, NOW(), NOW())`;
+        return `($${offset + 1}, $${offset + 2}, $${offset + 3}, NOW(), NOW())`;
       })
       .join(', ');
 
     const query = `
       INSERT INTO nodes (
-        name,
-        node_type,
-        label,
-        description,
-        type,
-        category,
-        color,
-        handles,
-        inputs,
-        code_template,
-        default_data,
+        node_json,
         tenant_id,
         created_by,
         updated_at,
         created_at
       ) VALUES ${valuePlaceholders}
-      RETURNING id, name, description, type, color, label, category, code_template, default_data, tenant_id, created_by, created_at, updated_at
+      RETURNING id, node_json, tenant_id, created_by, created_at, updated_at
     `;
 
-    // Flatten all node data into a single array of values
-    const values = nodes.flatMap((node) => [
-      node.name,
-      node.node_type,
-      node.label,
-      node.description,
-      node.type,
-      node.category,
-      node.color,
-      node.handles,
-      node.inputs,
-      node.code_template,
-      node.default_data ? JSON.stringify(node.default_data) : null,
-      node.tenant_id,
-      node.created_by,
-    ]);
+    const values = nodes.flatMap((node) => [node.node_json, node.tenant_id, node.created_by]);
 
     const result = await this.dbClient.query(query, values);
 
@@ -1950,6 +1878,21 @@ export class DatabaseService {
     }
 
     return result.rows[0];
+  }
+
+  async executeSelectQuery(query: string, params: any[] = []): Promise<any[]> {
+    const trimmedQuery = query.trim().toUpperCase();
+    if (!trimmedQuery.startsWith('SELECT')) {
+      throw new Error('Only SELECT queries are allowed.');
+    }
+
+    try {
+      const result = await this.dbClient.query(query, params);
+      return result.rows;
+    } catch (error) {
+      const err = error as Error;
+      throw new Error(`Failed to execute query: ${err.message}`, { cause: error });
+    }
   }
   async close(): Promise<void> {
     await this.dbClient.end();

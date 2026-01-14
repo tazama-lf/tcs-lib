@@ -1889,64 +1889,66 @@ describe('DatabaseService', () => {
     it('should create multiple nodes and return an array of inserted rows', async () => {
       const nodes = [
         {
-          name: 'Custom Code Node',
-          node_type: 'Code',
-          label: 'Custom Code',
-          description: 'Executes custom JavaScript/TypeScript code',
-          type: 'basic',
-          category: 'rule_builder',
-          color: '#607D8B',
-          handles: {
-            source: true,
-            target: true,
-          },
-          inputs: [
-            {
-              key: 'code',
-              label: 'Code',
-              type: 'textarea',
-              defaultValue: "console.log('Hello');",
-              required: true,
-              placeholder: 'Enter custom code',
+          node_json: {
+            name: 'Custom Code Node',
+            node_type: 'Code',
+            label: 'Custom Code',
+            description: 'Executes custom JavaScript/TypeScript code',
+            type: 'basic',
+            category: 'rule_builder',
+            color: '#607D8B',
+            handles: {
+              source: true,
+              target: true,
             },
-          ],
-          code_template: "${params.code || '// Custom code'}",
-          default_data: {
-            code: "console.log('Hello');",
+            inputs: [
+              {
+                key: 'code',
+                label: 'Code',
+                type: 'textarea',
+                defaultValue: "console.log('Hello');",
+                required: true,
+                placeholder: 'Enter custom code',
+              },
+            ],
+            code_template: "${params.code || '// Custom code'}",
+            default_data: {
+              code: "console.log('Hello');",
+            },
           },
           tenant_id: 'cbe',
           created_by: 'tester-user',
         },
         {
-          name: 'Error Throwing Node',
-          node_type: 'ThrowError',
-          label: 'Throw Error',
-          description: 'Throws an error with a custom message to halt execution',
-          type: 'basic',
-          category: 'rule_builder',
-          color: '#E91E63',
-          handles: {
-            source: true,
-            target: true,
-          },
-          inputs: [
-            {
-              key: 'text',
-              label: 'Error Message',
-              type: 'text',
-              defaultValue: "'Error occurred'",
-              required: true,
-              placeholder: 'Enter error message',
+          node_json: {
+            name: 'Error Throwing Node',
+            node_type: 'ThrowError',
+            label: 'Throw Error',
+            description: 'Throws an error with a custom message to halt execution',
+            type: 'basic',
+            category: 'rule_builder',
+            color: '#E91E63',
+            handles: {
+              source: true,
+              target: true,
             },
-          ],
-          code_template: "throw new Error('${params.text || 'Error occurred'}');",
-          default_data: {
-            text: "'Error occurred'",
+            inputs: [
+              {
+                key: 'text',
+                label: 'Error Message',
+                type: 'text',
+                defaultValue: "'Error occurred'",
+                required: true,
+                placeholder: 'Enter error message',
+              },
+            ],
+            code_template: "throw new Error('${params.text || 'Error occurred'}');",
+            default_data: {
+              text: "'Error occurred'",
+            },
           },
           tenant_id: 'cbe',
           created_by: 'tester-user',
-          created_at: '2026-01-08T00:00:00.000Z',
-          updated_at: '2026-01-08T00:00:00.000Z',
         },
       ];
 

@@ -1887,87 +1887,74 @@ describe('DatabaseService', () => {
 
   describe('createNode', () => {
     it('should create multiple nodes and return an array of inserted rows', async () => {
-      const nodes = [
+      const nodeData = [
         {
+          tenant_id: 'cbe',
+          created_by: 'test-user',
           node_json: {
             name: 'Custom Code Node',
-            node_type: 'Code',
-            label: 'Custom Code',
-            description: 'Executes custom JavaScript/TypeScript code',
-            type: 'basic',
-            category: 'rule_builder',
-            color: '#607D8B',
+            description: 'A node for executing custom JavaScript code.',
+            type: 'custom',
+            color: '#FFD700',
+            category: 'Custom',
+            code_template: 'return { output: "Hello, World!" };',
             handles: {
               source: true,
               target: true,
             },
             inputs: [
               {
-                key: 'code',
-                label: 'Code',
-                type: 'textarea',
-                defaultValue: "console.log('Hello');",
+                key: 'input1',
+                label: 'Input 1',
+                type: 'string',
                 required: true,
-                placeholder: 'Enter custom code',
               },
             ],
-            code_template: "${params.code || '// Custom code'}",
             default_data: {
-              code: "console.log('Hello');",
+              input1: 'default value',
             },
           },
-          tenant_id: 'cbe',
-          created_by: 'tester-user',
         },
         {
+          tenant_id: 'cbe',
+          created_by: 'test-user',
           node_json: {
-            name: 'Error Throwing Node',
-            node_type: 'ThrowError',
-            label: 'Throw Error',
-            description: 'Throws an error with a custom message to halt execution',
-            type: 'basic',
-            category: 'rule_builder',
-            color: '#E91E63',
+            name: 'Another Node',
+            description: 'Another custom node.',
+            type: 'custom',
+            color: '#00BFFF',
+            category: 'Custom',
+            code_template: 'return { result: "Done" };',
             handles: {
               source: true,
-              target: true,
+              target: false,
             },
-            inputs: [
-              {
-                key: 'text',
-                label: 'Error Message',
-                type: 'text',
-                defaultValue: "'Error occurred'",
-                required: true,
-                placeholder: 'Enter error message',
-              },
-            ],
-            code_template: "throw new Error('${params.text || 'Error occurred'}');",
-            default_data: {
-              text: "'Error occurred'",
-            },
+            inputs: [],
           },
-          tenant_id: 'cbe',
-          created_by: 'tester-user',
         },
       ];
 
-      (mockPool.query as jest.Mock).mockResolvedValue({
-        rows: [
-          { id: 10, ...nodes[0] },
-          { id: 11, ...nodes[1] },
-        ],
-        rowCount: 2,
+      const insertedRows = nodeData.map((node, index) => ({
+        id: index + 1,
+        ...node,
+        created_at: new Date(),
+        updated_at: new Date(),
+      }));
+
+      // Mock the existence check to return no existing nodes
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [], rowCount: 0 });
+      // Mock the second existence check for the second node
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({ rows: [], rowCount: 0 });
+      // Mock the final insert query
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({
+        rows: insertedRows,
+        rowCount: insertedRows.length,
       });
 
-      const result = await databaseService.createNode(nodes as any);
+      const result = await databaseService.createNode(nodeData as any);
 
-      expect(Array.isArray(result)).toBe(true);
-      expect(result).toHaveLength(2);
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO nodes'),
-        expect.any(Array),
-      );
+      expect(result).toEqual(insertedRows);
+      expect(mockPool.query).toHaveBeenCalledTimes(3); // 2 existence checks + 1 insert
     });
   });
 

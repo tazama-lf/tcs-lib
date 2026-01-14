@@ -1396,7 +1396,7 @@ export class DatabaseService {
     const ruleRequestQuery = `
       SELECT rulerequest, rule_config_id
       FROM trs_rules
-      WHERE rule_config_id = $1 AND tenant_id = $2
+      WHERE id = $1 AND tenant_id = $2
     `;
 
     const ruleRequestResult = await this.dbClient.query(ruleRequestQuery, [ruleId, tenantId]);

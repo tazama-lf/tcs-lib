@@ -1752,28 +1752,15 @@ export class DatabaseService {
     }
   }
 
-  async findAllNodes(query: { tenantId?: string; type?: string; category?: string }): Promise<
+  async findAllNodes(query: {
+    tenantId?: string;
+    type?: string;
+    category?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<
     Array<{
-      name: string;
-      node_type: string;
-      label: string;
-      description: string;
-      type: string;
-      color: string;
-      category: string;
-      code_template: string;
-      handles: {
-        source: boolean;
-        target: boolean;
-      };
-      inputs: Array<{
-        key: string;
-        label: string;
-        type: string;
-        required: boolean;
-        placeholder?: string;
-      }>;
-      default_data?: Record<string, unknown>;
+      node_json: Record<string, unknown>;
       tenant_id: string;
       created_by: string;
       created_at: Date;
@@ -1786,30 +1773,35 @@ export class DatabaseService {
     let paramIndex = 1;
 
     if (query.tenantId) {
+      whereClauses.push(`tenant_id IN ($${paramIndex}, $${paramIndex + 1})`);
+      queryParams.push('default', query.tenantId);
+      paramIndex += 2;
+    } else {
       whereClauses.push(`tenant_id = $${paramIndex}`);
-      queryParams.push(query.tenantId);
+      queryParams.push('default');
       paramIndex += 1;
     }
 
     if (query.type) {
-      whereClauses.push(`type = $${paramIndex}`);
+      whereClauses.push(`node_json->>'type' = $${paramIndex}`);
       queryParams.push(query.type);
       paramIndex += 1;
     }
 
     if (query.category) {
-      whereClauses.push(`category = $${paramIndex}`);
+      whereClauses.push(`node_json->>'category' = $${paramIndex}`);
       queryParams.push(query.category);
     }
 
-    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const whereClause = `WHERE ${whereClauses.join(' AND ')}`;
+
+    const sortBy = query.sortBy ?? 'created_at';
+    const sortOrder = query.sortOrder ?? 'desc';
 
     const dbquery = `
-      SELECT id, name, description, type, color, label, category, code_template, default_data, tenant_id, created_by, created_at, updated_at
-      FROM nodes
-      ${whereClause}
-      ORDER BY created_at DESC
+      SELECT * FROM nodes ${whereClause} ORDER BY ${sortBy} ${sortOrder}
     `;
+
     const result = await this.dbClient.query(dbquery, queryParams);
     return result.rows;
   }

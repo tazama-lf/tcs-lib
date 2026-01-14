@@ -1969,7 +1969,9 @@ describe('DatabaseService', () => {
       const result = await databaseService.findAllNodes({} as any);
 
       expect(result).toHaveLength(2);
-      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('FROM nodes'), []);
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('FROM nodes'), [
+        'default',
+      ]);
     });
 
     it('should apply filters for tenantId, type and category', async () => {
@@ -1984,6 +1986,7 @@ describe('DatabaseService', () => {
 
       expect(result).toHaveLength(1);
       expect(mockPool.query).toHaveBeenCalledWith(expect.any(String), [
+        'default',
         'default',
         'basic',
         'rule_builder',

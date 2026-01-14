@@ -1555,14 +1555,15 @@ export class DatabaseService {
     ruleId: string,
     tenantId: string,
     status: string,
+    reason: string,
   ): Promise<{ success: boolean; message: string }> {
     const query = `
       UPDATE trs_rules
-      SET status = $1, updated_at = NOW()
-      WHERE id = $2 AND tenant_id = $3
+      SET status = $1, comments = $2, updated_at = NOW()
+      WHERE id = $3 AND tenant_id = $4
     `;
 
-    const result = await this.dbClient.query(query, [status, ruleId, tenantId]);
+    const result = await this.dbClient.query(query, [status, reason, ruleId, tenantId]);
 
     if (result.rowCount === 0) {
       throw new Error(`Rule with id "${ruleId}" not found or status not updated`);
@@ -1570,7 +1571,7 @@ export class DatabaseService {
 
     return {
       success: true,
-      message: `Rule with id "${ruleId}" successfully updated to status "${status}"`,
+      message: `Rule with id "${ruleId}" successfully updated to status "${status}" with reason "${reason}"`,
     };
   }
 

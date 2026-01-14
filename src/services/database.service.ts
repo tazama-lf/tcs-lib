@@ -1394,7 +1394,7 @@ export class DatabaseService {
     configuration: any;
   } | null> {
     const ruleRequestQuery = `
-      SELECT rulerequest
+      SELECT rulerequest, rule_config_id
       FROM trs_rules
       WHERE rule_config_id = $1 AND tenant_id = $2
     `;
@@ -1405,13 +1405,18 @@ export class DatabaseService {
       return null;
     }
 
+    const ruleConfigId = ruleRequestResult.rows[0].rule_config_id;
+
     const configurationQuery = `
       SELECT configuration
       FROM rule
       WHERE "ruleid" = $1 AND "tenantid" = $2
     `;
 
-    const configurationResult = await this.dbClient.query(configurationQuery, [ruleId, tenantId]);
+    const configurationResult = await this.dbClient.query(configurationQuery, [
+      ruleConfigId,
+      tenantId,
+    ]);
 
     if (configurationResult.rows.length === 0) {
       return null;

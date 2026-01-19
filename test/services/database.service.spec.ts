@@ -1885,12 +1885,14 @@ describe('DatabaseService', () => {
     });
   });
 
+  // -----------------Nodes----------------------
   describe('createNode', () => {
     it('should create multiple nodes and return an array of inserted rows', async () => {
       const nodeData = [
         {
           tenant_id: 'cbe',
           created_by: 'test-user',
+          order: 1,
           node_json: {
             name: 'Custom Code Node',
             description: 'A node for executing custom JavaScript code.',
@@ -1918,6 +1920,7 @@ describe('DatabaseService', () => {
         {
           tenant_id: 'cbe',
           created_by: 'test-user',
+          order: 2,
           node_json: {
             name: 'Another Node',
             description: 'Another custom node.',
@@ -1994,86 +1997,6 @@ describe('DatabaseService', () => {
     });
   });
 
-  describe('createRuleFlow', () => {
-    it('should create rule flow successfully', async () => {
-      const flowData = {
-        rule_id: '12',
-        flow_json: {
-          nodes: [
-            {
-              id: 'node-1',
-              type: 'Start',
-              label: 'Start',
-              params: {},
-              position: { x: 100, y: 50 },
-            },
-            {
-              id: 'node-2',
-              type: 'HandleTransaction',
-              label: 'Handle Transaction',
-              params: {},
-              position: { x: 100, y: 200 },
-              nestedFlow: {
-                nodes: [
-                  {
-                    id: 'nested-node-1',
-                    type: 'Start',
-                    label: 'Start',
-                    params: {},
-                    position: { x: 100, y: 50 },
-                  },
-                  {
-                    id: 'nested-node-2',
-                    type: 'End',
-                    label: 'End',
-                    params: {},
-                    position: { x: 100, y: 300 },
-                  },
-                ],
-                edges: [],
-              },
-            },
-            {
-              id: 'node-3',
-              type: 'End',
-              label: 'End',
-              params: {},
-              position: { x: 100, y: 350 },
-            },
-          ],
-          edges: [
-            { id: 'edge-1', source: 'node-1', target: 'node-2' },
-            { id: 'edge-2', source: 'node-2', target: 'node-3' },
-          ],
-        },
-      };
-
-      // Mock the dbClient.query response
-      (mockPool.query as jest.Mock).mockResolvedValue({
-        rows: [
-          {
-            rule_id: flowData.rule_id,
-            flow_json: flowData.flow_json,
-          },
-        ],
-      });
-
-      const result = await databaseService.createRuleFlow(flowData as any);
-
-      expect(Array.isArray(result)).toBe(true);
-      expect(result).toHaveLength(1); // one row returned
-      expect(result[0]).toMatchObject({
-        rule_id: flowData.rule_id,
-        flow_json: flowData.flow_json,
-      });
-
-      expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO trs_rule_flow'),
-        [flowData.rule_id, JSON.stringify(flowData.flow_json)],
-      );
-    });
-  });
-
   describe('deleteNodeById', () => {
     it('should delete a node by its ID and tenant ID', async () => {
       const nodeId = 123;
@@ -2111,6 +2034,88 @@ describe('DatabaseService', () => {
       await expect(databaseService.deleteNodeById(nodeId, tenantId)).rejects.toThrow(
         `Node with id "${nodeId}" not found for tenant "${tenantId}"`,
       );
+    });
+  });
+
+  describe('createRuleFlow', () => {
+    it('should create rule flow successfully', async () => {
+      const flowData = {
+        rule_id: '1',
+        flow_json: { key: 'value' },
+      };
+      const mockRow = {
+        id: 1,
+        rule_id: '1',
+        flow_json: { key: 'value' },
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: [mockRow],
+        rowCount: 1,
+      });
+
+      const result = await databaseService.createRuleFlow(flowData);
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).not.toBeNull();
+      expect(result).toHaveLength(1);
+      expect(result![0]).toMatchObject({
+        id: expect.any(Number),
+        rule_id: flowData.rule_id,
+        flow_json: flowData.flow_json,
+        created_at: expect.any(Date),
+        updated_at: expect.any(Date),
+      });
+
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO trs_rule_flow'),
+        [flowData.rule_id, JSON.stringify(flowData.flow_json)],
+      );
+    });
+  });
+
+  describe('updateRuleFlow', () => {
+    it('should update rule flow successfully', async () => {
+      const flowData = {
+        rule_id: '1',
+        flow_json: { key: 'value' },
+        ts_file_base64: 'base64string',
+      };
+      const mockRow = {
+        id: 1,
+        rule_id: '1',
+        flow_json: { key: 'value' },
+        ts_file_base64: 'base64string',
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: [mockRow],
+        rowCount: 1,
+      });
+
+      const result = await databaseService.updateRuleFlow(flowData.rule_id, flowData as any);
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).not.toBeNull();
+      expect(result).toHaveLength(1); // one row returned
+      expect(result![0]).toMatchObject({
+        id: expect.any(Number),
+        rule_id: flowData.rule_id,
+        flow_json: flowData.flow_json,
+        ts_file_base64: flowData.ts_file_base64,
+        created_at: expect.any(Date),
+        updated_at: expect.any(Date),
+      });
+
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('UPDATE trs_rule_flow'), [
+        flowData.rule_id,
+        JSON.stringify(flowData.flow_json),
+        flowData.ts_file_base64,
+      ]);
     });
   });
 });

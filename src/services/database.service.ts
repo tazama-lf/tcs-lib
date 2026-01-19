@@ -1,6 +1,6 @@
 /* eslint-disable max-lines -- Database service contains comprehensive CRUD operations for multiple entities (configs, jobs, schedules) requiring significant code */
 import type { Pool, PoolClient } from 'pg';
-
+import { HttpException, HttpStatus } from '@nestjs/common';
 import {
   ConfigType,
   type ISuccess,
@@ -1214,7 +1214,7 @@ export class DatabaseService {
     // const result = await this.dbClient.query(query, values);
 
     // if (result.rows.length === 0) {
-    //   throw new Error('Rule not found or could not be cloned');
+    //   throw new HttpException('Rule not found or could not be cloned', HttpStatus.NOT_FOUND);
     // }
 
     // return result.rows[0];
@@ -1481,7 +1481,10 @@ export class DatabaseService {
     // console.log("create rule result:", result.rows[0]);
 
     if (result.rows.length === 0) {
-      throw new Error('Failed to create rule: No data returned');
+      throw new HttpException(
+        'Failed to create rule: No data returned',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     return result.rows[0];
@@ -1566,7 +1569,10 @@ export class DatabaseService {
     const result = await this.dbClient.query(query, [status, reason, ruleId, tenantId]);
 
     if (result.rowCount === 0) {
-      throw new Error(`Rule with id "${ruleId}" not found or status not updated`);
+      throw new HttpException(
+        `Rule with id "${ruleId}" not found or status not updated`,
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     return {
@@ -1610,7 +1616,10 @@ export class DatabaseService {
 
   async getPayloadByTransactionType(transactionType: string, tenantId: string): Promise<any> {
     if (!transactionType || !tenantId) {
-      throw new Error('Transaction type and tenant ID are required');
+      throw new HttpException(
+        'Transaction type and tenant ID are required',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const query = `
@@ -1626,7 +1635,13 @@ export class DatabaseService {
       return result.rows[0].payload;
     } catch (error) {
       const err = error as Error;
-      throw new Error(`Failed to fetch config payload: ${err.message}`, { cause: error });
+      throw new HttpException(
+        `Failed to fetch config payload: ${err.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        {
+          cause: error,
+        },
+      );
     }
   }
 
@@ -1635,7 +1650,10 @@ export class DatabaseService {
     tenantId: string,
   ): Promise<{ schema: any; mapping: any }> {
     if (!transactionType || !tenantId) {
-      throw new Error('Transaction type and tenant ID are required');
+      throw new HttpException(
+        'Transaction type and tenant ID are required',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const query = `
@@ -1650,7 +1668,13 @@ export class DatabaseService {
       return { schema: result.rows[0].schema, mapping: result.rows[0].mapping };
     } catch (error) {
       const err = error as Error;
-      throw new Error(`Failed to fetch config schema: ${err.message}`, { cause: error });
+      throw new HttpException(
+        `Failed to fetch config schema: ${err.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        {
+          cause: error,
+        },
+      );
     }
   }
 
@@ -1669,8 +1693,9 @@ export class DatabaseService {
     }
 
     if (result.rows.length > 1) {
-      throw new Error(
+      throw new HttpException(
         `Multiple active network maps found for tenant ${tenantId}. Expected only one active network map.`,
+        HttpStatus.CONFLICT,
       );
     }
 
@@ -1678,39 +1703,55 @@ export class DatabaseService {
   }
 
   async createNode(
-    nodeData: Array<{ tenant_id: string; node_json: Record<string, unknown>; created_by: string }>,
-  ): Promise<Array<{ tenant_id: string; node_json: Record<string, unknown>; created_by: string }>> {
+    nodeData: Array<{
+      tenant_id: string;
+      node_json: Record<string, unknown>;
+      created_by: string;
+      order: number;
+    }>,
+  ): Promise<
+    Array<{
+      tenant_id: string;
+      node_json: Record<string, unknown>;
+      created_by: string;
+      id: number;
+      created_at: Date;
+      updated_at: Date;
+      order: number;
+    }>
+  > {
     const nodes = Array.isArray(nodeData) ? nodeData : [nodeData];
 
     if (nodes.length === 0) {
-      throw new Error('No node data provided');
+      throw new HttpException('No node data provided', HttpStatus.BAD_REQUEST);
     }
 
-    const isNodeExist = nodes.map(async (node) => {
-      const nodeDetails = node.node_json;
-      const nodeName = nodeDetails.name as string;
+    const validationPromises = nodes.map(async (node) => {
+      const nodeName = node.node_json.name as string;
 
       if (!nodeName) {
-        throw new Error('Node name is missing in node_json for one of the nodes');
+        throw new HttpException(
+          `Node name is required in node_json for tenant "${node.tenant_id}"`,
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       const findQuery = `
-        SELECT id FROM nodes
-        WHERE (node_json->>'name') = $1 AND tenant_id = $2
-        LIMIT 1
-      `;
+      SELECT id FROM nodes
+      WHERE (node_json->>'name') = $1 AND tenant_id = $2 
+      LIMIT 1
+    `;
       const result = await this.dbClient.query(findQuery, [nodeName, node.tenant_id]);
 
       if (result.rows.length > 0) {
-        throw new Error(
+        throw new HttpException(
           `Node with name "${nodeName}" already exists for tenant "${node.tenant_id}"`,
+          HttpStatus.CONFLICT,
         );
       }
     });
+    await Promise.all(validationPromises);
 
-    await Promise.all(isNodeExist);
-
-    // Build values placeholders for batch insert
     const valuesPerNode = 3;
     const valuePlaceholders = nodes
       .map((_, index) => {
@@ -1735,7 +1776,10 @@ export class DatabaseService {
     const result = await this.dbClient.query(query, values);
 
     if (result.rows.length === 0) {
-      throw new Error('Failed to create node(s): No data returned');
+      throw new HttpException(
+        'Failed to create node(s): No data returned',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     return result.rows;
@@ -1836,7 +1880,10 @@ export class DatabaseService {
     ]);
 
     if (result.rows.length === 0) {
-      throw new Error('Failed to create rule flow: No data returned');
+      throw new HttpException(
+        'Failed to create rule flow: No data returned',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     return result.rows;
@@ -1859,17 +1906,32 @@ export class DatabaseService {
     return result.rows[0];
   }
 
-  async updateRuleFlow(ruleId: string, flowData: Record<string, unknown>): Promise<any> {
+  async updateRuleFlow(
+    ruleId: string,
+    flowData: { flow_json: Record<string, unknown>; ts_file_base64?: string },
+  ): Promise<{
+    id: number;
+    rule_id: string;
+    flow_json: Record<string, unknown>;
+    ts_file_base64?: string;
+    created_at: Date;
+    updated_at: Date;
+  } | null> {
     const query = `
       UPDATE trs_rule_flow
       SET 
         flow_json = $2,
+        ts_file_base64 = $3,
         updated_at = NOW()
       WHERE rule_id = $1
-      RETURNING id, rule_id, flow_json, created_at, updated_at;
+      RETURNING id, rule_id, flow_json, ts_file_base64, created_at, updated_at;
     `;
 
-    const result = await this.dbClient.query(query, [ruleId, JSON.stringify(flowData)]);
+    const result = await this.dbClient.query(query, [
+      ruleId,
+      JSON.stringify(flowData.flow_json),
+      flowData.ts_file_base64,
+    ]);
 
     if (result.rows.length === 0) {
       return null;
@@ -1889,7 +1951,11 @@ export class DatabaseService {
       return result.rows;
     } catch (error) {
       const err = error as Error;
-      throw new Error(`Failed to execute query: ${err.message}`, { cause: error });
+      throw new HttpException(
+        `Failed to execute query: ${err.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        { cause: error },
+      );
     }
   }
   async close(): Promise<void> {

@@ -1909,14 +1909,17 @@ export class DatabaseService {
   async updateRuleFlow(
     ruleId: string,
     flowData: { flow_json: Record<string, unknown>; ts_file_base64?: string },
-  ): Promise<{
-    id: number;
-    rule_id: string;
-    flow_json: Record<string, unknown>;
-    ts_file_base64?: string;
-    created_at: Date;
-    updated_at: Date;
-  } | null> {
+  ): Promise<
+    | Array<{
+        id: number;
+        rule_id: string;
+        flow_json: Record<string, unknown>;
+        ts_file_base64?: string;
+        created_at: Date;
+        updated_at: Date;
+      }>
+    | []
+  > {
     const query = `
       UPDATE trs_rule_flow
       SET 
@@ -1934,10 +1937,10 @@ export class DatabaseService {
     ]);
 
     if (result.rows.length === 0) {
-      return null;
+      return [];
     }
 
-    return result.rows[0];
+    return result.rows;
   }
 
   async executeSelectQuery(query: string, params: any[] = []): Promise<any[]> {

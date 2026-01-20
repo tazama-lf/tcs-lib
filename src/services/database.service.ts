@@ -77,7 +77,7 @@ export class DatabaseService {
           config.tenantId,
           config.createdBy,
           config.publishing_status ?? 'inactive',
-          JSON.stringify(config.payload),
+          this.serializePayloadByContentType(config.payload, config.contentType),
         ]
       : [
           config.msgFam,
@@ -92,7 +92,7 @@ export class DatabaseService {
           config.tenantId,
           config.createdBy,
           config.publishing_status ?? 'inactive',
-          JSON.stringify(config.payload),
+          this.serializePayloadByContentType(config.payload, config.contentType),
         ];
 
     const result = await this.dbClient.query(query, values);
@@ -403,9 +403,33 @@ export class DatabaseService {
         row.payload === null
           ? null
           : typeof row.payload === 'string'
-            ? JSON.parse(row.payload)
+            ? this.parsePayloadByContentType(row.payload, row.content_type)
             : row.payload,
     };
+  }
+
+  private parsePayloadByContentType(
+    payload: string,
+    contentType?: string,
+  ): string | Record<string, unknown> {
+    try {
+      const parsed = JSON.parse(payload);
+
+      if (contentType === 'application/xml' && typeof parsed === 'string') {
+        return parsed;
+      }
+
+      return parsed;
+    } catch {
+      return payload;
+    }
+  }
+
+  private serializePayloadByContentType(payload: unknown, contentType?: string): string | null {
+    if (payload === null || payload === undefined) {
+      return null;
+    }
+    return JSON.stringify(payload);
   }
 
   // ==================== GENERAL DE OPERATIONS ====================

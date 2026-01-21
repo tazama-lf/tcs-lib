@@ -1,6 +1,6 @@
 /* eslint-disable max-lines -- Database service contains comprehensive CRUD operations for multiple entities (configs, jobs, schedules) requiring significant code */
 import type { Pool, PoolClient } from 'pg';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus } from '../utils/error';
 import {
   ConfigType,
   type ISuccess,
@@ -1817,7 +1817,10 @@ export class DatabaseService {
     const result = await this.dbClient.query(query, [nodeId, tenantId]);
 
     if (result.rowCount === 0) {
-      throw new Error(`Node with id "${nodeId}" not found for tenant "${tenantId}"`);
+      throw new HttpException(
+        `Node with id "${nodeId}" not found for tenant "${tenantId}"`,
+        HttpStatus.NOT_FOUND,
+      );
     }
   }
 

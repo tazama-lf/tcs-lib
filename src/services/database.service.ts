@@ -1453,7 +1453,7 @@ export class DatabaseService {
   }
 
   async createRule(ruleData: {
-    rule_name: string;
+    rule_name?: string;
     description: string;
     tenant_id: string;
     txtp: string;
@@ -1485,7 +1485,7 @@ export class DatabaseService {
   `;
 
     const values = [
-      ruleData.rule_name,
+      ruleData.rule_name ?? null,
       ruleData.description,
       ruleData.tenant_id,
       ruleData.txtp,

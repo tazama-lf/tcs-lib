@@ -1970,14 +1970,61 @@ export class DatabaseService {
     return result.rows;
   }
 
-  async executeSelectQuery(query: string, params: any[] = []): Promise<any[]> {
-    const trimmedQuery = query.trim().toUpperCase();
-    if (!trimmedQuery.startsWith('SELECT')) {
+  async executeSelectQuery(query: string, tenantId: string, params: any[] = []): Promise<any[]> {
+    const upperCaseQuery = query.trim().toUpperCase();
+
+    if (!upperCaseQuery.startsWith('SELECT')) {
       throw new Error('Only SELECT queries are allowed.');
     }
 
+    const forbiddenKeywords = ['INSERT', 'DELETE', 'DROP', 'CREATE', 'ALTER', 'TRUNCATE'];
+    if (forbiddenKeywords.some((keyword) => upperCaseQuery.includes(keyword))) {
+      throw new Error('Query contains forbidden keywords.');
+    }
+
+    const fromOrJoinRegex = /\b(?:FROM|JOIN)\s+([a-zA-Z0-9_."]+)/gi;
+    let modifiedQuery = query;
+    let match;
+    const tables = new Set<string>();
+    while ((match = fromOrJoinRegex.exec(query)) !== null) {
+      tables.add(match[1]);
+    }
+
+    if (tables.size > 0) {
+      if (upperCaseQuery.includes('WHERE')) {
+        modifiedQuery = modifiedQuery.replace(/WHERE/gi, `WHERE tenant_id = '${tenantId}' AND`);
+      } else {
+        const lastFromOrJoin = Math.max(
+          ...Array.from(tables).map((table) => query.lastIndexOf(table)),
+        );
+        const tableEndPosition = lastFromOrJoin + Array.from(tables).pop()!.length;
+        const nextClausePosition = query
+          .substring(tableEndPosition)
+          .search(/\b(GROUP|ORDER|LIMIT)\b/i);
+
+        if (nextClausePosition === -1) {
+          modifiedQuery = `${query} WHERE tenant_id = '${tenantId}'`;
+        } else {
+          const insertionPoint = tableEndPosition + nextClausePosition;
+          modifiedQuery = `${query.slice(
+            0,
+            insertionPoint,
+          )}WHERE tenant_id = '${tenantId}' ${query.slice(insertionPoint)}`;
+        }
+      }
+    }
+
+    if (!upperCaseQuery.includes('LIMIT')) {
+      modifiedQuery = modifiedQuery.trim();
+      if (modifiedQuery.endsWith(';')) {
+        modifiedQuery = `${modifiedQuery.slice(0, -1)} LIMIT 5;`;
+      } else {
+        modifiedQuery = `${modifiedQuery} LIMIT 5`;
+      }
+    }
+
     try {
-      const result = await this.dbClient.query(query, params);
+      const result = await this.dbClient.query(modifiedQuery, params);
       return result.rows;
     } catch (error) {
       const err = error as Error;

@@ -2118,4 +2118,93 @@ describe('DatabaseService', () => {
       ]);
     });
   });
+
+  describe('executeSelectQuery', () => {
+    it('should execute a select query and return the results', async () => {
+      const query = 'SELECT * FROM users';
+      const tenantId = 'tenant-1';
+      const params = [];
+      const mockRows = [{ id: 1, name: 'Test User' }];
+
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: mockRows,
+        rowCount: 1,
+      });
+
+      const result = await databaseService.executeSelectQuery(query, tenantId, params);
+
+      expect(result).toEqual(mockRows);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        "SELECT * FROM users WHERE tenant_id = 'tenant-1' LIMIT 5",
+        [],
+      );
+    });
+
+    it('should throw an error for non-SELECT queries', async () => {
+      const query = "INSERT INTO users (name) VALUES ('test')";
+      const tenantId = 'tenant-1';
+      const params = [];
+
+      await expect(databaseService.executeSelectQuery(query, tenantId, params)).rejects.toThrow(
+        'Only SELECT queries are allowed.',
+      );
+    });
+
+    it('should throw an error for queries with forbidden keywords', async () => {
+      const query = 'SELECT * FROM users; DROP TABLE users;';
+      const tenantId = 'tenant-1';
+      const params = [];
+
+      await expect(databaseService.executeSelectQuery(query, tenantId, params)).rejects.toThrow(
+        'Query contains forbidden keywords.',
+      );
+    });
+
+    it('should correctly append tenant_id to a query with an existing WHERE clause', async () => {
+      const query = 'SELECT * FROM users WHERE name = $1';
+      const tenantId = 'tenant-1';
+      const params = ['Test User'];
+      const mockRows = [{ id: 1, name: 'Test User' }];
+
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: mockRows,
+        rowCount: 1,
+      });
+
+      const result = await databaseService.executeSelectQuery(query, tenantId, params);
+
+      expect(result).toEqual(mockRows);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        "SELECT * FROM users WHERE tenant_id = 'tenant-1' AND name = $1 LIMIT 5",
+        params,
+      );
+    });
+
+    it('should limit the results to 5 rows', async () => {
+      const query = 'SELECT * FROM users';
+      const tenantId = 'tenant-1';
+      const params = [];
+      const mockRows = [
+        { id: 1, name: 'User 1' },
+        { id: 2, name: 'User 2' },
+        { id: 3, name: 'User 3' },
+        { id: 4, name: 'User 4' },
+        { id: 5, name: 'User 5' },
+        { id: 6, name: 'User 6' },
+      ];
+
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: mockRows.slice(0, 5),
+        rowCount: 5,
+      });
+
+      const result = await databaseService.executeSelectQuery(query, tenantId, params);
+
+      expect(result.length).toBe(5);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        "SELECT * FROM users WHERE tenant_id = 'tenant-1' LIMIT 5",
+        [],
+      );
+    });
+  });
 });

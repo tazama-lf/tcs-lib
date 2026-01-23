@@ -1201,10 +1201,14 @@ export class DatabaseService {
     validateTableName(transactionType);
     const query = `
       CREATE TABLE IF NOT EXISTS "${transactionType}" (
-        id SERIAL PRIMARY KEY,
-        document JSONB NOT NULL
-      )
-    `;
+    document JSONB NOT NULL,
+    creDtTm TEXT ,
+    messageId TEXT ,
+    endToEndId TEXT ,
+    debtorAccountId TEXT ,
+    creditorAccountId TEXT ,
+    tenantId TEXT
+);`;
     await this.dbClient.query(query);
   }
 
@@ -1212,9 +1216,10 @@ export class DatabaseService {
     validateTableName(tableName);
 
     const query = `CREATE TABLE IF NOT EXISTS "${tableName}" (
-      _key text PRIMARY KEY,
-      data jsonb NOT NULL
-    )`;
+  _key text PRIMARY KEY,
+  data jsonb NOT NULL,
+  tenantId text
+);`;
 
     await this.dbClient.query(query);
   }

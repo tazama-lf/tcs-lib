@@ -1218,7 +1218,8 @@ export class DatabaseService {
     const query = `CREATE TABLE IF NOT EXISTS "${tableName}" (
   _key text PRIMARY KEY,
   data jsonb NOT NULL,
-  tenantId text
+  tenantId text,
+  creDtTm text
 );`;
 
     await this.dbClient.query(query);

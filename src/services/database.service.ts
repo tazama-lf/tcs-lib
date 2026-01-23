@@ -2015,11 +2015,13 @@ export class DatabaseService {
     }
 
     if (!upperCaseQuery.includes('LIMIT')) {
-      modifiedQuery = modifiedQuery.trim();
-      if (modifiedQuery.endsWith(';')) {
-        modifiedQuery = `${modifiedQuery.slice(0, -1)} LIMIT 5;`;
-      } else {
-        modifiedQuery = `${modifiedQuery} LIMIT 5`;
+      const hadSemicolon = modifiedQuery.endsWith(';');
+      if (hadSemicolon) {
+        modifiedQuery = modifiedQuery.slice(0, -1);
+      }
+      modifiedQuery = `${modifiedQuery} LIMIT 5`;
+      if (hadSemicolon) {
+        modifiedQuery = `${modifiedQuery};`;
       }
     }
 

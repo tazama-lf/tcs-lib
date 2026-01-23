@@ -19,6 +19,7 @@ import { ConfigStatus } from '../types/config.types';
 import type { DatabaseConfig } from '../interfaces/database.interfaces';
 import { validateTableName } from './utils';
 import type { RuleEntity } from 'src/interfaces/rule.interfaces';
+import { ContentType } from '../interfaces/core.interfaces';
 export type { AuditLogEntry, DatabaseConfig } from '../interfaces/database.interfaces';
 
 export class DatabaseService {
@@ -46,19 +47,30 @@ export class DatabaseService {
     config: Omit<Config, 'id' | 'createdAt' | 'updatedAt'>,
     id?: number,
   ): Promise<number> {
+    const isXml = config.contentType === ContentType.XML;
+    const payloadColumn = isXml ? 'payload_xml' : 'payload_json';
+    const payloadPlaceholder = isXml ? '$14::xml' : '$14';
+    const payloadValue = isXml
+      ? typeof config.payload === 'string'
+        ? config.payload
+        : null
+      : config.payload && typeof config.payload === 'object'
+        ? config.payload
+        : null;
+
     const query = id
       ? `
       INSERT INTO config (
         id, msg_fam, transaction_type, endpoint_path, version, content_type,
-        schema, mapping, functions, status, tenant_id, created_by, publishing_status, payload
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        schema, mapping, functions, status, tenant_id, created_by, publishing_status, ${payloadColumn}
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, ${payloadPlaceholder})
       RETURNING id
     `
       : `
       INSERT INTO config (
         msg_fam, transaction_type, endpoint_path, version, content_type,
-        schema, mapping, functions, status, tenant_id, created_by, publishing_status, payload
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        schema, mapping, functions, status, tenant_id, created_by, publishing_status, ${payloadColumn}
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, ${isXml ? '$13::xml' : '$13'})
       RETURNING id
     `;
 
@@ -77,7 +89,7 @@ export class DatabaseService {
           config.tenantId,
           config.createdBy,
           config.publishing_status ?? 'inactive',
-          this.serializePayloadByContentType(config.payload, config.contentType),
+          payloadValue,
         ]
       : [
           config.msgFam,
@@ -92,7 +104,7 @@ export class DatabaseService {
           config.tenantId,
           config.createdBy,
           config.publishing_status ?? 'inactive',
-          this.serializePayloadByContentType(config.payload, config.contentType),
+          payloadValue,
         ];
 
     const result = await this.dbClient.query(query, values);
@@ -185,7 +197,7 @@ export class DatabaseService {
     const dataQuery = `
       SELECT id, msg_fam, transaction_type, endpoint_path, version, content_type,
             status, tenant_id, created_by, 
-             created_at, updated_at, publishing_status
+             created_at, updated_at, publishing_status, payload_json, payload_xml
       FROM config
       ${whereClause}
       ORDER BY updated_at DESC
@@ -285,6 +297,21 @@ export class DatabaseService {
       updateFields.push(`publishing_status = $${paramIndex}`);
       paramIndex += 1;
       values.push(updates.publishing_status);
+    }
+
+    if (updates.payload !== undefined) {
+      const isXml = updates.contentType === ContentType.XML;
+      if (isXml) {
+        updateFields.push('payload_xml = $' + paramIndex + '::xml');
+        updateFields.push('payload_json = NULL');
+        paramIndex += 1;
+        values.push(typeof updates.payload === 'string' ? updates.payload : null);
+      } else {
+        updateFields.push('payload_json = $' + paramIndex);
+        updateFields.push('payload_xml = NULL');
+        paramIndex += 1;
+        values.push(typeof updates.payload === 'object' ? updates.payload : null);
+      }
     }
 
     updateFields.push('updated_at = CURRENT_TIMESTAMP');
@@ -399,37 +426,8 @@ export class DatabaseService {
       publishing_status: row.publishing_status,
 
       comments: row.comment ?? row.comments,
-      payload:
-        row.payload === null
-          ? null
-          : typeof row.payload === 'string'
-            ? this.parsePayloadByContentType(row.payload, row.content_type)
-            : row.payload,
+      payload: row.content_type === 'application/xml' ? row.payload_xml : row.payload_json,
     };
-  }
-
-  private parsePayloadByContentType(
-    payload: string,
-    contentType?: string,
-  ): string | Record<string, unknown> {
-    try {
-      const parsed = JSON.parse(payload);
-
-      if (contentType === 'application/xml' && typeof parsed === 'string') {
-        return parsed;
-      }
-
-      return parsed;
-    } catch {
-      return payload;
-    }
-  }
-
-  private serializePayloadByContentType(payload: unknown, contentType?: string): string | null {
-    if (payload === null || payload === undefined) {
-      return null;
-    }
-    return JSON.stringify(payload);
   }
 
   // ==================== GENERAL DE OPERATIONS ====================

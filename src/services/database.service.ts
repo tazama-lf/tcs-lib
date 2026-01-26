@@ -1660,7 +1660,7 @@ export class DatabaseService {
     try {
       const result = await this.dbClient.query(query, [transactionType, tenantId]);
 
-      return result.rows[0].payload;
+      return result.rows[0].payload_json;
     } catch (error) {
       const err = error as Error;
       throw new HttpException(

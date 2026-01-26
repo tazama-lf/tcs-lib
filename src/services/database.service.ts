@@ -1651,7 +1651,7 @@ export class DatabaseService {
     }
 
     const query = `
-      SELECT payload
+      SELECT payload_json
       FROM config
       WHERE transaction_type = $1 AND tenant_id = $2
       LIMIT 1

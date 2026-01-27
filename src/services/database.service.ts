@@ -20,7 +20,7 @@ import type { DatabaseConfig } from '../interfaces/database.interfaces';
 import { validateTableName } from './utils';
 import type { RuleEntity } from 'src/interfaces/rule.interfaces';
 import { ContentType } from '../interfaces/core.interfaces';
-export type { AuditLogEntry, DatabaseConfig } from '../interfaces/database.interfaces';
+export type { DatabaseConfig } from '../interfaces/database.interfaces';
 
 export class DatabaseService {
   private readonly dbClient: Pool;

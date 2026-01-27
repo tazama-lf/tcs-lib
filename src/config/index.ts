@@ -1,6 +1,6 @@
 import type Joi from 'joi';
 
-export const validateConfig = (config: string | number, schema: Joi.ObjectSchema): any => {
+export const validateConfig = (config: string | number, schema: Joi.ObjectSchema): unknown => {
   const { error, value } = schema.validate(config, {
     abortEarly: false,
     allowUnknown: true,

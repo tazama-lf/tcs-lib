@@ -4,15 +4,15 @@
  * @param path The dot-notation path (e.g., 'user.address.street')
  * @returns The value at the specified path, or undefined if not found
  */
-export function getValueByPath(obj: any, path: string): any {
+export function getValueByPath(obj: unknown, path: string): unknown {
   const properties = path.split('.');
-  let current: any = obj;
+  let current: unknown = obj;
 
   for (const prop of properties) {
     if (/^\d+$/.test(prop)) {
-      current = current[parseInt(prop, 10)];
+      current = (current as Record<number, unknown>)[parseInt(prop, 10)];
     } else {
-      current = current?.[prop];
+      current = (current as Record<string, unknown>)[prop];
     }
 
     if (current === undefined || current === null) {

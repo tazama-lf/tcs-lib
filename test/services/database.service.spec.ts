@@ -2206,5 +2206,649 @@ describe('DatabaseService', () => {
         [],
       );
     });
+
+    it('should handle queries ending with semicolon when adding LIMIT', async () => {
+      const query = 'SELECT * FROM users;';
+      const tenantId = 'tenant-1';
+      const params = [];
+      const mockRows = [{ id: 1, name: 'Test User' }];
+
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: mockRows,
+        rowCount: 1,
+      });
+
+      const result = await databaseService.executeSelectQuery(query, tenantId, params);
+
+      expect(result).toEqual(mockRows);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        "SELECT * FROM users; WHERE tenant_id = 'tenant-1' LIMIT 5",
+        [],
+      );
+    });
+
+    it('should preserve existing LIMIT clause', async () => {
+      const query = 'SELECT * FROM users LIMIT 10';
+      const tenantId = 'tenant-1';
+      const params = [];
+      const mockRows = [{ id: 1, name: 'Test User' }];
+
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: mockRows,
+        rowCount: 1,
+      });
+
+      const result = await databaseService.executeSelectQuery(query, tenantId, params);
+
+      expect(result).toEqual(mockRows);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        "SELECT * FROM users WHERE tenant_id = 'tenant-1' LIMIT 10",
+        [],
+      );
+    });
+
+    it('should add WHERE clause before ORDER BY clause', async () => {
+      const query = 'SELECT * FROM users ORDER BY name';
+      const tenantId = 'tenant-1';
+      const params = [];
+      const mockRows = [{ id: 1, name: 'Test User' }];
+
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: mockRows,
+        rowCount: 1,
+      });
+
+      const result = await databaseService.executeSelectQuery(query, tenantId, params);
+
+      expect(result).toEqual(mockRows);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        "SELECT * FROM users WHERE tenant_id = 'tenant-1' ORDER BY name LIMIT 5",
+        [],
+      );
+    });
+
+    it('should add WHERE clause before GROUP BY clause', async () => {
+      const query = 'SELECT category, COUNT(*) FROM products GROUP BY category';
+      const tenantId = 'tenant-1';
+      const params = [];
+      const mockRows = [{ category: 'A', count: 5 }];
+
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: mockRows,
+        rowCount: 1,
+      });
+
+      const result = await databaseService.executeSelectQuery(query, tenantId, params);
+
+      expect(result).toEqual(mockRows);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        "SELECT category, COUNT(*) FROM products WHERE tenant_id = 'tenant-1' GROUP BY category LIMIT 5",
+        [],
+      );
+    });
+
+    it('should handle database errors during query execution', async () => {
+      const query = 'SELECT * FROM users';
+      const tenantId = 'tenant-1';
+      const params = [];
+
+      (mockPool.query as jest.Mock).mockRejectedValue(new Error('Database connection failed'));
+
+      await expect(databaseService.executeSelectQuery(query, tenantId, params)).rejects.toThrow(
+        'Failed to execute query: Database connection failed',
+      );
+    });
+
+    it('should handle queries with no tables detected', async () => {
+      const query = 'SELECT 1 as test';
+      const tenantId = 'tenant-1';
+      const params = [];
+      const mockRows = [{ test: 1 }];
+
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: mockRows,
+        rowCount: 1,
+      });
+
+      const result = await databaseService.executeSelectQuery(query, tenantId, params);
+
+      expect(result).toEqual(mockRows);
+      expect(mockPool.query).toHaveBeenCalledWith('SELECT 1 as test LIMIT 5', []);
+    });
+
+    it('should handle complex JOIN queries with multiple table references', async () => {
+      const query = 'SELECT u.name, p.title FROM users u JOIN posts p ON u.id = p.user_id';
+      const tenantId = 'tenant-1';
+      const params = [];
+      const mockRows = [{ name: 'John', title: 'Post Title' }];
+
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: mockRows,
+        rowCount: 1,
+      });
+
+      const result = await databaseService.executeSelectQuery(query, tenantId, params);
+
+      expect(result).toEqual(mockRows);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        "SELECT u.name, p.title FROM users u JOIN posts p ON u.id = p.user_id WHERE tenant_id = 'tenant-1' LIMIT 5",
+        [],
+      );
+    });
+
+    it('should handle queries with multiple tables in different positions', async () => {
+      const query =
+        'SELECT * FROM orders LEFT JOIN customers ON orders.customer_id = customers.id RIGHT JOIN products ON orders.product_id = products.id';
+      const tenantId = 'tenant-1';
+      const params = [];
+      const mockRows = [{ id: 1, order_date: '2023-01-01' }];
+
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: mockRows,
+        rowCount: 1,
+      });
+
+      const result = await databaseService.executeSelectQuery(query, tenantId, params);
+
+      expect(result).toEqual(mockRows);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        "SELECT * FROM orders LEFT JOIN customers ON orders.customer_id = customers.id RIGHT JOIN products ON orders.product_id = products.id WHERE tenant_id = 'tenant-1' LIMIT 5",
+        [],
+      );
+    });
+  });
+
+  // ==================== RULES (TRS) TEST CASES ====================
+
+  describe('cloneRule', () => {
+    it('should return placeholder message for cloneRule', () => {
+      const result = databaseService.cloneRule(123, 'token123');
+      expect(result).toBe('yet to be done, 123, token123');
+    });
+  });
+
+  describe('findRulesWithFilters', () => {
+    it('should return filtered rules with pagination', async () => {
+      const mockCountResult = { rows: [{ total: '25' }] };
+      const mockDataResult = {
+        rows: [
+          { id: 1, rule_name: 'Rule 1', tenant_id: 'tenant1' },
+          { id: 2, rule_name: 'Rule 2', tenant_id: 'tenant1' },
+        ],
+      };
+
+      mockPool.query.mockResolvedValueOnce(mockCountResult).mockResolvedValueOnce(mockDataResult);
+
+      const result = await databaseService.findRulesWithFilters(
+        10,
+        0,
+        { status: 'active' },
+        'tenant1',
+      );
+
+      expect(result).toEqual({
+        data: mockDataResult.rows,
+        total: 25,
+        limit: 10,
+        offset: 0,
+      });
+      expect(mockPool.query).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle multiple filter parameters', async () => {
+      const mockCountResult = { rows: [{ total: '5' }] };
+      const mockDataResult = { rows: [] };
+
+      mockPool.query.mockResolvedValueOnce(mockCountResult).mockResolvedValueOnce(mockDataResult);
+
+      const filters = {
+        status: 'active,inactive',
+        ruleName: 'test',
+        startDate: '2024-01-01',
+        endDate: '2024-12-31',
+      };
+
+      await databaseService.findRulesWithFilters(20, 1, filters, 'tenant1');
+
+      expect(mockPool.query).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('findRuleById', () => {
+    it('should return rule when found', async () => {
+      const mockRule = { id: 1, rule_name: 'Test Rule', tenant_id: 'tenant1' };
+      mockPool.query.mockResolvedValue({ rows: [mockRule] });
+
+      const result = await databaseService.findRuleById(1, 'tenant1');
+
+      expect(result).toEqual(mockRule);
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('SELECT id, rule_name'), [
+        1,
+        'tenant1',
+      ]);
+    });
+
+    it('should return null when rule not found', async () => {
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      const result = await databaseService.findRuleById(999, 'tenant1');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getVersionsOfTransactionType', () => {
+    it('should return versions array when versions exist', async () => {
+      const mockVersions = { rows: [{ version: '1.0' }, { version: '2.0' }] };
+      mockPool.query.mockResolvedValue(mockVersions);
+
+      const result = await databaseService.getVersionsOfTransactionType('PACS.008', 'tenant1');
+
+      expect(result).toEqual(['1.0', '2.0']);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('SELECT DISTINCT version'),
+        ['PACS.008', 'tenant1'],
+      );
+    });
+
+    it('should return empty array when no versions found', async () => {
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      const result = await databaseService.getVersionsOfTransactionType('UNKNOWN', 'tenant1');
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('saveRuleRequest', () => {
+    it('should save rule request successfully', async () => {
+      mockPool.query.mockResolvedValue({ rowCount: 1 });
+
+      const ruleRequest = { field: 'value' };
+      await databaseService.saveRuleRequest('PACS.008', 'tenant1', ruleRequest);
+
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringMatching(/UPDATE\s+trs_rules\s+SET\s+rulerequest/),
+        [ruleRequest, 'tenant1', 'PACS.008'],
+      );
+    });
+  });
+
+  describe('getGlobalVariables', () => {
+    it('should return global variables when rule and config exist', async () => {
+      const mockRuleResult = {
+        rows: [{ rulerequest: { test: 'data' }, rule_config_id: 'config1' }],
+      };
+      const mockConfigResult = { rows: [{ configuration: { setting: 'value' } }] };
+
+      mockPool.query.mockResolvedValueOnce(mockRuleResult).mockResolvedValueOnce(mockConfigResult);
+
+      const result = await databaseService.getGlobalVariables('rule1', 'tenant1');
+
+      expect(result).toEqual({
+        ruleRequest: { test: 'data' },
+        configuration: { setting: 'value' },
+      });
+      expect(mockPool.query).toHaveBeenCalledTimes(2);
+    });
+
+    it('should return null when rule not found', async () => {
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      const result = await databaseService.getGlobalVariables('nonexistent', 'tenant1');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('createRule', () => {
+    it('should create rule successfully', async () => {
+      const mockCreatedRule = { id: 1, rule_name: 'New Rule', tenant_id: 'tenant1' };
+      mockPool.query.mockResolvedValue({ rows: [mockCreatedRule] });
+
+      const ruleData = {
+        rule_name: 'New Rule',
+        description: 'Test rule',
+        tenant_id: 'tenant1',
+        txtp: 'PACS.008',
+        version: '1.0',
+        updated_by: 'user1',
+        rule_type: 'SCREENING',
+      };
+
+      const result = await databaseService.createRule(ruleData);
+
+      expect(result).toEqual(mockCreatedRule);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO trs_rules'),
+        expect.arrayContaining(['New Rule', 'Test rule', 'tenant1']),
+      );
+    });
+
+    it('should throw error when creation fails', async () => {
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      const ruleData = {
+        description: 'Test rule',
+        tenant_id: 'tenant1',
+        txtp: 'PACS.008',
+        version: '1.0',
+        updated_by: 'user1',
+        rule_type: 'SCREENING',
+      };
+
+      await expect(databaseService.createRule(ruleData)).rejects.toThrow('Failed to create rule');
+    });
+  });
+
+  describe('updateRule', () => {
+    it('should update rule successfully', async () => {
+      const mockUpdatedRule = { id: 1, rule_name: 'Updated Rule', tenant_id: 'tenant1' };
+      mockPool.query.mockResolvedValue({ rows: [mockUpdatedRule] });
+
+      const updateData = { rule_name: 'Updated Rule', status: 'ACTIVE' };
+      const result = await databaseService.updateRule('rule1', 'tenant1', updateData);
+
+      expect(result).toEqual(mockUpdatedRule);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('UPDATE trs_rules'),
+        expect.arrayContaining(['Updated Rule', 'ACTIVE', 'rule1', 'tenant1']),
+      );
+    });
+
+    it('should return null when rule not found for update', async () => {
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      const result = await databaseService.updateRule('nonexistent', 'tenant1', {
+        status: 'INACTIVE',
+      });
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findAllRuleIds', () => {
+    it('should return all rule IDs for tenant', async () => {
+      const mockRuleIds = {
+        rows: [
+          { ruleid: 'rule1', rulecfg: { config: 'data1' }, tenantid: 'tenant1' },
+          { ruleid: 'rule2', rulecfg: { config: 'data2' }, tenantid: 'tenant1' },
+        ],
+      };
+      mockPool.query.mockResolvedValue(mockRuleIds);
+
+      const result = await databaseService.findAllRuleIds('tenant1');
+
+      expect(result).toEqual(mockRuleIds.rows);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('SELECT "ruleid", "rulecfg", "tenantid"'),
+        ['tenant1'],
+      );
+    });
+  });
+
+  describe('updateRuleStatus', () => {
+    it('should update rule status successfully', async () => {
+      mockPool.query.mockResolvedValue({ rowCount: 1 });
+
+      const result = await databaseService.updateRuleStatus(
+        'rule1',
+        'tenant1',
+        'APPROVED',
+        'Approved by admin',
+      );
+
+      expect(result).toEqual({
+        success: true,
+        message:
+          'Rule with id "rule1" successfully updated to status "APPROVED" with reason "Approved by admin"',
+      });
+    });
+
+    it('should throw error when rule not found', async () => {
+      mockPool.query.mockResolvedValue({ rowCount: 0 });
+
+      await expect(
+        databaseService.updateRuleStatus('nonexistent', 'tenant1', 'APPROVED', 'reason'),
+      ).rejects.toThrow('Rule with id "nonexistent" not found');
+    });
+  });
+
+  describe('findRuleConfiguration', () => {
+    it('should return configuration when found', async () => {
+      const mockConfig = { configuration: { threshold: 100 } };
+      mockPool.query.mockResolvedValue({ rows: [mockConfig] });
+
+      const result = await databaseService.findRuleConfiguration('rule1', 'tenant1');
+
+      expect(result).toEqual(mockConfig.configuration);
+    });
+
+    it('should return null when configuration not found', async () => {
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      const result = await databaseService.findRuleConfiguration('nonexistent', 'tenant1');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findAllTransactionTypes', () => {
+    it('should return approved transaction types', async () => {
+      const mockTypes = {
+        rows: [{ transaction_type: 'PACS.008' }, { transaction_type: 'PACS.002' }],
+      };
+      mockPool.query.mockResolvedValue(mockTypes);
+
+      const result = await databaseService.findAllTransactionTypes('tenant1');
+
+      expect(result).toEqual(['PACS.008', 'PACS.002']);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('SELECT DISTINCT transaction_type'),
+        ['tenant1'],
+      );
+    });
+  });
+
+  describe('getPayloadByTransactionType', () => {
+    it('should return payload for transaction type', async () => {
+      const mockPayload = { payload_json: { field: 'value' } };
+      mockPool.query.mockResolvedValue({ rows: [mockPayload] });
+
+      const result = await databaseService.getPayloadByTransactionType('PACS.008', 'tenant1');
+
+      expect(result).toEqual(mockPayload.payload_json);
+    });
+
+    it('should throw error for missing parameters', async () => {
+      await expect(databaseService.getPayloadByTransactionType('', 'tenant1')).rejects.toThrow(
+        'Transaction type and tenant ID are required',
+      );
+      await expect(databaseService.getPayloadByTransactionType('PACS.008', '')).rejects.toThrow(
+        'Transaction type and tenant ID are required',
+      );
+    });
+  });
+
+  describe('getSchemaByTransactionType', () => {
+    it('should return schema and mapping for transaction type', async () => {
+      const mockData = { rows: [{ schema: { fields: [] }, mapping: { map: 'data' } }] };
+      mockPool.query.mockResolvedValue(mockData);
+
+      const result = await databaseService.getSchemaByTransactionType('PACS.008', 'tenant1');
+
+      expect(result).toEqual({
+        schema: { fields: [] },
+        mapping: { map: 'data' },
+      });
+    });
+
+    it('should throw error for missing parameters', async () => {
+      await expect(databaseService.getSchemaByTransactionType('', 'tenant1')).rejects.toThrow(
+        'Transaction type and tenant ID are required',
+      );
+    });
+  });
+
+  describe('findActiveNetworkMap', () => {
+    it('should return active network map configuration', async () => {
+      const mockNetworkMap = { rows: [{ configuration: { active: 'true', nodes: [] } }] };
+      mockPool.query.mockResolvedValue(mockNetworkMap);
+
+      const result = await databaseService.findActiveNetworkMap('tenant1');
+
+      expect(result).toEqual({ active: 'true', nodes: [] });
+    });
+
+    it('should return null when no active network map found', async () => {
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      const result = await databaseService.findActiveNetworkMap('tenant1');
+
+      expect(result).toBeNull();
+    });
+
+    it('should throw error when multiple active network maps found', async () => {
+      const mockMultiple = { rows: [{ configuration: {} }, { configuration: {} }] };
+      mockPool.query.mockResolvedValue(mockMultiple);
+
+      await expect(databaseService.findActiveNetworkMap('tenant1')).rejects.toThrow(
+        'Multiple active network maps found',
+      );
+    });
+  });
+
+  // Additional edge case tests for higher coverage
+  describe('Edge Cases for Complete Coverage', () => {
+    describe('createTransactionTypeTable - Additional Validation', () => {
+      it('should throw error for table name with reserved keyword', async () => {
+        await expect(databaseService.createTransactionTypeTable('select')).rejects.toThrow(
+          'It is a reserved SQL keyword',
+        );
+      });
+
+      it('should throw error for table name exceeding 63 characters', async () => {
+        const longTableName = 'a'.repeat(64);
+        await expect(databaseService.createTransactionTypeTable(longTableName)).rejects.toThrow(
+          'Must not exceed 63 characters',
+        );
+      });
+
+      it('should throw error for table name starting with number', async () => {
+        await expect(databaseService.createTransactionTypeTable('123table')).rejects.toThrow(
+          'Only letters, numbers, and underscores are allowed',
+        );
+      });
+
+      it('should throw error for table name with special characters', async () => {
+        await expect(databaseService.createTransactionTypeTable('table-name!')).rejects.toThrow(
+          'Only letters, numbers, and underscores are allowed',
+        );
+      });
+
+      it('should handle database errors during table creation', async () => {
+        (mockPool.query as jest.Mock).mockRejectedValue(new Error('Database connection failed'));
+
+        await expect(databaseService.createTransactionTypeTable('valid_table')).rejects.toThrow(
+          'Database connection failed',
+        );
+      });
+    });
+
+    describe('executeSelectQuery - Complex Edge Cases', () => {
+      it('should handle query with existing WHERE clause and semicolon', async () => {
+        const query = 'SELECT * FROM users WHERE active = true;';
+        const tenantId = 'tenant-1';
+        const params = [];
+        const mockRows = [{ id: 1, name: 'Test User' }];
+
+        (mockPool.query as jest.Mock).mockResolvedValue({
+          rows: mockRows,
+          rowCount: 1,
+        });
+
+        const result = await databaseService.executeSelectQuery(query, tenantId, params);
+
+        expect(result).toEqual(mockRows);
+        expect(mockPool.query).toHaveBeenCalledWith(
+          "SELECT * FROM users WHERE tenant_id = 'tenant-1' AND active = true LIMIT 5;",
+          [],
+        );
+      });
+
+      it('should handle query with WHERE clause and LIMIT without semicolon', async () => {
+        const query = 'SELECT * FROM users WHERE active = true LIMIT 10';
+        const tenantId = 'tenant-1';
+        const params = [];
+        const mockRows = [{ id: 1, name: 'Test User' }];
+
+        (mockPool.query as jest.Mock).mockResolvedValue({
+          rows: mockRows,
+          rowCount: 1,
+        });
+
+        const result = await databaseService.executeSelectQuery(query, tenantId, params);
+
+        expect(result).toEqual(mockRows);
+        expect(mockPool.query).toHaveBeenCalledWith(
+          "SELECT * FROM users WHERE tenant_id = 'tenant-1' AND active = true LIMIT 10",
+          [],
+        );
+      });
+
+      it('should handle case-insensitive detection of table names', async () => {
+        const query = 'SELECT * FROM USERS join ORDERS on users.id = orders.user_id';
+        const tenantId = 'tenant-1';
+        const params = [];
+        const mockRows = [{ id: 1, name: 'Test User' }];
+
+        (mockPool.query as jest.Mock).mockResolvedValue({
+          rows: mockRows,
+          rowCount: 1,
+        });
+
+        const result = await databaseService.executeSelectQuery(query, tenantId, params);
+
+        expect(result).toEqual(mockRows);
+        expect(mockPool.query).toHaveBeenCalledWith(
+          "SELECT * FROM USERS join ORDERS on users.id = orders.user_id WHERE tenant_id = 'tenant-1' LIMIT 5",
+          [],
+        );
+      });
+    });
+
+    describe('Database Error Handling', () => {
+      it('should throw proper HttpException on database query failure', async () => {
+        const query = 'SELECT * FROM users';
+        const tenantId = 'tenant-1';
+        const params = [];
+
+        (mockPool.query as jest.Mock).mockRejectedValue(new Error('Connection timeout'));
+
+        await expect(databaseService.executeSelectQuery(query, tenantId, params)).rejects.toThrow(
+          'Failed to execute query: Connection timeout',
+        );
+      });
+
+      it('should handle edge case where no insertion point is found', async () => {
+        const query = 'SELECT * FROM users u INNER JOIN posts p ON u.id = p.user_id';
+        const tenantId = 'tenant-1';
+        const params = [];
+        const mockRows = [{ id: 1, name: 'Test User' }];
+
+        (mockPool.query as jest.Mock).mockResolvedValue({
+          rows: mockRows,
+          rowCount: 1,
+        });
+
+        const result = await databaseService.executeSelectQuery(query, tenantId, params);
+
+        expect(result).toEqual(mockRows);
+        expect(mockPool.query).toHaveBeenCalledWith(
+          "SELECT * FROM users u INNER JOIN posts p ON u.id = p.user_id WHERE tenant_id = 'tenant-1' LIMIT 5",
+          [],
+        );
+      });
+    });
   });
 });

@@ -36,6 +36,9 @@ describe('DatabaseService', () => {
     (getPool as jest.Mock).mockReturnValue(mockPool);
     (mockPool.connect as jest.Mock).mockResolvedValue(mockClient);
 
+    // Set default mock return value for query to prevent undefined.rows errors
+    (mockPool.query as jest.Mock).mockResolvedValue({ rows: [], rowCount: 0 });
+
     // Initialize service
     databaseService = new DatabaseService();
   });
@@ -2361,9 +2364,47 @@ describe('DatabaseService', () => {
   // ==================== RULES (TRS) TEST CASES ====================
 
   describe('cloneRule', () => {
-    it('should return placeholder message for cloneRule', () => {
-      const result = databaseService.cloneRule(123, 'token123');
-      expect(result).toBe('yet to be done, 123, token123');
+    it('should clone a rule successfully', async () => {
+      const mockClonedRule = {
+        id: 456,
+        rule_name: 'Cloned Rule',
+        description: 'Test description',
+        tenant_id: 'tenant1',
+        txtp: 'testTxtp',
+        txtp_version: '1.0',
+        version: '1.0',
+        status: 'STATUS_01_IN_PROGRESS',
+        publishing_status: 'ACTIVE',
+        updated_by: 'testUser',
+        rule_type: 'testType',
+        rule_config_id: 1,
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({
+        rows: [mockClonedRule],
+        rowCount: 1,
+      });
+
+      const result = await databaseService.cloneRule(123, 'New Rule Name', 'testUser', 'tenant1');
+
+      expect(result).toEqual(mockClonedRule);
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO trs_rules'),
+        ['New Rule Name', 'testUser', 123, 'tenant1'],
+      );
+    });
+
+    it('should throw error when rule not found', async () => {
+      (mockPool.query as jest.Mock).mockResolvedValueOnce({
+        rows: [],
+        rowCount: 0,
+      });
+
+      await expect(
+        databaseService.cloneRule(999, 'Non-existent Rule', 'testUser', 'tenant1'),
+      ).rejects.toThrow('Rule not found or could not be cloned');
     });
   });
 

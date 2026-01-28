@@ -2383,25 +2383,36 @@ describe('DatabaseService', () => {
         updated_at: new Date(),
       };
 
-      (mockPool.query as jest.Mock).mockResolvedValueOnce({
-        rows: [mockClonedRule],
-        rowCount: 1,
-      });
+      // Mock transaction queries
+      (mockClient.query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 }) // BEGIN
+        .mockResolvedValueOnce({
+          rows: [mockClonedRule],
+          rowCount: 1,
+        }) // INSERT rule
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 }) // INSERT flow (optional)
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 }); // COMMIT
 
       const result = await databaseService.cloneRule(123, 'New Rule Name', 'testUser', 'tenant1');
 
       expect(result).toEqual(mockClonedRule);
-      expect(mockPool.query).toHaveBeenCalledWith(
+      expect(mockClient.query).toHaveBeenCalledWith('BEGIN');
+      expect(mockClient.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO trs_rules'),
         ['New Rule Name', 'testUser', 123, 'tenant1'],
       );
+      expect(mockClient.query).toHaveBeenCalledWith('COMMIT');
     });
 
     it('should throw error when rule not found', async () => {
-      (mockPool.query as jest.Mock).mockResolvedValueOnce({
-        rows: [],
-        rowCount: 0,
-      });
+      // Mock transaction queries
+      (mockClient.query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 }) // BEGIN
+        .mockResolvedValueOnce({
+          rows: [],
+          rowCount: 0,
+        }) // INSERT rule (returns empty - rule not found)
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 }); // ROLLBACK
 
       await expect(
         databaseService.cloneRule(999, 'Non-existent Rule', 'testUser', 'tenant1'),

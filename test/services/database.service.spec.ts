@@ -15,7 +15,11 @@ jest.mock('../../src/database/databaseFactory');
 
 describe('DatabaseService', () => {
   let databaseService: DatabaseService;
-  let mockPool: jest.Mocked<Pool>;
+  let mockPool: {
+    query: jest.Mock;
+    connect: jest.Mock;
+    end: jest.Mock;
+  };
   let mockClient: jest.Mocked<PoolClient>;
 
   beforeEach(() => {
@@ -24,7 +28,7 @@ describe('DatabaseService', () => {
       query: jest.fn(),
       connect: jest.fn(),
       end: jest.fn(),
-    } as unknown as jest.Mocked<Pool>;
+    };
 
     // Create mock client
     mockClient = {
@@ -34,10 +38,10 @@ describe('DatabaseService', () => {
 
     // Setup getPool mock
     (getPool as jest.Mock).mockReturnValue(mockPool);
-    (mockPool.connect as jest.Mock).mockResolvedValue(mockClient);
+    mockPool.connect.mockResolvedValue(mockClient);
 
     // Set default mock return value for query to prevent undefined.rows errors
-    (mockPool.query as jest.Mock).mockResolvedValue({ rows: [], rowCount: 0 });
+    mockPool.query.mockResolvedValue({ rows: [], rowCount: 0 });
 
     // Initialize service
     databaseService = new DatabaseService();

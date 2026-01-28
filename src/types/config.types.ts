@@ -35,6 +35,7 @@ export interface Config {
   version: string;
   contentType: ContentType;
   schema: JSONSchema;
+  payload?: string | Record<string, unknown>; // JSONB payload field from database
   mapping?: FieldMapping[];
   functions?: FunctionDefinition[];
   status?: ConfigStatus;
@@ -44,5 +45,4 @@ export interface Config {
   updatedAt?: string;
   comments?: string;
   publishing_status?: 'active' | 'inactive';
-  payload?: JSONSchema;
 }

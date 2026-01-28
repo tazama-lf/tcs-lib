@@ -1,6 +1,6 @@
 export interface iMappingResult {
-  dataCache: any;
-  transactionRelationship: any;
+  dataCache: Record<string, unknown>;
+  transactionRelationship: Record<string, unknown>;
   endToEndId: string;
-  dynamicMapping: any;
+  dynamicMapping: Record<string, unknown>;
 }

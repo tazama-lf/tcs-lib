@@ -9,7 +9,6 @@ export interface JSONSchema {
   items?: JSONSchemaProperty;
   additionalProperties?: boolean | JSONSchemaProperty;
   definitions?: Record<string, JSONSchemaProperty>;
-  examples?: any[];
 }
 export interface JSONSchemaProperty {
   type?: 'object' | 'array' | 'string' | 'number' | 'boolean' | 'integer' | 'null';
@@ -18,10 +17,10 @@ export interface JSONSchemaProperty {
   properties?: Record<string, JSONSchemaProperty>;
   items?: JSONSchemaProperty;
   required?: string[];
-  enum?: any[];
-  const?: any;
-  default?: any;
-  examples?: any[];
+  enum?: unknown[];
+  const?: unknown;
+  default?: unknown;
+  examples?: unknown[];
   format?: string; // e.g., "date-time", "email", "uri"
   pattern?: string;
   minLength?: number;
@@ -55,7 +54,7 @@ export interface JSONSchemaValidationResult {
     schemaPath: string;
     keyword: string;
     message: string;
-    params?: any;
+    params?: unknown;
   }>;
   warnings?: string[];
 }

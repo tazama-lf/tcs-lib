@@ -15,15 +15,12 @@ jest.mock('../../src/database/databaseFactory');
 
 describe('DatabaseService', () => {
   let databaseService: DatabaseService;
-  let mockPool: {
-    query: jest.Mock;
-    connect: jest.Mock;
-    end: jest.Mock;
-  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let mockPool: any;
   let mockClient: jest.Mocked<PoolClient>;
 
   beforeEach(() => {
-    // Create mock pool
+    // Create mock pool with properly typed query
     mockPool = {
       query: jest.fn(),
       connect: jest.fn(),

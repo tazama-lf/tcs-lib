@@ -69,7 +69,7 @@ export interface AddMappingDto {
   sources?: string[];
   sumFields?: string[];
   delimiter?: string;
-  constantValue?: any;
+  constantValue?: string;
   prefix?: string;
   transformation?: 'NONE' | 'CONCAT' | 'SUM' | 'SPLIT' | 'CONSTANT' | 'MATH';
   operator?: 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'DIVIDE';

@@ -1532,6 +1532,7 @@ export class DatabaseService {
       rule_type: string;
       rule_config_id: string;
       updated_by: string;
+      flow_id: string;
     }>,
   ): Promise<RuleEntity | null> {
     // Build dynamic SET clause based on provided fields
@@ -1558,7 +1559,7 @@ export class DatabaseService {
       SET ${setClauses.join(', ')}
       WHERE id = $${ruleIdParam}
         AND tenant_id = $${tenantIdParam}
-      RETURNING id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
+      RETURNING id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, rule_config_id, flow_id, created_at, updated_at
     `;
 
     values.push(ruleId, tenantId);

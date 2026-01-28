@@ -223,7 +223,7 @@ export class DatabaseService {
   ): Promise<number | null> {
     const updateFields: string[] = [];
 
-    const values: any[] = [];
+    const values: unknown[] = [];
 
     let paramIndex = 1;
 
@@ -343,14 +343,14 @@ export class DatabaseService {
     return dbStatus as ConfigStatus;
   }
 
-  private mapRowToConfig(row: any): Config {
+  private mapRowToConfig(row: Record<string, unknown>): Config {
     let parsedSchema;
 
     try {
       parsedSchema = typeof row.schema === 'string' ? JSON.parse(row.schema) : row.schema;
 
       if (parsedSchema && typeof parsedSchema === 'object') {
-        const validateArrayFields = (schema: any, path = ''): boolean => {
+        const validateArrayFields = (schema: unknown, path = ''): boolean => {
           let hasIssues = false;
 
           if (Array.isArray(schema)) {
@@ -385,17 +385,17 @@ export class DatabaseService {
     }
 
     return {
-      id: row.id,
+      id: row.id as number,
 
-      msgFam: row.msg_fam,
+      msgFam: row.msg_fam as string,
 
-      transactionType: row.transaction_type,
+      transactionType: row.transaction_type as string,
 
-      endpointPath: row.endpoint_path,
+      endpointPath: row.endpoint_path as string,
 
-      version: row.version,
+      version: row.version as string,
 
-      contentType: row.content_type,
+      contentType: row.content_type as ContentType,
 
       schema: parsedSchema,
 
@@ -413,20 +413,23 @@ export class DatabaseService {
             ? JSON.parse(row.functions)
             : row.functions,
 
-      status: this.normalizeStatusFromDatabase(row.status),
+      status: this.normalizeStatusFromDatabase(row.status as string),
 
-      tenantId: row.tenant_id,
+      tenantId: row.tenant_id as string | undefined,
 
-      createdBy: row.created_by,
+      createdBy: row.created_by as string | undefined,
 
-      createdAt: row.created_at,
+      createdAt: row.created_at as string | undefined,
 
-      updatedAt: row.updated_at,
+      updatedAt: row.updated_at as string | undefined,
 
-      publishing_status: row.publishing_status,
+      publishing_status: row.publishing_status as 'active' | 'inactive' | undefined,
 
-      comments: row.comment ?? row.comments,
-      payload: row.content_type === 'application/xml' ? row.payload_xml : row.payload_json,
+      comments: (row.comment ?? row.comments) as string | undefined,
+      payload:
+        row.content_type === 'application/xml'
+          ? (row.payload_xml as Config['payload'])
+          : (row.payload_json as Config['payload']),
     };
   }
 
@@ -1101,7 +1104,7 @@ export class DatabaseService {
     }
   }
 
-  async getAllCollections(tenantId: string): Promise<any[]> {
+  async getAllCollections(tenantId: string): Promise<Array<Record<string, unknown>>> {
     const query = `
       SELECT 
         dt.name as collection_name,
@@ -1116,7 +1119,10 @@ export class DatabaseService {
     const result = await this.dbClient.query(query, [tenantId]);
     return result.rows;
   }
-  async getCollectionFields(collectionId: number, tenantId: string): Promise<any[]> {
+  async getCollectionFields(
+    collectionId: number,
+    tenantId: string,
+  ): Promise<Array<Record<string, unknown>>> {
     const query = `
       SELECT 
         dtf.field_id,
@@ -1138,7 +1144,7 @@ export class DatabaseService {
     name: string,
     destinationId: number,
     tenantId: string,
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     const query = `
       INSERT INTO destination_type (collection_type, name, destination_id, tenant_id, created_at, updated_at)
       VALUES ($1, $2, $3, $4, NOW(), NOW())
@@ -1178,7 +1184,7 @@ export class DatabaseService {
     tenantId: string,
     serialNo: number | null,
     collectionId: number,
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     const query = `
       INSERT INTO destination_type_fields (name, field_type, parent_id, tenant_id, serial_no, collection_id)
       VALUES ($1, $2, $3, $4, $5, $6)
@@ -1436,8 +1442,8 @@ export class DatabaseService {
     ruleId: string,
     tenantId: string,
   ): Promise<{
-    ruleRequest: any;
-    configuration: any;
+    ruleRequest: unknown;
+    configuration: unknown;
   } | null> {
     const ruleRequestQuery = `
       SELECT rulerequest, rule_config_id
@@ -1588,7 +1594,7 @@ export class DatabaseService {
 
   async findAllRuleIds(
     tenantId: string,
-  ): Promise<Array<{ ruleId: string; ruleCfg: any; tenantId: string }>> {
+  ): Promise<Array<{ ruleId: string; ruleCfg: unknown; tenantId: string }>> {
     const query = `
       SELECT "ruleid", "rulecfg", "tenantid"
       FROM rule
@@ -1627,7 +1633,7 @@ export class DatabaseService {
     };
   }
 
-  async findRuleConfiguration(ruleId: string, tenantId: string): Promise<any> {
+  async findRuleConfiguration(ruleId: string, tenantId: string): Promise<unknown> {
     const query = `
       SELECT configuration
       FROM rule
@@ -1660,7 +1666,7 @@ export class DatabaseService {
     return result.rows.map((row) => row.transaction_type);
   }
 
-  async getPayloadByTransactionType(transactionType: string, tenantId: string): Promise<any> {
+  async getPayloadByTransactionType(transactionType: string, tenantId: string): Promise<unknown> {
     if (!transactionType || !tenantId) {
       throw new HttpException(
         'Transaction type and tenant ID are required',
@@ -1694,7 +1700,7 @@ export class DatabaseService {
   async getSchemaByTransactionType(
     transactionType: string,
     tenantId: string,
-  ): Promise<{ schema: any; mapping: any }> {
+  ): Promise<{ schema: unknown; mapping: unknown }> {
     if (!transactionType || !tenantId) {
       throw new HttpException(
         'Transaction type and tenant ID are required',
@@ -1724,7 +1730,7 @@ export class DatabaseService {
     }
   }
 
-  async findActiveNetworkMap(tenantId: string): Promise<any> {
+  async findActiveNetworkMap(tenantId: string): Promise<unknown> {
     const query = `
       SELECT configuration
       FROM network_map
@@ -1938,7 +1944,7 @@ export class DatabaseService {
     return result.rows;
   }
 
-  async findRuleFlow(ruleId: string): Promise<any> {
+  async findRuleFlow(ruleId: string): Promise<Record<string, unknown> | null> {
     const query = `
       SELECT *
       FROM trs_rule_flow
@@ -1992,7 +1998,11 @@ export class DatabaseService {
     return result.rows;
   }
 
-  async executeSelectQuery(query: string, tenantId: string, params: any[] = []): Promise<any[]> {
+  async executeSelectQuery(
+    query: string,
+    tenantId: string,
+    params: unknown[] = [],
+  ): Promise<Array<Record<string, unknown>>> {
     const upperCaseQuery = query.trim().toUpperCase();
 
     if (!upperCaseQuery.startsWith('SELECT')) {

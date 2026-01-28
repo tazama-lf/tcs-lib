@@ -1,4 +1,5 @@
 import type { iMappingResult } from 'src/interfaces/iMappingResult';
+import type { FieldMapping } from 'src/interfaces/schema.interfaces';
 import { getValueByPath } from '../services/utils';
 
 /**
@@ -9,13 +10,13 @@ import { getValueByPath } from '../services/utils';
  * @returns Object containing dataCache, transactionRelationship, and endToEndId
  */
 export function processMappings(
-  payload: any,
-  configuredMapping: any,
+  payload: Record<string, unknown>,
+  configuredMapping: FieldMapping[] | undefined,
   endpoint: string,
 ): iMappingResult {
   // static object creation logic
-  const dataCache: any = {};
-  const transactionRelationship: any = {
+  const dataCache: Record<string, unknown> = {};
+  const transactionRelationship: Record<string, unknown> = {
     source: '',
     destination: '',
     TxTp: '',
@@ -30,14 +31,14 @@ export function processMappings(
     TxSts: '',
   };
   // dynamic object creation logic
-  const dynamicMapping: any = {};
+  const dynamicMapping: Record<string, Record<string, unknown>> = {};
   let endToEndId = '';
   if (configuredMapping) {
     try {
       for (const mapping of configuredMapping) {
         const sources = mapping.source;
         //usually a string but can be array in case of multiple sources(split usecase)
-        let destination =
+        const destination =
           typeof mapping.destination === 'string'
             ? mapping.destination.split('.')[1]
             : mapping.destination;
@@ -53,12 +54,13 @@ export function processMappings(
 
         // handling multiple destinations for single source - split value usecase
         if (typeof destination !== 'string' || typeof type !== 'string') {
-          const sourceValue = getValueByPath(payload, mapping.source[0]);
-          const splitValues = sourceValue.split(mapping.delimiter);
+          const sources = mapping.source ?? [];
+          const sourceValue = sources.length > 0 ? String(getValueByPath(payload, sources[0])) : '';
+          const splitValues = sourceValue.split(mapping.delimiter ?? '');
 
           for (let j = 0; j < mapping.destination.length; j += 1) {
-            const dest = mapping.destination[j].split('.')[1];
-            const destType = mapping.destination[j].split('.')[0];
+            const destItem = (mapping.destination as string[])[j];
+            const [destType, dest] = destItem.split('.');
             if (destType === 'redis') {
               dataCache[dest] = splitValues[j];
             }
@@ -72,20 +74,23 @@ export function processMappings(
 
         // dynamic mapping logic based on datasource(datamodel ya payload)
         if (type !== 'redis' && type !== 'transactionDetails') {
-          // append to dynamic mapping object
-          const ObjectName: string = mapping.destination.split('.')[0]; // e.g., Toyota
-          const PropertyName: string = mapping.destination.split('.')[1]; // e.g., model
-          const nestedPropertyName: string = mapping.destination.split('.')[2]; // e.g., name (if any)
+          // append to dynamic mapping object - destination is confirmed string at this point
+          const destParts = destination.split('.');
+          const ObjectName: string = destParts[0]; // e.g., Toyota
+          const PropertyName: string = destParts[1]; // e.g., model
+          const nestedPropertyName: string = destParts[2]; // e.g., name (if any)
+          const mappingSources = mapping.source ?? [];
           // if (mapping.datasource === 'dataModel') {
           dynamicMapping[ObjectName] ??= {};
           if (nestedPropertyName) {
-            dynamicMapping[ObjectName][PropertyName] ??= {};
-            dynamicMapping[ObjectName][PropertyName][nestedPropertyName] = getValueByPath(
-              payload,
-              mapping.source[0],
-            );
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Using ||= to handle falsy values
+            dynamicMapping[ObjectName][PropertyName] ||= {};
+            (dynamicMapping[ObjectName][PropertyName] as Record<string, unknown>)[
+              nestedPropertyName
+            ] = mappingSources.length > 0 ? getValueByPath(payload, mappingSources[0]) : undefined;
           } else {
-            dynamicMapping[ObjectName][PropertyName] = getValueByPath(payload, mapping.source[0]);
+            dynamicMapping[ObjectName][PropertyName] =
+              mappingSources.length > 0 ? getValueByPath(payload, mappingSources[0]) : undefined;
           }
 
           continue;
@@ -103,17 +108,18 @@ export function processMappings(
 
         let dataCacheValue = mapping.prefix ?? '';
         let transactionRelationshipValue = mapping.prefix ?? '';
+        const mappingSources = sources ?? [];
         // REAL LOGIC STARTS HERE
         // Iterate through sources to build the value based on mapping - totally dynamic work
-        for (let i = 0; i < sources.length; i += 1) {
+        for (let i = 0; i < mappingSources.length; i += 1) {
           if (type === 'redis') {
-            dataCacheValue += getValueByPath(payload, sources[i]);
-            if (i < sources.length - 1) {
+            dataCacheValue += String(getValueByPath(payload, mappingSources[i]));
+            if (i < mappingSources.length - 1) {
               dataCacheValue += separator;
             }
           } else {
-            transactionRelationshipValue += getValueByPath(payload, sources[i]);
-            if (i < sources.length - 1) {
+            transactionRelationshipValue += String(getValueByPath(payload, mappingSources[i]));
+            if (i < mappingSources.length - 1) {
               transactionRelationshipValue += separator;
             }
           }
@@ -122,11 +128,11 @@ export function processMappings(
         if (type === 'redis') {
           dataCacheValue += mapping.suffix ?? '';
           if (stringSize === 3) {
-            destination = mapping.destination.split('.')[2];
+            const destStr = mapping.destination as string;
+            const [, objectName, destName] = destStr.split('.');
             // Handle nested object case
-            const objectName: string = mapping.destination.split('.')[1]; // instdAmt or intrBkSttlmAmt
             dataCache[objectName] ??= {};
-            dataCache[objectName][destination] = dataCacheValue;
+            (dataCache[objectName] as Record<string, unknown>)[destName] = dataCacheValue;
           } else {
             dataCache[destination] = dataCacheValue;
           }

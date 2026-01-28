@@ -335,7 +335,7 @@ From: ${actorName ?? actorEmail} (${actorEmail})${tenantId ? `\nTenant: ${tenant
 
 export function generatePublishingStatusEmailHTML(
   configId: number,
-  config: any,
+  config: { transactionType?: string; version?: string; endpointPath?: string; status?: string },
   tenantId: string,
   publishingStatus: 'active' | 'inactive',
   actorEmail: string,
@@ -416,7 +416,7 @@ export function generatePublishingStatusEmailHTML(
 
 export function generatePublishingStatusEmailText(
   configId: number,
-  config: any,
+  config: { transactionType?: string; version?: string; endpointPath?: string; status?: string },
   tenantId: string,
   publishingStatus: 'active' | 'inactive',
   actorEmail: string,

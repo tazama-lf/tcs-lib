@@ -18,6 +18,7 @@ export interface FieldMapping {
   constantValue?: unknown;
   operator?: 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'DIVIDE';
   prefix?: string;
+  suffix?: string;
   type?: string;
 }
 

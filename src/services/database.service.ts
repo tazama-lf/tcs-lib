@@ -1231,39 +1231,71 @@ export class DatabaseService {
     createdBy: string,
     tenantId: string,
   ): Promise<RuleEntity> {
-    const query = `
-      INSERT INTO trs_rules (
-        rule_name, description, tenant_id, txtp, txtp_version, version, status, 
-        publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
-      )
-      SELECT 
-        $1 AS rule_name, 
-        description, 
-        tenant_id, 
-        txtp, 
-        txtp_version,
-        version, 
-        'STATUS_01_IN_PROGRESS' AS status, 
-        'ACTIVE' AS publishing_status, 
-        $2 AS updated_by, 
-        rule_type, 
-        rule_config_id, 
-        NOW() AS created_at, 
-        NOW() AS updated_at
-      FROM trs_rules
-      WHERE id = $3 AND tenant_id = $4
-      RETURNING id, rule_name, description, tenant_id, txtp, txtp_version, version, status, publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
-    `;
+    const client = await this.getClient();
 
-    const values = [newRuleName, createdBy, ruleId, tenantId];
+    try {
+      await client.query('BEGIN');
 
-    const result = await this.dbClient.query(query, values);
+      // Clone the rule
+      const ruleQuery = `
+        INSERT INTO trs_rules (
+          rule_name, description, tenant_id, txtp, txtp_version, version, status, 
+          publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
+        )
+        SELECT 
+          $1 AS rule_name, 
+          description, 
+          tenant_id, 
+          txtp, 
+          txtp_version,
+          version, 
+          'STATUS_01_IN_PROGRESS' AS status, 
+          'ACTIVE' AS publishing_status, 
+          $2 AS updated_by, 
+          rule_type, 
+          rule_config_id, 
+          NOW() AS created_at, 
+          NOW() AS updated_at
+        FROM trs_rules
+        WHERE id = $3 AND tenant_id = $4
+        RETURNING id, rule_name, description, tenant_id, txtp, txtp_version, version, status, publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
+      `;
 
-    if (result.rows.length === 0) {
-      throw new HttpException('Rule not found or could not be cloned', HttpStatus.NOT_FOUND);
+      const ruleValues = [newRuleName, createdBy, ruleId, tenantId];
+      const ruleResult = await client.query(ruleQuery, ruleValues);
+
+      if (ruleResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        throw new HttpException('Rule not found or could not be cloned', HttpStatus.NOT_FOUND);
+      }
+
+      const newRuleId = ruleResult.rows[0].id;
+
+      // Clone the rule flow if it exists
+      const flowQuery = `
+        INSERT INTO trs_rule_flow (
+          rule_id, flow_json, ts_file_base64, created_at, updated_at
+        )
+        SELECT 
+          $1 AS rule_id,
+          flow_json,
+          ts_file_base64,
+          NOW() AS created_at,
+          NOW() AS updated_at
+        FROM trs_rule_flow
+        WHERE rule_id = $2
+      `;
+
+      await client.query(flowQuery, [newRuleId, ruleId]);
+
+      await client.query('COMMIT');
+      return ruleResult.rows[0];
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
-
-    return result.rows[0];
   }
 
   async findRulesWithFilters(

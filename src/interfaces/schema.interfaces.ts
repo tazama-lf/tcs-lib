@@ -15,7 +15,7 @@ export interface FieldMapping {
   destination: string | string[];
   transformation?: 'NONE' | 'CONCAT' | 'SUM' | 'SPLIT' | 'CONSTANT' | 'MATH';
   delimiter?: string;
-  constantValue?: any;
+  constantValue?: unknown;
   operator?: 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'DIVIDE';
   prefix?: string;
   type?: string;
@@ -36,8 +36,8 @@ export interface FieldMappingEntity {
   destinationFieldType: FieldType;
   destinationFieldRequired: boolean;
   transformation: TransformationType;
-  transformationConfig?: Record<string, any>;
-  constants?: Record<string, any>;
+  transformationConfig?: Record<string, unknown>;
+  constants?: Record<string, unknown>;
   status: MappingStatus;
   orderIndex: number;
   tenantId: string;

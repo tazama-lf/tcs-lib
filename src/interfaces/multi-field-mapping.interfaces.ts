@@ -22,7 +22,7 @@ export interface TransformationConfig {
 }
 export interface ConstantValue {
   path: string;
-  value: any;
+  value: unknown;
   type: FieldType;
 }
 
@@ -37,7 +37,7 @@ export interface MultiFieldMappingEntity {
   destinationFields: DestinationField[];
   transformation: TransformationType;
   transformationConfig?: TransformationConfig;
-  constants?: Record<string, any>;
+  constants?: Record<string, unknown>;
   status: MultiFieldMappingStatus;
   orderIndex: number;
   version: number;
@@ -69,12 +69,12 @@ export interface ValidationResult {
 }
 export interface SimulationInput {
   mappingId: number;
-  testPayload: Record<string, any>;
+  testPayload: Record<string, unknown>;
   tenantId: string;
 }
 export interface SimulationResult {
   success: boolean;
-  transformedOutput: Record<string, any>;
+  transformedOutput: Record<string, unknown>;
   validationResult: ValidationResult;
   appliedTransformations: string[];
   appliedConstants: string[];
@@ -88,7 +88,7 @@ export interface MappingTreeNode {
   fieldType?: FieldType;
   isRequired?: boolean;
   isExtension?: boolean;
-  value?: any;
+  value?: unknown;
   children?: MappingTreeNode[];
   parentId?: string;
 }

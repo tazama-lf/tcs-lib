@@ -1240,7 +1240,7 @@ export class DatabaseService {
     const client = await this.getClient();
 
     try {
-      await client.query('BEGIN');
+      await client.query('BEGIN'); // start db transaction
 
       // Clone the rule
       const ruleQuery = `
@@ -1267,8 +1267,12 @@ export class DatabaseService {
         RETURNING id, rule_name, description, tenant_id, txtp, txtp_version, version, status, publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
       `;
 
+      // yahan ruleId ghalat Q arhi hai shayad
       const ruleValues = [newRuleName, createdBy, ruleId, tenantId];
+      // console.log("ruleValues array: ", ruleValues)
+
       const ruleResult = await client.query(ruleQuery, ruleValues);
+      // console.log("TCS LIB ruleResult: ", ruleResult.rows[0])
 
       if (ruleResult.rows.length === 0) {
         await client.query('ROLLBACK');
@@ -1290,13 +1294,23 @@ export class DatabaseService {
           NOW() AS updated_at
         FROM trs_rule_flow
         WHERE rule_id = $2
+        RETURNING id, rule_id, flow_json, ts_file_base64, created_at, updated_at
       `;
 
-      await client.query(flowQuery, [newRuleId, ruleId]);
+      // newRuleId = 170 (cloned ki id) rule k table main
+      // ruleId = 76 (clone kia hai)
+      const flowValues = [newRuleId, ruleId];
+      // console.log("flowValues array: ", flowValues)
 
+      await client.query(flowQuery, flowValues);
+      // console.log("flowResult: ", flowResult.rows[0])
+
+      // console.log("commitingg okie")
       await client.query('COMMIT');
+      // console.log("comitted done and band")
       return ruleResult.rows[0];
     } catch (error) {
+      // console.log("getting an error", error)
       await client.query('ROLLBACK');
       throw error;
     } finally {

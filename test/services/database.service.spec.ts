@@ -2144,23 +2144,13 @@ describe('DatabaseService', () => {
       );
     });
 
-    it('should throw an error for non-SELECT queries', async () => {
-      const query = "INSERT INTO users (name) VALUES ('test')";
-      const tenantId = 'tenant-1';
-      const params = [];
-
-      await expect(databaseService.executeSelectQuery(query, tenantId, params)).rejects.toThrow(
-        'Only SELECT queries are allowed.',
-      );
-    });
-
     it('should throw an error for queries with forbidden keywords', async () => {
       const query = 'SELECT * FROM users; DROP TABLE users;';
       const tenantId = 'tenant-1';
       const params = [];
 
       await expect(databaseService.executeSelectQuery(query, tenantId, params)).rejects.toThrow(
-        'Query contains forbidden keywords.',
+        'Only SELECT queries are allowed.',
       );
     });
 

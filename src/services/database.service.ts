@@ -1269,10 +1269,8 @@ export class DatabaseService {
 
       // yahan ruleId ghalat Q arhi hai shayad
       const ruleValues = [newRuleName, createdBy, ruleId, tenantId];
-      // console.log("ruleValues array: ", ruleValues)
 
       const ruleResult = await client.query(ruleQuery, ruleValues);
-      // console.log("TCS LIB ruleResult: ", ruleResult.rows[0])
 
       if (ruleResult.rows.length === 0) {
         await client.query('ROLLBACK');
@@ -1300,17 +1298,13 @@ export class DatabaseService {
       // newRuleId = 170 (cloned ki id) rule k table main
       // ruleId = 76 (clone kia hai)
       const flowValues = [newRuleId, ruleId];
-      // console.log("flowValues array: ", flowValues)
 
       await client.query(flowQuery, flowValues);
-      // console.log("flowResult: ", flowResult.rows[0])
 
-      // console.log("commitingg okie")
       await client.query('COMMIT');
-      // console.log("comitted done and band")
+
       return ruleResult.rows[0];
     } catch (error) {
-      // console.log("getting an error", error)
       await client.query('ROLLBACK');
       throw error;
     } finally {
@@ -1572,11 +1566,7 @@ export class DatabaseService {
       ruleData.rule_config_id ?? null,
     ];
 
-    // console.log("hitting API for create rule with values:", values);
-
     const result = await this.dbClient.query(query, values);
-
-    // console.log("create rule result:", result.rows[0]);
 
     if (result.rows.length === 0) {
       throw new HttpException(
@@ -1956,11 +1946,15 @@ export class DatabaseService {
   async createRuleFlow(ruleFlowData: {
     rule_id: string;
     flow_json: Record<string, unknown>;
+    tenantId: string;
+    category: string;
   }): Promise<
     Array<{
       id: number;
       rule_id: string;
       flow_json: Record<string, unknown>;
+      tenant_id: string;
+      category: string;
       created_at: Date;
       updated_at: Date;
     }>
@@ -1969,16 +1963,20 @@ export class DatabaseService {
       INSERT INTO trs_rule_flow (
         rule_id,
         flow_json,
+        tenant_id,
+        category,
         updated_at,
         created_at
       ) VALUES (
-        $1, $2, NOW(), NOW()
+        $1, $2, $3, $4, NOW(), NOW()
       )
-      RETURNING id, rule_id, flow_json, created_at, updated_at;
+      RETURNING id, rule_id, flow_json, tenant_id, category, created_at, updated_at;
     `;
     const result = await this.dbClient.query(query, [
       ruleFlowData.rule_id,
       JSON.stringify(ruleFlowData.flow_json),
+      ruleFlowData.tenantId,
+      ruleFlowData.category,
     ]);
 
     if (result.rows.length === 0) {
@@ -1991,51 +1989,72 @@ export class DatabaseService {
     return result.rows;
   }
 
-  async findRuleFlow(ruleId: string): Promise<Record<string, unknown> | null> {
+  async findRuleFlow(
+    ruleId: string,
+    tenantId: string,
+    filter: { category?: string },
+  ): Promise<Record<string, unknown> | null> {
     const query = `
       SELECT *
       FROM trs_rule_flow
-      WHERE rule_id = $1
+      WHERE rule_id = $1 AND tenant_id = $2${filter.category ? ' AND category = $3' : ''}
       LIMIT 1
     `;
-
-    const result = await this.dbClient.query(query, [ruleId]);
-
+    const queryParams = filter.category ? [ruleId, tenantId, filter.category] : [ruleId, tenantId];
+    const result = await this.dbClient.query(query, queryParams);
     if (result.rows.length === 0) {
       return null;
     }
-
     return result.rows[0];
   }
 
   async updateRuleFlow(
     ruleId: string,
     flowData: { flow_json: Record<string, unknown>; ts_file_base64?: string },
+    tenantId: string,
+    category: string,
   ): Promise<
     | Array<{
         id: number;
         rule_id: string;
         flow_json: Record<string, unknown>;
         ts_file_base64?: string;
+        category: string;
+        tenant_id: string;
         created_at: Date;
         updated_at: Date;
       }>
     | []
   > {
+    const validateRuleQuery = `
+      SELECT FROM trs_rule_flow
+      WHERE rule_id = $1 AND tenant_id = $2 AND category = $3
+    `;
+    const ruleResult = await this.dbClient.query(validateRuleQuery, [ruleId, tenantId, category]);
+
+    if (ruleResult.rows.length === 0) {
+      throw new HttpException(
+        `Rule with id "${ruleId}" not found for tenant "${tenantId}" and category "${category}"`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
     const query = `
       UPDATE trs_rule_flow
       SET 
         flow_json = $2,
         ts_file_base64 = $3,
         updated_at = NOW()
-      WHERE rule_id = $1
-      RETURNING id, rule_id, flow_json, ts_file_base64, created_at, updated_at;
+      WHERE rule_id = $1 AND tenant_id = $4 AND category = $5
+      RETURNING id, rule_id, flow_json, ts_file_base64, tenant_id, category, created_at, updated_at;
     `;
 
     const result = await this.dbClient.query(query, [
       ruleId,
       JSON.stringify(flowData.flow_json),
       flowData.ts_file_base64,
+      tenantId,
+      category,
     ]);
 
     if (result.rows.length === 0) {

@@ -27,4 +27,5 @@ export const HttpStatus = {
   NOT_FOUND: 404,
   CONFLICT: 409,
   INTERNAL_SERVER_ERROR: 500,
+  FORBIDDEN: 403,
 };

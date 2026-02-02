@@ -2045,12 +2045,34 @@ describe('DatabaseService', () => {
     it('should create rule flow successfully', async () => {
       const flowData = {
         rule_id: '1',
-        flow_json: { key: 'value' },
+        flow_json: {
+          edges: [
+            {
+              id: 'edge-2',
+              source: 'node-2',
+              target: 'node-3',
+              sourceHandle: null,
+            },
+          ],
+        },
+        tenantId: 'tenant-abc',
+        category: 'rule_builder',
       };
       const mockRow = {
         id: 1,
         rule_id: '1',
-        flow_json: { key: 'value' },
+        flow_json: {
+          edges: [
+            {
+              id: 'edge-2',
+              source: 'node-2',
+              target: 'node-3',
+              sourceHandle: null,
+            },
+          ],
+        },
+        tenantId: 'tenant-abc',
+        category: 'rule_builder',
         created_at: new Date(),
         updated_at: new Date(),
       };
@@ -2069,13 +2091,20 @@ describe('DatabaseService', () => {
         id: expect.any(Number),
         rule_id: flowData.rule_id,
         flow_json: flowData.flow_json,
+        category: flowData.category,
+        tenantId: flowData.tenantId,
         created_at: expect.any(Date),
         updated_at: expect.any(Date),
       });
 
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO trs_rule_flow'),
-        [flowData.rule_id, JSON.stringify(flowData.flow_json)],
+        [
+          flowData.rule_id,
+          JSON.stringify(flowData.flow_json),
+          flowData.tenantId,
+          flowData.category,
+        ],
       );
     });
   });
@@ -2086,12 +2115,16 @@ describe('DatabaseService', () => {
         rule_id: '1',
         flow_json: { key: 'value' },
         ts_file_base64: 'base64string',
+        category: 'rule_builder',
+        tenantId: 'tenant-abc',
       };
       const mockRow = {
         id: 1,
         rule_id: '1',
         flow_json: { key: 'value' },
         ts_file_base64: 'base64string',
+        category: 'rule_builder',
+        tenantId: 'tenant-abc',
         created_at: new Date(),
         updated_at: new Date(),
       };
@@ -2101,7 +2134,12 @@ describe('DatabaseService', () => {
         rowCount: 1,
       });
 
-      const result = await databaseService.updateRuleFlow(flowData.rule_id, flowData as any);
+      const result = await databaseService.updateRuleFlow(
+        flowData.rule_id,
+        flowData as any,
+        'tenant-abc',
+        'rule_builder',
+      );
 
       expect(Array.isArray(result)).toBe(true);
       expect(result).not.toBeNull();
@@ -2111,6 +2149,8 @@ describe('DatabaseService', () => {
         rule_id: flowData.rule_id,
         flow_json: flowData.flow_json,
         ts_file_base64: flowData.ts_file_base64,
+        category: flowData.category,
+        tenantId: flowData.tenantId,
         created_at: expect.any(Date),
         updated_at: expect.any(Date),
       });
@@ -2119,6 +2159,8 @@ describe('DatabaseService', () => {
         flowData.rule_id,
         JSON.stringify(flowData.flow_json),
         flowData.ts_file_base64,
+        flowData.tenantId,
+        flowData.category,
       ]);
     });
   });

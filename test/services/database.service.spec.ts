@@ -2550,7 +2550,7 @@ describe('DatabaseService', () => {
       mockPool.query.mockResolvedValue({ rows: [mockCreatedRule] });
 
       const ruleData = {
-        rule_name: 'New Rule',
+        ruleName: 'New Rule',
         description: 'Test rule',
         tenant_id: 'tenant1',
         txtp: 'PACS.008',

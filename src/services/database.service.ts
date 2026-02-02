@@ -2052,13 +2052,9 @@ export class DatabaseService {
   ): Promise<Array<Record<string, unknown>>> {
     const upperCaseQuery = query.trim().toUpperCase();
 
-    if (!upperCaseQuery.startsWith('SELECT')) {
-      throw new Error('Only SELECT queries are allowed.');
-    }
-
     const forbiddenKeywords = ['INSERT', 'DELETE', 'DROP', 'CREATE', 'ALTER', 'TRUNCATE'];
     if (forbiddenKeywords.some((keyword) => upperCaseQuery.includes(keyword))) {
-      throw new Error('Query contains forbidden keywords.');
+      throw new Error('Only SELECT queries are allowed.');
     }
 
     const fromOrJoinRegex = /\b(?:FROM|JOIN)\s+([a-zA-Z0-9_."]+)/gi;

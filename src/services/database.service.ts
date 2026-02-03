@@ -20,6 +20,7 @@ import type { DatabaseConfig } from '../interfaces/database.interfaces';
 import { validateTableName } from './utils';
 import type { RuleEntity } from 'src/interfaces/rule.interfaces';
 import { ContentType } from '../interfaces/core.interfaces';
+import { validateSystemFunctions } from 'src/utils/validate';
 export type { DatabaseConfig } from '../interfaces/database.interfaces';
 
 export class DatabaseService {
@@ -2077,6 +2078,10 @@ export class DatabaseService {
     const forbiddenKeywords = ['INSERT', 'DELETE', 'DROP', 'CREATE', 'ALTER', 'TRUNCATE'];
     if (forbiddenKeywords.some((keyword) => upperCaseQuery.includes(keyword))) {
       throw new Error('Only SELECT queries are allowed.');
+    }
+
+    if (validateSystemFunctions(query)) {
+      throw new Error('System-level functions are not allowed in SELECT queries.');
     }
 
     const fromOrJoinRegex = /\b(?:FROM|JOIN)\s+([a-zA-Z0-9_."]+)/gi;

@@ -2010,9 +2010,8 @@ export class DatabaseService {
 
   async updateRuleFlow(
     ruleId: string,
-    flowData: { flow_json: Record<string, unknown>; ts_file_base64?: string },
+    flowData: { flow_json: Record<string, unknown>; ts_file_base64?: string; category: string },
     tenantId: string,
-    category: string,
   ): Promise<
     | Array<{
         id: number;
@@ -2030,11 +2029,15 @@ export class DatabaseService {
       SELECT FROM trs_rule_flow
       WHERE rule_id = $1 AND tenant_id = $2 AND category = $3
     `;
-    const ruleResult = await this.dbClient.query(validateRuleQuery, [ruleId, tenantId, category]);
+    const ruleResult = await this.dbClient.query(validateRuleQuery, [
+      ruleId,
+      tenantId,
+      flowData.category,
+    ]);
 
     if (ruleResult.rows.length === 0) {
       throw new HttpException(
-        `Rule with id "${ruleId}" not found for tenant "${tenantId}" and category "${category}"`,
+        `Rule with id "${ruleId}" not found for tenant "${tenantId}" and category "${flowData.category}"`,
         HttpStatus.NOT_FOUND,
       );
     }
@@ -2054,7 +2057,7 @@ export class DatabaseService {
       JSON.stringify(flowData.flow_json),
       flowData.ts_file_base64,
       tenantId,
-      category,
+      flowData.category,
     ]);
 
     if (result.rows.length === 0) {

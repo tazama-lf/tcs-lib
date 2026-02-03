@@ -2138,7 +2138,6 @@ describe('DatabaseService', () => {
         flowData.rule_id,
         flowData as any,
         'tenant-abc',
-        'rule_builder',
       );
 
       expect(Array.isArray(result)).toBe(true);

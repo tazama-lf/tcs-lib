@@ -1776,7 +1776,11 @@ export class DatabaseService {
         AND configuration->>'active' = 'true'
     `;
 
+    // console.log('Fetching active network map for tenant:', tenantId);
+
     const result = await this.dbClient.query(query, [tenantId]);
+
+    // console.log('Active network map query result:', result);
 
     if (result.rows.length === 0) {
       return null;

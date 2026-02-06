@@ -1998,7 +1998,7 @@ export class DatabaseService {
     }>
   > {
     const query = `
-      INSERT INTO trs_rule_flow_test (
+      INSERT INTO trs_rule_flow (
         rule_id,
         flow_json_rule_builder,
         flow_json_test_case,
@@ -2031,16 +2031,16 @@ export class DatabaseService {
   ): Promise<Record<string, unknown> | null> {
     const category = filter?.category;
     let selectClause = '*';
-    let fromTable = 'trs_rule_flow_test';
+    let fromTable = 'trs_rule_flow';
 
     if (category === 'rule_builder') {
       selectClause =
         'id, rule_id, flow_json_rule_builder as flow_json, ts_file_base64_rule_builder as ts_file_base64, tenant_id, created_at, updated_at';
-      fromTable = 'trs_rule_flow_test';
+      fromTable = 'trs_rule_flow';
     } else if (category === 'test_case_generation') {
       selectClause =
         'id, rule_id, flow_json_test_case as flow_json, ts_file_base64_test_case as ts_file_base64, tenant_id, created_at, updated_at';
-      fromTable = 'trs_rule_flow_test';
+      fromTable = 'trs_rule_flow';
     }
 
     const query = `
@@ -2104,7 +2104,7 @@ export class DatabaseService {
     }
 
     const query = `
-      UPDATE trs_rule_flow_test
+      UPDATE trs_rule_flow
       SET 
         ${setClause}
         updated_at = NOW()

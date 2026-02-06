@@ -2045,23 +2045,44 @@ describe('DatabaseService', () => {
     it('should create rule flow successfully', async () => {
       const flowData = {
         rule_id: '1',
-        flow_json: {
-          edges: [
-            {
-              id: 'edge-2',
-              source: 'node-2',
-              target: 'node-3',
-              sourceHandle: null,
-            },
-          ],
+        flowData: {
+          flow_json_rule_builder: {
+            edges: [
+              {
+                id: 'edge-2',
+                source: 'node-2',
+                target: 'node-3',
+                sourceHandle: null,
+              },
+            ],
+          },
+          flow_json_test_case: {
+            edges: [
+              {
+                id: 'edge-2',
+                source: 'node-2',
+                target: 'node-3',
+                sourceHandle: null,
+              },
+            ],
+          },
         },
         tenantId: 'tenant-abc',
-        category: 'rule_builder',
       };
       const mockRow = {
         id: 1,
         rule_id: '1',
-        flow_json: {
+        flow_json_rule_builder: {
+          edges: [
+            {
+              id: 'edge-2',
+              source: 'node-2',
+              target: 'node-3',
+              sourceHandle: null,
+            },
+          ],
+        },
+        flow_json_test_case: {
           edges: [
             {
               id: 'edge-2',
@@ -2072,7 +2093,6 @@ describe('DatabaseService', () => {
           ],
         },
         tenantId: 'tenant-abc',
-        category: 'rule_builder',
         created_at: new Date(),
         updated_at: new Date(),
       };
@@ -2090,8 +2110,8 @@ describe('DatabaseService', () => {
       expect(result![0]).toMatchObject({
         id: expect.any(Number),
         rule_id: flowData.rule_id,
-        flow_json: flowData.flow_json,
-        category: flowData.category,
+        flow_json_rule_builder: flowData.flowData.flow_json_rule_builder,
+        flow_json_test_case: flowData.flowData.flow_json_test_case,
         tenantId: flowData.tenantId,
         created_at: expect.any(Date),
         updated_at: expect.any(Date),
@@ -2101,9 +2121,9 @@ describe('DatabaseService', () => {
         expect.stringContaining('INSERT INTO trs_rule_flow'),
         [
           flowData.rule_id,
-          JSON.stringify(flowData.flow_json),
+          JSON.stringify(flowData.flowData.flow_json_rule_builder),
+          JSON.stringify(flowData.flowData.flow_json_test_case),
           flowData.tenantId,
-          flowData.category,
         ],
       );
     });
@@ -2113,8 +2133,8 @@ describe('DatabaseService', () => {
     it('should update rule flow successfully', async () => {
       const flowData = {
         rule_id: '1',
-        flow_json: { key: 'value' },
-        ts_file_base64: 'base64string',
+        flowJson: { key: 'value' },
+        tsFileBase64: 'base64string',
         category: 'rule_builder',
         tenantId: 'tenant-abc',
       };
@@ -2146,9 +2166,8 @@ describe('DatabaseService', () => {
       expect(result![0]).toMatchObject({
         id: expect.any(Number),
         rule_id: flowData.rule_id,
-        flow_json: flowData.flow_json,
-        ts_file_base64: flowData.ts_file_base64,
-        category: flowData.category,
+        flow_json: flowData.flowJson,
+        ts_file_base64: flowData.tsFileBase64,
         tenantId: flowData.tenantId,
         created_at: expect.any(Date),
         updated_at: expect.any(Date),
@@ -2156,10 +2175,9 @@ describe('DatabaseService', () => {
 
       expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('UPDATE trs_rule_flow'), [
         flowData.rule_id,
-        JSON.stringify(flowData.flow_json),
-        flowData.ts_file_base64,
+        JSON.stringify(flowData.flowJson),
+        flowData.tsFileBase64,
         flowData.tenantId,
-        flowData.category,
       ]);
     });
   });

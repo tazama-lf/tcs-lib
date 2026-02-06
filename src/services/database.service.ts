@@ -1950,45 +1950,44 @@ export class DatabaseService {
 
   async createRuleFlow(ruleFlowData: {
     rule_id: string;
-    flow_json: Record<string, unknown>;
+    flowData: {
+      flow_json_rule_builder: Record<string, unknown>;
+      flow_json_test_case: Record<string, unknown>;
+    };
     tenantId: string;
-    category: string;
   }): Promise<
     Array<{
       id: number;
       rule_id: string;
-      flow_json: Record<string, unknown>;
+      flow_json_rule_builder: Record<string, unknown>;
+      flow_json_test_case: Record<string, unknown>;
       tenant_id: string;
-      category: string;
       created_at: Date;
       updated_at: Date;
     }>
   > {
     const query = `
-      INSERT INTO trs_rule_flow (
+      INSERT INTO trs_rule_flow_test (
         rule_id,
-        flow_json,
+        flow_json_rule_builder,
+        flow_json_test_case,
         tenant_id,
-        category,
         updated_at,
         created_at
       ) VALUES (
         $1, $2, $3, $4, NOW(), NOW()
       )
-      RETURNING id, rule_id, flow_json, tenant_id, category, created_at, updated_at;
+      RETURNING id, rule_id, flow_json_rule_builder, flow_json_test_case, tenant_id, created_at, updated_at;
     `;
     const result = await this.dbClient.query(query, [
       ruleFlowData.rule_id,
-      JSON.stringify(ruleFlowData.flow_json),
+      JSON.stringify(ruleFlowData.flowData.flow_json_rule_builder),
+      JSON.stringify(ruleFlowData.flowData.flow_json_test_case),
       ruleFlowData.tenantId,
-      ruleFlowData.category,
     ]);
 
     if (result.rows.length === 0) {
-      throw new HttpException(
-        'Failed to create rule flow: No data returned',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new Error('Failed to create or update rule flow');
     }
 
     return result.rows;
@@ -1997,16 +1996,32 @@ export class DatabaseService {
   async findRuleFlow(
     ruleId: string,
     tenantId: string,
-    filter: { category?: string },
+    filter?: { category: string },
   ): Promise<Record<string, unknown> | null> {
+    const category = filter?.category;
+    let selectClause = '*';
+    let fromTable = 'trs_rule_flow_test';
+
+    if (category === 'rule_builder') {
+      selectClause =
+        'id, rule_id, flow_json_rule_builder as flow_json, ts_file_base64_rule_builder as ts_file_base64, tenant_id, created_at, updated_at';
+      fromTable = 'trs_rule_flow_test';
+    } else if (category === 'test_case_generation') {
+      selectClause =
+        'id, rule_id, flow_json_test_case as flow_json, ts_file_base64_test_case as ts_file_base64, tenant_id, created_at, updated_at';
+      fromTable = 'trs_rule_flow_test';
+    }
+
     const query = `
-      SELECT *
-      FROM trs_rule_flow
-      WHERE rule_id = $1 AND tenant_id = $2${filter.category ? ' AND category = $3' : ''}
+      SELECT ${selectClause}
+      FROM ${fromTable}
+      WHERE rule_id = $1 AND tenant_id = $2
       LIMIT 1
     `;
-    const queryParams = filter.category ? [ruleId, tenantId, filter.category] : [ruleId, tenantId];
+
+    const queryParams = [ruleId, tenantId];
     const result = await this.dbClient.query(query, queryParams);
+
     if (result.rows.length === 0) {
       return null;
     }
@@ -2015,7 +2030,7 @@ export class DatabaseService {
 
   async updateRuleFlow(
     ruleId: string,
-    flowData: { flow_json: Record<string, unknown>; ts_file_base64?: string; category: string },
+    flowData: { flowJson: Record<string, unknown>; tsFileBase64?: string; category: string },
     tenantId: string,
   ): Promise<
     | Array<{
@@ -2023,46 +2038,54 @@ export class DatabaseService {
         rule_id: string;
         flow_json: Record<string, unknown>;
         ts_file_base64?: string;
-        category: string;
         tenant_id: string;
         created_at: Date;
         updated_at: Date;
       }>
     | []
   > {
-    const validateRuleQuery = `
-      SELECT FROM trs_rule_flow
-      WHERE rule_id = $1 AND tenant_id = $2 AND category = $3
-    `;
-    const ruleResult = await this.dbClient.query(validateRuleQuery, [
-      ruleId,
-      tenantId,
-      flowData.category,
-    ]);
+    const { category, flowJson, tsFileBase64 } = flowData;
 
-    if (ruleResult.rows.length === 0) {
+    let setClause: string;
+    let returningClause: string;
+
+    if (category === 'rule_builder') {
+      setClause = `
+        flow_json_rule_builder = $2,
+        ts_file_base64_rule_builder = $3,
+      `;
+      returningClause = `
+        id, rule_id, flow_json_rule_builder as flow_json, ts_file_base64_rule_builder as ts_file_base64, tenant_id, created_at, updated_at
+      `;
+    } else if (category === 'test_case_generation') {
+      setClause = `
+        flow_json_test_case = $2,
+        ts_file_base64_test_case = $3,
+      `;
+      returningClause = `
+        id, rule_id, flow_json_test_case as flow_json, ts_file_base64_test_case as ts_file_base64, tenant_id, created_at, updated_at
+      `;
+    } else {
       throw new HttpException(
-        `Rule with id "${ruleId}" not found for tenant "${tenantId}" and category "${flowData.category}"`,
-        HttpStatus.NOT_FOUND,
+        `Invalid category for updating rule flow: ${category}`,
+        HttpStatus.BAD_REQUEST,
       );
     }
 
     const query = `
-      UPDATE trs_rule_flow
+      UPDATE trs_rule_flow_test
       SET 
-        flow_json = $2,
-        ts_file_base64 = $3,
+        ${setClause}
         updated_at = NOW()
-      WHERE rule_id = $1 AND tenant_id = $4 AND category = $5
-      RETURNING id, rule_id, flow_json, ts_file_base64, tenant_id, category, created_at, updated_at;
+      WHERE rule_id = $1 AND tenant_id = $4
+      RETURNING ${returningClause};
     `;
 
     const result = await this.dbClient.query(query, [
       ruleId,
-      JSON.stringify(flowData.flow_json),
-      flowData.ts_file_base64,
+      JSON.stringify(flowJson),
+      tsFileBase64,
       tenantId,
-      flowData.category,
     ]);
 
     if (result.rows.length === 0) {

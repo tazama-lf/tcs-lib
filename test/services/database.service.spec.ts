@@ -2566,7 +2566,29 @@ describe('DatabaseService', () => {
     it('should save rule request successfully', async () => {
       mockPool.query.mockResolvedValue({ rowCount: 1 });
 
-      const ruleRequest = { field: 'value' };
+      const ruleRequest = {
+        transaction: {
+          CstmrCdtTrfInitn: {
+            GrpHdr: {},
+            PmtInf: {},
+          },
+          TxTp: 'PACS.008',
+          TenantId: 'tenant1',
+        },
+        networkMap: {
+          cfg: 'test-config',
+          active: true,
+          messages: [],
+          tenantId: 'tenant1',
+        },
+        DataCache: {},
+        metaData: {
+          correlationId: 'test-correlation-id',
+          timestamp: '2024-01-01T00:00:00Z',
+          tenantId: 'tenant1',
+          transactionType: 'PACS.008',
+        },
+      };
       await databaseService.saveRuleRequest('PACS.008', 'tenant1', ruleRequest);
 
       expect(mockPool.query).toHaveBeenCalledWith(
@@ -2618,7 +2640,31 @@ describe('DatabaseService', () => {
         rule_type: 'SCREENING',
       };
 
-      const result = await databaseService.createRule(ruleData);
+      const mockRuleRequest = {
+        transaction: {
+          CstmrCdtTrfInitn: {
+            GrpHdr: {},
+            PmtInf: {},
+          },
+          TxTp: 'PACS.008',
+          TenantId: 'tenant1',
+        },
+        networkMap: {
+          cfg: 'test-config',
+          active: true,
+          messages: [],
+          tenantId: 'tenant1',
+        },
+        DataCache: {},
+        metaData: {
+          correlationId: 'test-correlation-id',
+          timestamp: '2024-01-01T00:00:00Z',
+          tenantId: 'tenant1',
+          transactionType: 'PACS.008',
+        },
+      };
+
+      const result = await databaseService.createRule(ruleData, mockRuleRequest);
 
       expect(result).toEqual(mockCreatedRule);
       expect(mockPool.query).toHaveBeenCalledWith(
@@ -2640,7 +2686,33 @@ describe('DatabaseService', () => {
         rule_type: 'SCREENING',
       };
 
-      await expect(databaseService.createRule(ruleData)).rejects.toThrow('Failed to create rule');
+      const mockRuleRequest = {
+        transaction: {
+          CstmrCdtTrfInitn: {
+            GrpHdr: {},
+            PmtInf: {},
+          },
+          TxTp: 'PACS.008',
+          TenantId: 'tenant1',
+        },
+        networkMap: {
+          cfg: 'test-config',
+          active: true,
+          messages: [],
+          tenantId: 'tenant1',
+        },
+        DataCache: {},
+        metaData: {
+          correlationId: 'test-correlation-id',
+          timestamp: '2024-01-01T00:00:00Z',
+          tenantId: 'tenant1',
+          transactionType: 'PACS.008',
+        },
+      };
+
+      await expect(databaseService.createRule(ruleData, mockRuleRequest)).rejects.toThrow(
+        'Failed to create rule',
+      );
     });
   });
 

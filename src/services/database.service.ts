@@ -23,6 +23,36 @@ import { ContentType } from '../interfaces/core.interfaces';
 import { validateSystemFunctions } from 'src/utils/validate';
 export type { DatabaseConfig } from '../interfaces/database.interfaces';
 
+export interface Transaction {
+  CstmrCdtTrfInitn: {
+    GrpHdr: Record<string, unknown>;
+    PmtInf: Record<string, unknown>;
+  };
+  TxTp: string;
+  TenantId: string;
+}
+
+export interface NetworkMap {
+  cfg: string;
+  active: boolean;
+  messages: Array<Record<string, unknown>>;
+  tenantId: string;
+}
+
+export interface MetaData {
+  correlationId: string;
+  timestamp: string;
+  tenantId: string;
+  transactionType: string;
+}
+
+export interface RuleRequest {
+  transaction: Transaction;
+  networkMap: NetworkMap;
+  DataCache: Record<string, unknown>;
+  metaData: MetaData;
+}
+
 export class DatabaseService {
   private readonly dbClient: Pool;
 
@@ -1462,11 +1492,7 @@ export class DatabaseService {
     }
   }
 
-  async saveRuleRequest(
-    txTp: string,
-    tenantId: string,
-    ruleRequest: Record<string, unknown>,
-  ): Promise<void> {
+  async saveRuleRequest(txTp: string, tenantId: string, ruleRequest: RuleRequest): Promise<void> {
     const query = `
       UPDATE trs_rules
       SET rulerequest = $1
@@ -1521,19 +1547,22 @@ export class DatabaseService {
     };
   }
 
-  async createRule(ruleData: {
-    ruleName: string;
-    description: string;
-    tenant_id: string;
-    txtp: string;
-    txtp_version?: string;
-    version: string;
-    status?: string;
-    publishing_status?: string;
-    updated_by: string;
-    rule_type: string;
-    rule_config_id?: string;
-  }): Promise<RuleEntity> {
+  async createRule(
+    ruleData: {
+      ruleName: string;
+      description: string;
+      tenant_id: string;
+      txtp: string;
+      txtp_version?: string;
+      version: string;
+      status?: string;
+      publishing_status?: string;
+      updated_by: string;
+      rule_type: string;
+      rule_config_id?: string;
+    },
+    ruleRequest: RuleRequest,
+  ): Promise<RuleEntity> {
     const query = `
     INSERT INTO trs_rules (
       rule_name,
@@ -1575,6 +1604,8 @@ export class DatabaseService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+
+    await this.saveRuleRequest(ruleData.txtp, ruleData.tenant_id, ruleRequest);
 
     return result.rows[0];
   }

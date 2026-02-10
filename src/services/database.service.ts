@@ -1520,10 +1520,13 @@ export class DatabaseService {
 
     const ruleRequestResult = await this.dbClient.query(ruleRequestQuery, [ruleId, tenantId]);
 
+    // console.log('Rule Request Result:', ruleRequestResult.rows);
+
     if (ruleRequestResult.rows.length === 0) {
       return null;
     }
 
+    // rule_config_id
     const ruleConfigId = ruleRequestResult.rows[0].rule_config_id;
 
     const configurationQuery = `
@@ -1536,6 +1539,8 @@ export class DatabaseService {
       ruleConfigId,
       tenantId,
     ]);
+
+    // console.log('Configuration Result:', configurationResult.rows);
 
     if (configurationResult.rows.length === 0) {
       return null;
@@ -1561,7 +1566,7 @@ export class DatabaseService {
       rule_type: string;
       rule_config_id?: string;
     },
-    ruleRequest: RuleRequest,
+    ruleRequest: RuleRequest | undefined,
   ): Promise<RuleEntity> {
     const query = `
     INSERT INTO trs_rules (
@@ -1605,7 +1610,9 @@ export class DatabaseService {
       );
     }
 
-    await this.saveRuleRequest(ruleData.txtp, ruleData.tenant_id, ruleRequest);
+    if (ruleRequest) {
+      await this.saveRuleRequest(ruleData.txtp, ruleData.tenant_id, ruleRequest);
+    }
 
     return result.rows[0];
   }
@@ -1735,6 +1742,7 @@ export class DatabaseService {
     return result.rows.map((row) => row.transaction_type);
   }
 
+  // need to tell k JSON fetch krna ya XML
   async getPayloadByTransactionType(transactionType: string, tenantId: string): Promise<unknown> {
     if (!transactionType || !tenantId) {
       throw new HttpException(
@@ -1743,17 +1751,33 @@ export class DatabaseService {
       );
     }
 
-    const query = `
-      SELECT payload_json
+    // const JsonQuery = `
+    //   SELECT payload_json
+    //   FROM config
+    //   WHERE transaction_type = $1 AND tenant_id = $2
+    //   LIMIT 1
+    // `;
+
+    const XMLQuery = `
+      SELECT payload_xml
       FROM config
       WHERE transaction_type = $1 AND tenant_id = $2
       LIMIT 1
     `;
 
     try {
-      const result = await this.dbClient.query(query, [transactionType, tenantId]);
+      // let result = await this.dbClient.query(JsonQuery, [transactionType, tenantId]);
 
-      return result.rows[0].payload_json;
+      // console.log('Payload query result:', result.rows[0]);
+
+      // if(result.rows[0].payload_json === null) {
+      const result = await this.dbClient.query(XMLQuery, [transactionType, tenantId]);
+      //  console.log('Payload query result:', result.rows[0]);
+      //  return result.rows[0].payload_xml;
+      return { payload: result.rows[0].payload_xml, type: 'xml' };
+      // }
+
+      // return result.rows[0].payload_json;
     } catch (error) {
       const err = error as Error;
       throw new HttpException(
@@ -1825,6 +1849,24 @@ export class DatabaseService {
     }
 
     return result.rows[0].configuration;
+  }
+
+  async getSchemaAndMapping(transactionType: string): Promise<unknown> {
+    const query = `
+     SELECT schema, mapping, functions, publishing_status 
+     FROM config 
+     WHERE transaction_type = $1 and publishing_status = $2
+    `;
+
+    const result = await this.dbClient.query(query, [transactionType, 'active']);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    // console.log('XYC query result:', result.rows[0]);
+
+    return result.rows[0];
   }
 
   async createNode(

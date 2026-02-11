@@ -1412,16 +1412,21 @@ export class DatabaseService {
     }
   }
 
-  async saveRuleRequest(txTp: string, tenantId: string, ruleRequest: RuleRequest): Promise<void> {
+  async saveRuleRequest(
+    txTp: string,
+    tenantId: string,
+    ruleRequest: RuleRequest,
+    ruleId: number,
+  ): Promise<void> {
     const query = `
       UPDATE trs_rules
       SET rulerequest = $1
       WHERE tenant_id = $2
       AND txtp = $3;
-
+      AND id = $4
     `;
 
-    const values = [ruleRequest, tenantId, txTp];
+    const values = [ruleRequest, tenantId, txTp, ruleId];
     await this.dbClient.query(query, values);
   }
 
@@ -1531,7 +1536,7 @@ export class DatabaseService {
     }
 
     if (ruleRequest) {
-      await this.saveRuleRequest(ruleData.txtp, ruleData.tenant_id, ruleRequest);
+      await this.saveRuleRequest(ruleData.txtp, ruleData.tenant_id, ruleRequest, result.rows[0].id);
     }
 
     return result.rows[0];
@@ -1607,7 +1612,7 @@ export class DatabaseService {
 
       await client.query(cloneFlowQuery, flowValues);
       if (ruleRequest) {
-        await this.saveRuleRequest(newRuleId, tenantId, ruleRequest);
+        await this.saveRuleRequest(newRuleId, tenantId, ruleRequest, newRuleId);
       }
       await client.query('COMMIT');
 

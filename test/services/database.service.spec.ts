@@ -2442,7 +2442,37 @@ describe('DatabaseService', () => {
         .mockResolvedValueOnce({ rows: [], rowCount: 0 }) // INSERT flow (optional)
         .mockResolvedValueOnce({ rows: [], rowCount: 0 }); // COMMIT
 
-      const result = await databaseService.cloneRule(123, 'New Rule Name', 'testUser', 'tenant1');
+      const mockRuleRequest = {
+        transaction: {
+          CstmrCdtTrfInitn: {
+            GrpHdr: {},
+            PmtInf: {},
+          },
+          TxTp: 'PACS.008',
+          TenantId: 'tenant1',
+        },
+        networkMap: {
+          cfg: 'test-config',
+          active: true,
+          messages: [],
+          tenantId: 'tenant1',
+        },
+        DataCache: {},
+        metaData: {
+          correlationId: 'test-correlation-id',
+          timestamp: '2024-01-01T00:00:00Z',
+          tenantId: 'tenant1',
+          transactionType: 'PACS.008',
+        },
+      };
+
+      const result = await databaseService.cloneRule(
+        123,
+        'New Rule Name',
+        'testUser',
+        'tenant1',
+        mockRuleRequest,
+      );
 
       expect(result).toEqual(mockClonedRule);
       expect(mockClient.query).toHaveBeenCalledWith('BEGIN');
@@ -2464,7 +2494,7 @@ describe('DatabaseService', () => {
         .mockResolvedValueOnce({ rows: [], rowCount: 0 }); // ROLLBACK
 
       await expect(
-        databaseService.cloneRule(999, 'Non-existent Rule', 'testUser', 'tenant1'),
+        databaseService.cloneRule(999, 'Non-existent Rule', 'testUser', 'tenant1', undefined),
       ).rejects.toThrow('Rule not found or could not be cloned');
     });
   });
@@ -2832,7 +2862,7 @@ describe('DatabaseService', () => {
 
       const result = await databaseService.getPayloadByTransactionType('PACS.008', 'tenant1');
 
-      expect(result).toEqual(mockPayload.payload_json);
+      expect(result).toEqual({ payload: mockPayload.payload_json, type: 'json' });
     });
 
     it('should throw error for missing parameters', async () => {

@@ -1262,86 +1262,6 @@ export class DatabaseService {
   // ===========================TRS OPERATIONS ==========================
 
   // endpoint for cloning a rule
-  async cloneRule(
-    ruleId: number,
-    newRuleName: string,
-    createdBy: string,
-    tenantId: string,
-  ): Promise<RuleEntity> {
-    const client = await this.getClient();
-
-    try {
-      await client.query('BEGIN'); // start db transaction
-
-      // Clone the rule
-      const ruleQuery = `
-        INSERT INTO trs_rules (
-          rule_name, description, tenant_id, txtp, txtp_version, version, status, 
-          publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
-        )
-        SELECT 
-          $1 AS rule_name, 
-          description, 
-          tenant_id, 
-          txtp, 
-          txtp_version,
-          version, 
-          'STATUS_01_IN_PROGRESS' AS status, 
-          'ACTIVE' AS publishing_status, 
-          $2 AS updated_by, 
-          rule_type, 
-          rule_config_id, 
-          NOW() AS created_at, 
-          NOW() AS updated_at
-        FROM trs_rules
-        WHERE id = $3 AND tenant_id = $4
-        RETURNING id, rule_name, description, tenant_id, txtp, txtp_version, version, status, publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
-      `;
-
-      // yahan ruleId ghalat Q arhi hai shayad
-      const ruleValues = [newRuleName, createdBy, ruleId, tenantId];
-
-      const ruleResult = await client.query(ruleQuery, ruleValues);
-
-      if (ruleResult.rows.length === 0) {
-        await client.query('ROLLBACK');
-        throw new HttpException('Rule not found or could not be cloned', HttpStatus.NOT_FOUND);
-      }
-
-      const newRuleId = ruleResult.rows[0].id;
-
-      // Clone the rule flow if it exists
-      const flowQuery = `
-        INSERT INTO trs_rule_flow (
-          rule_id, flow_json, ts_file_base64, created_at, updated_at
-        )
-        SELECT 
-          $1 AS rule_id,
-          flow_json,
-          ts_file_base64,
-          NOW() AS created_at,
-          NOW() AS updated_at
-        FROM trs_rule_flow
-        WHERE rule_id = $2
-        RETURNING id, rule_id, flow_json, ts_file_base64, created_at, updated_at
-      `;
-
-      // newRuleId = 170 (cloned ki id) rule k table main
-      // ruleId = 76 (clone kia hai)
-      const flowValues = [newRuleId, ruleId];
-
-      await client.query(flowQuery, flowValues);
-
-      await client.query('COMMIT');
-
-      return ruleResult.rows[0];
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
-  }
 
   async findRulesWithFilters(
     limit = 10,
@@ -1617,6 +1537,89 @@ export class DatabaseService {
     return result.rows[0];
   }
 
+  async cloneRule(
+    ruleId: number,
+    newRuleName: string,
+    createdBy: string,
+    tenantId: string,
+    ruleRequest: RuleRequest | undefined,
+  ): Promise<RuleEntity> {
+    const client = await this.getClient();
+
+    try {
+      await client.query('BEGIN'); // start db transaction
+
+      // Clone the rule
+      const cloneRuleQuery = `
+        INSERT INTO trs_rules (
+          rule_name, description, tenant_id, txtp, txtp_version, version, status, 
+          publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
+        )
+        SELECT 
+          $1 AS rule_name, 
+          description, 
+          tenant_id, 
+          txtp, 
+          txtp_version,
+          version, 
+          'STATUS_01_IN_PROGRESS' AS status, 
+          'ACTIVE' AS publishing_status, 
+          $2 AS updated_by, 
+          rule_type, 
+          rule_config_id, 
+          NOW() AS created_at, 
+          NOW() AS updated_at
+        FROM trs_rules
+        WHERE id = $3 AND tenant_id = $4
+        RETURNING id, rule_name, description, tenant_id, txtp, txtp_version, version, status, publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
+      `;
+
+      const ruleValues = [newRuleName, createdBy, ruleId, tenantId];
+
+      const cloneRuleResult = await client.query(cloneRuleQuery, ruleValues);
+
+      if (cloneRuleResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        throw new HttpException('Rule not found or could not be cloned', HttpStatus.NOT_FOUND);
+      }
+
+      const newRuleId = cloneRuleResult.rows[0].id;
+
+      // Clone the rule flow if it exists
+      const cloneFlowQuery = `
+        INSERT INTO trs_rule_flow (
+          rule_id, flow_json_rule_builder, flow_json_test_case, ts_file_base64_rule_builder, ts_file_base64_test_case, created_at, updated_at
+        )
+        SELECT 
+          $1 AS rule_id,
+          flow_json_rule_builder,
+          flow_json_test_case,
+          ts_file_base64_rule_builder,
+          ts_file_base64_test_case,
+          NOW() AS created_at,
+          NOW() AS updated_at
+        FROM trs_rule_flow
+        WHERE rule_id = $2
+        RETURNING id, rule_id, flow_json_rule_builder, flow_json_test_case, ts_file_base64_rule_builder, ts_file_base64_test_case, created_at, updated_at
+      `;
+
+      const flowValues = [newRuleId, ruleId];
+
+      await client.query(cloneFlowQuery, flowValues);
+      if (ruleRequest) {
+        await this.saveRuleRequest(newRuleId, tenantId, ruleRequest);
+      }
+      await client.query('COMMIT');
+
+      return cloneRuleResult.rows[0];
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   // i need to understand this part more
   async updateRule(
     ruleId: string,
@@ -1751,12 +1754,12 @@ export class DatabaseService {
       );
     }
 
-    // const JsonQuery = `
-    //   SELECT payload_json
-    //   FROM config
-    //   WHERE transaction_type = $1 AND tenant_id = $2
-    //   LIMIT 1
-    // `;
+    const JsonQuery = `
+      SELECT payload_json
+      FROM config
+      WHERE transaction_type = $1 AND tenant_id = $2
+      LIMIT 1
+    `;
 
     const XMLQuery = `
       SELECT payload_xml
@@ -1766,18 +1769,18 @@ export class DatabaseService {
     `;
 
     try {
-      // let result = await this.dbClient.query(JsonQuery, [transactionType, tenantId]);
+      let result = await this.dbClient.query(JsonQuery, [transactionType, tenantId]);
 
       // console.log('Payload query result:', result.rows[0]);
 
-      // if(result.rows[0].payload_json === null) {
-      const result = await this.dbClient.query(XMLQuery, [transactionType, tenantId]);
-      //  console.log('Payload query result:', result.rows[0]);
-      //  return result.rows[0].payload_xml;
-      return { payload: result.rows[0].payload_xml, type: 'xml' };
-      // }
+      if (result.rows[0].payload_xml) {
+        result = await this.dbClient.query(XMLQuery, [transactionType, tenantId]);
+        // console.log('Payload query result:', result.rows[0]);
 
-      // return result.rows[0].payload_json;
+        return { payload: result.rows[0].payload_xml, type: 'xml' };
+      }
+
+      return { payload: result.rows[0].payload_json, type: 'json' };
     } catch (error) {
       const err = error as Error;
       throw new HttpException(

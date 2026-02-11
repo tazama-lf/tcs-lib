@@ -14,6 +14,10 @@ export function processMappings(
   configuredMapping: FieldMapping[] | undefined,
   endpoint: string,
 ): iMappingResult {
+  // console.log("Starting mapping processing with payload...", JSON.stringify(payload, null, 2));
+
+  // console.log("--------------------------------------------------------------------------");
+  // console.log(`Processing mappings for endpoint: in tcs lib tcs-dry-run `);
   // static object creation logic
   const dataCache: Record<string, unknown> = {};
   const transactionRelationship: Record<string, unknown> = {
@@ -30,12 +34,17 @@ export function processMappings(
     long: '',
     TxSts: '',
   };
+  // CstmrCdtTrfInitn.PmtInf.CdtTrfTxInf.Cdtr.Id.PrvtId.Othr.0.Id
+
   // dynamic object creation logic
   const dynamicMapping: Record<string, Record<string, unknown>> = {};
   let endToEndId = '';
   if (configuredMapping) {
     try {
+      // let i = 0;
       for (const mapping of configuredMapping) {
+        // console.log(`Processing mapping ${i + 1}/${configuredMapping.length}`);
+        // i += 1;
         const sources = mapping.source;
         //usually a string but can be array in case of multiple sources(split usecase)
         const destination =
@@ -111,9 +120,14 @@ export function processMappings(
         const mappingSources = sources ?? [];
         // REAL LOGIC STARTS HERE
         // Iterate through sources to build the value based on mapping - totally dynamic work
+        // console.log("inner loop sources length:", mappingSources.length);
         for (let i = 0; i < mappingSources.length; i += 1) {
+          // console.log(`Processing source ${i + 1}/${mappingSources.length} for mapping ${destination}`);
           if (type === 'redis') {
+            // console.log(`Extracted value for source ${mappingSources[i]}`);
             dataCacheValue += String(getValueByPath(payload, mappingSources[i]));
+
+            // console.log(`${getValueByPath(payload, mappingSources[i])}`);
             if (i < mappingSources.length - 1) {
               dataCacheValue += separator;
             }

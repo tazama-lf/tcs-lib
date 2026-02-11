@@ -2619,11 +2619,11 @@ describe('DatabaseService', () => {
           transactionType: 'PACS.008',
         },
       };
-      await databaseService.saveRuleRequest('PACS.008', 'tenant1', ruleRequest);
+      await databaseService.saveRuleRequest('PACS.008', 'tenant1', ruleRequest, 1);
 
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringMatching(/UPDATE\s+trs_rules\s+SET\s+rulerequest/),
-        [ruleRequest, 'tenant1', 'PACS.008'],
+        [ruleRequest, 'tenant1', 'PACS.008', 1],
       );
     });
   });

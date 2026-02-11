@@ -1423,7 +1423,7 @@ export class DatabaseService {
       SET rulerequest = $1
       WHERE tenant_id = $2
       AND txtp = $3
-      AND id = $4
+      AND id = $4;
     `;
 
     const values = [ruleRequest, tenantId, txTp, ruleId];

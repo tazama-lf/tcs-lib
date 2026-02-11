@@ -1422,7 +1422,7 @@ export class DatabaseService {
       UPDATE trs_rules
       SET rulerequest = $1
       WHERE tenant_id = $2
-      AND txtp = $3;
+      AND txtp = $3
       AND id = $4
     `;
 
@@ -1589,6 +1589,7 @@ export class DatabaseService {
       }
 
       const newRuleId = cloneRuleResult.rows[0].id;
+      // console.log('Cloned Rule ID:', newRuleId);
 
       // Clone the rule flow if it exists
       const cloneFlowQuery = `

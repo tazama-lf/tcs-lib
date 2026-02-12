@@ -1382,7 +1382,7 @@ export class DatabaseService {
 
   async findRuleById(id: number, tenantId: string): Promise<RuleEntity | null> {
     const query = `
-      SELECT id, rule_name, description, tenant_id, txtp, version,txtp_version, status, publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
+      SELECT id, rule_name, description, tenant_id, txtp, version,txtp_version, status, publishing_status, updated_by, rule_type, rule_config_id, metadata, created_at, updated_at
       FROM trs_rules
       WHERE id = $1 AND tenant_id = $2
     `;
@@ -1641,6 +1641,12 @@ export class DatabaseService {
       rule_config_id: string;
       updated_by: string;
       flow_id: string;
+      metadata: {
+        sync: boolean;
+        deploy: boolean;
+        test: boolean;
+        simulation: boolean;
+      };
     }>,
   ): Promise<RuleEntity | null> {
     // Build dynamic SET clause based on provided fields
@@ -1667,7 +1673,7 @@ export class DatabaseService {
       SET ${setClauses.join(', ')}
       WHERE id = $${ruleIdParam}
         AND tenant_id = $${tenantIdParam}
-      RETURNING id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, rule_config_id, flow_id, created_at, updated_at
+      RETURNING id, rule_name, description, tenant_id, txtp, version, status, publishing_status, updated_by, rule_type, rule_config_id, flow_id, metadata, created_at, updated_at
     `;
 
     values.push(ruleId, tenantId);
@@ -2294,6 +2300,31 @@ export class DatabaseService {
       );
     }
   }
+
+  async updateRuleMetaData(
+    ruleId: string,
+    metadata: {
+      sync?: boolean;
+      deploy?: boolean;
+      test?: boolean;
+      simulation?: boolean;
+    },
+    tenantId: string,
+  ): Promise<{
+    sync?: boolean;
+    deploy?: boolean;
+    test?: boolean;
+    simulation?: boolean;
+  }> {
+    const query = `
+      UPDATE trs_rules
+      SET metadata = $2
+      WHERE id = $1 AND tenant_id = $3
+    `;
+    const result = await this.dbClient.query(query, [ruleId, JSON.stringify(metadata), tenantId]);
+    return result.rows[0].metadata;
+  }
+
   async close(): Promise<void> {
     await this.dbClient.end();
   }

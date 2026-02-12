@@ -2136,6 +2136,7 @@ describe('DatabaseService', () => {
         flowJson: { key: 'value' },
         tsFileBase64: 'base64string',
         category: 'rule_builder',
+        status: 'initial',
         tenantId: 'tenant-abc',
       };
       const mockRow = {
@@ -2143,6 +2144,7 @@ describe('DatabaseService', () => {
         rule_id: '1',
         flow_json: { key: 'value' },
         ts_file_base64: 'base64string',
+        status: 'initial',
         category: 'rule_builder',
         tenantId: 'tenant-abc',
         created_at: new Date(),
@@ -2168,6 +2170,7 @@ describe('DatabaseService', () => {
         rule_id: flowData.rule_id,
         flow_json: flowData.flowJson,
         ts_file_base64: flowData.tsFileBase64,
+        status: flowData.status,
         tenantId: flowData.tenantId,
         created_at: expect.any(Date),
         updated_at: expect.any(Date),
@@ -2177,7 +2180,8 @@ describe('DatabaseService', () => {
         flowData.rule_id,
         JSON.stringify(flowData.flowJson),
         flowData.tsFileBase64,
-        flowData.tenantId,
+        flowData.status,
+        'tenant-abc',
       ]);
     });
   });

@@ -2110,9 +2110,51 @@ export class DatabaseService {
     return result.rows[0];
   }
 
+  async getRuleFlowStatus(
+    ruleId: string,
+    tenantId: string,
+    filter?: { category: string },
+  ): Promise<Record<string, unknown> | null> {
+    const category = filter?.category;
+    let selectClause = '*';
+    let fromTable = 'trs_rule_flow';
+
+    if (!category) {
+      selectClause =
+        'id, rule_id, status_rule_builder as status_rule_builder, status_test_case as status_test_case';
+      fromTable = 'trs_rule_flow';
+    } else if (category === 'rule_builder') {
+      selectClause = 'id, rule_id, status_rule_builder as status';
+      fromTable = 'trs_rule_flow';
+    } else if (category === 'test_case_generation') {
+      selectClause = 'id, rule_id, status_test_case as status';
+      fromTable = 'trs_rule_flow';
+    }
+
+    const query = `
+      SELECT ${selectClause}
+      FROM ${fromTable}
+      WHERE rule_id = $1 AND tenant_id = $2
+      LIMIT 1
+    `;
+
+    const queryParams = [ruleId, tenantId];
+    const result = await this.dbClient.query(query, queryParams);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+    return result.rows[0];
+  }
+
   async updateRuleFlow(
     ruleId: string,
-    flowData: { flowJson: Record<string, unknown>; tsFileBase64?: string; category: string },
+    flowData: {
+      flowJson: Record<string, unknown>;
+      tsFileBase64?: string;
+      category: string;
+      status: string;
+    },
     tenantId: string,
   ): Promise<
     | Array<{
@@ -2123,10 +2165,11 @@ export class DatabaseService {
         tenant_id: string;
         created_at: Date;
         updated_at: Date;
+        status: string;
       }>
     | []
   > {
-    const { category, flowJson, tsFileBase64 } = flowData;
+    const { category, flowJson, tsFileBase64, status } = flowData;
 
     let setClause: string;
     let returningClause: string;
@@ -2135,17 +2178,19 @@ export class DatabaseService {
       setClause = `
         flow_json_rule_builder = $2,
         ts_file_base64_rule_builder = $3,
+        status_rule_builder = $4,
       `;
       returningClause = `
-        id, rule_id, flow_json_rule_builder as flow_json, ts_file_base64_rule_builder as ts_file_base64, tenant_id, created_at, updated_at
+        id, rule_id, flow_json_rule_builder as flow_json, ts_file_base64_rule_builder as ts_file_base64, tenant_id, created_at, updated_at, status_rule_builder as status
       `;
     } else if (category === 'test_case_generation') {
       setClause = `
         flow_json_test_case = $2,
         ts_file_base64_test_case = $3,
+        status_test_case = $4,
       `;
       returningClause = `
-        id, rule_id, flow_json_test_case as flow_json, ts_file_base64_test_case as ts_file_base64, tenant_id, created_at, updated_at
+        id, rule_id, flow_json_test_case as flow_json, ts_file_base64_test_case as ts_file_base64, tenant_id, created_at, updated_at, status_test_case as status
       `;
     } else {
       throw new HttpException(
@@ -2156,10 +2201,10 @@ export class DatabaseService {
 
     const query = `
       UPDATE trs_rule_flow
-      SET 
+      SET
         ${setClause}
         updated_at = NOW()
-      WHERE rule_id = $1 AND tenant_id = $4
+      WHERE rule_id = $1 AND tenant_id = $5
       RETURNING ${returningClause};
     `;
 
@@ -2167,6 +2212,7 @@ export class DatabaseService {
       ruleId,
       JSON.stringify(flowJson),
       tsFileBase64,
+      status,
       tenantId,
     ]);
 

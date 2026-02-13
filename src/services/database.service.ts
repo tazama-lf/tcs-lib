@@ -2342,23 +2342,6 @@ export class DatabaseService {
     description?: string;
     category: string;
   }): Promise<void> {
-    const selectQuery = `
-      SELECT id FROM simulation_logs
-      WHERE rule_id = $1 AND tenant_id = $2 AND category = $3
-    `;
-    const isRuleExist = await this.dbClient.query(selectQuery, [
-      parseInt(ruleId, 10),
-      tenantId,
-      category,
-    ]);
-
-    if (isRuleExist.rows.length !== 0) {
-      throw new HttpException(
-        `Simulation logs for rule_id "${ruleId}" already exist. Duplicate entries are not allowed.`,
-        HttpStatus.CONFLICT,
-      );
-    }
-
     const query = `
       INSERT INTO simulation_logs (
         created_by,

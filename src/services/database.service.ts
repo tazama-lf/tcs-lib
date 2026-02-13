@@ -2356,7 +2356,7 @@ export class DatabaseService {
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING id, created_by, tenant_id, rule_id, old_data, new_data, category, description, created_at, updated_at;
     `;
 
-    const result = await this.dbClient.query(query, [
+    await this.dbClient.query(query, [
       userId,
       tenantId,
       parseInt(ruleId, 10),
@@ -2365,7 +2365,6 @@ export class DatabaseService {
       category,
       description,
     ]);
-    return result.rows[0];
   }
 
   async getSimulationLogs(

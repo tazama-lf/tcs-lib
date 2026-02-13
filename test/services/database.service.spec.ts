@@ -2961,20 +2961,7 @@ describe('DatabaseService', () => {
 
       const result = await databaseService.insertSimulationLogs(logData);
 
-      expect(result).toEqual({
-        id: 'log1',
-        userId: 'user1',
-        tenantId: 'tenant1',
-        ruleId: '1',
-        oldData: { field: 'oldValue' },
-        newData: { field: 'value' },
-        old_data: JSON.stringify({ field: 'oldValue' }),
-        new_data: JSON.stringify({ field: 'value' }),
-        category: 'read_only',
-        description: 'Test simulation log',
-        created_at: expect.any(Date),
-        updated_at: expect.any(Date),
-      });
+      expect(result).toBeUndefined();
     });
   });
 

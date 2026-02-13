@@ -2325,6 +2325,114 @@ export class DatabaseService {
     return result.rows[0].metadata;
   }
 
+  async insertSimulationLogs({
+    userId,
+    tenantId,
+    ruleId,
+    oldData,
+    newData,
+    description = '',
+    category,
+  }: {
+    userId: string;
+    tenantId: string;
+    ruleId: string;
+    oldData: Record<string, unknown>;
+    newData: Record<string, unknown>;
+    description?: string;
+    category: string;
+  }): Promise<void> {
+    const selectQuery = `
+      SELECT id FROM simulation_logs
+      WHERE rule_id = $1 AND tenant_id = $2 AND category = $3
+    `;
+    const isRuleExist = await this.dbClient.query(selectQuery, [
+      parseInt(ruleId, 10),
+      tenantId,
+      category,
+    ]);
+
+    if (isRuleExist.rows.length !== 0) {
+      throw new HttpException(
+        `Simulation logs for rule_id "${ruleId}" already exist. Duplicate entries are not allowed.`,
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    const query = `
+      INSERT INTO simulation_logs (
+        created_by,
+        tenant_id,
+        rule_id,
+        old_data,
+        new_data,
+        category,
+        description,
+        created_at,
+        updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING id, created_by, tenant_id, rule_id, old_data, new_data, category, description, created_at, updated_at;
+    `;
+
+    const result = await this.dbClient.query(query, [
+      userId,
+      tenantId,
+      parseInt(ruleId, 10),
+      JSON.stringify(oldData),
+      JSON.stringify(newData),
+      category,
+      description,
+    ]);
+    return result.rows[0];
+  }
+
+  async getSimulationLogs(
+    ruleId: string,
+    tenantId: string,
+    category?: string,
+    sortBy: 'created_at' | 'updated_at' = 'created_at',
+    sortOrder: 'asc' | 'desc' = 'desc',
+    limit?: number,
+    offset?: number,
+  ): Promise<
+    Array<{
+      id: number;
+      created_by: string;
+      tenant_id: string;
+      rule_id: string;
+      old_data: Record<string, unknown>;
+      new_data: Record<string, unknown>;
+      description: string;
+      category: string;
+      created_at: Date;
+      updated_at: Date;
+    }>
+  > {
+    const params = [ruleId, tenantId];
+    let query = `
+      SELECT id, created_by, tenant_id, rule_id, old_data, new_data, description, category, created_at, updated_at
+      FROM simulation_logs
+      WHERE rule_id = $1 AND tenant_id = $2
+    `;
+
+    if (category) {
+      query += ' AND category = $3';
+      params.push(category);
+    }
+
+    query += `
+      ORDER BY ${sortBy} ${sortOrder}
+      ${limit ? `LIMIT ${limit}` : ''}
+      ${offset ? `OFFSET ${offset}` : ''}
+    `;
+
+    const result = await this.dbClient.query(query, params);
+    return result.rows.map((row) => ({
+      ...row,
+      old_data: typeof row.old_data === 'string' ? JSON.parse(row.old_data) : row.old_data,
+      new_data: typeof row.new_data === 'string' ? JSON.parse(row.new_data) : row.new_data,
+    }));
+  }
+
   async close(): Promise<void> {
     await this.dbClient.end();
   }

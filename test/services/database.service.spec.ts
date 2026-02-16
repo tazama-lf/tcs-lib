@@ -2136,6 +2136,7 @@ describe('DatabaseService', () => {
         flowJson: { key: 'value' },
         tsFileBase64: 'base64string',
         category: 'rule_builder',
+        status: 'initial',
         tenantId: 'tenant-abc',
       };
       const mockRow = {
@@ -2143,6 +2144,7 @@ describe('DatabaseService', () => {
         rule_id: '1',
         flow_json: { key: 'value' },
         ts_file_base64: 'base64string',
+        status: 'initial',
         category: 'rule_builder',
         tenantId: 'tenant-abc',
         created_at: new Date(),
@@ -2168,6 +2170,7 @@ describe('DatabaseService', () => {
         rule_id: flowData.rule_id,
         flow_json: flowData.flowJson,
         ts_file_base64: flowData.tsFileBase64,
+        status: flowData.status,
         tenantId: flowData.tenantId,
         created_at: expect.any(Date),
         updated_at: expect.any(Date),
@@ -2177,7 +2180,8 @@ describe('DatabaseService', () => {
         flowData.rule_id,
         JSON.stringify(flowData.flowJson),
         flowData.tsFileBase64,
-        flowData.tenantId,
+        flowData.status,
+        'tenant-abc',
       ]);
     });
   });
@@ -2914,12 +2918,89 @@ describe('DatabaseService', () => {
     });
 
     it('should throw error when multiple active network maps found', async () => {
-      const mockMultiple = { rows: [{ configuration: {} }, { configuration: {} }] };
-      mockPool.query.mockResolvedValue(mockMultiple);
-
-      await expect(databaseService.findActiveNetworkMap('tenant1')).rejects.toThrow(
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: [
+          { id: 1, status: 'ACTIVE' },
+          { id: 2, status: 'ACTIVE' },
+        ],
+        rowCount: 2,
+      });
+      await expect(databaseService.findActiveNetworkMap('tenant-1')).rejects.toThrow(
         'Multiple active network maps found',
       );
+    });
+  });
+
+  describe('insertSimulationLogs', () => {
+    it('should insert simulation logs', async () => {
+      const logData = {
+        userId: 'user1',
+        tenantId: 'tenant1',
+        ruleId: '1',
+        oldData: { field: 'oldValue' },
+        newData: { field: 'value' },
+        category: 'read_only',
+        description: 'Test simulation log',
+      };
+
+      (mockPool.query as jest.Mock)
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 }) // For the check if exists
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'log1',
+              ...logData,
+              old_data: JSON.stringify(logData.oldData),
+              new_data: JSON.stringify(logData.newData),
+              created_at: new Date(),
+              updated_at: new Date(),
+            },
+          ],
+          rowCount: 1,
+        });
+
+      const result = await databaseService.insertSimulationLogs(logData);
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('getSimulationLogs', () => {
+    const mockLogs = [
+      {
+        created_by: 'user1',
+        tenant_id: 'tenant1',
+        rule_id: '2',
+        old_data: { field: 'oldValue' },
+        new_data: { field: 'value' },
+        description: 'Test simulation log',
+        category: 'read_only',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ];
+
+    it('should return simulation logs', async () => {
+      mockPool.query.mockResolvedValue({ rows: mockLogs, rowCount: 1 });
+      const result = await databaseService.getSimulationLogs('2', 'cbe');
+      expect(result).toEqual(mockLogs);
+    });
+
+    it('should return an empty array when no simulation logs found', async () => {
+      mockPool.query.mockResolvedValue({ rows: [], rowCount: 0 });
+      const result = await databaseService.getSimulationLogs('99', 'cbe');
+      expect(result).toEqual([]);
+    });
+
+    it('should return logs based on category', async () => {
+      mockPool.query.mockResolvedValue({ rows: mockLogs, rowCount: 1 });
+      const result = await databaseService.getSimulationLogs('2', 'cbe', 'read_only');
+      expect(result).toEqual(mockLogs);
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('AND category ='), [
+        '2',
+        'cbe',
+        'read_only',
+      ]);
     });
   });
 

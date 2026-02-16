@@ -2337,7 +2337,7 @@ export class DatabaseService {
     userId: string;
     tenantId: string;
     ruleId: string;
-    oldData: Record<string, unknown>;
+    oldData?: Record<string, unknown>;
     newData: Record<string, unknown>;
     description?: string;
     category: string;
@@ -2381,7 +2381,7 @@ export class DatabaseService {
       created_by: string;
       tenant_id: string;
       rule_id: string;
-      old_data: Record<string, unknown>;
+      old_data?: Record<string, unknown>;
       new_data: Record<string, unknown>;
       description: string;
       category: string;

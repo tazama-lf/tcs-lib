@@ -2941,6 +2941,7 @@ describe('DatabaseService', () => {
         newData: { field: 'value' },
         category: 'read_only',
         description: 'Test simulation log',
+        createdByEmail: 'john@gmail.com',
       };
 
       (mockPool.query as jest.Mock)
@@ -2975,6 +2976,7 @@ describe('DatabaseService', () => {
         new_data: { field: 'value' },
         description: 'Test simulation log',
         category: 'read_only',
+        created_by_email: 'john@gmail.com',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },

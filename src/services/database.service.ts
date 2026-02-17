@@ -2333,6 +2333,7 @@ export class DatabaseService {
     newData,
     description = '',
     category,
+    createdByEmail,
   }: {
     userId: string;
     tenantId: string;
@@ -2341,6 +2342,7 @@ export class DatabaseService {
     newData: Record<string, unknown>;
     description?: string;
     category: string;
+    createdByEmail: string;
   }): Promise<void> {
     const query = `
       INSERT INTO simulation_logs (
@@ -2351,9 +2353,10 @@ export class DatabaseService {
         new_data,
         category,
         description,
+        created_by_email,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING id, created_by, tenant_id, rule_id, old_data, new_data, category, description, created_at, updated_at;
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) RETURNING id, created_by, tenant_id, rule_id, old_data, new_data, category, description, created_by_email, created_at, updated_at;
     `;
 
     await this.dbClient.query(query, [
@@ -2364,6 +2367,7 @@ export class DatabaseService {
       JSON.stringify(newData),
       category,
       description,
+      createdByEmail,
     ]);
   }
 
@@ -2385,13 +2389,14 @@ export class DatabaseService {
       new_data: Record<string, unknown>;
       description: string;
       category: string;
+      created_by_email: string;
       created_at: Date;
       updated_at: Date;
     }>
   > {
     const params = [ruleId, tenantId];
     let query = `
-      SELECT id, created_by, tenant_id, rule_id, old_data, new_data, description, category, created_at, updated_at
+      SELECT id, created_by, tenant_id, rule_id, old_data, new_data, description, category, created_by_email, created_at, updated_at
       FROM simulation_logs
       WHERE rule_id = $1 AND tenant_id = $2
     `;

@@ -53,6 +53,17 @@ export interface RuleRequest {
   metaData: MetaData;
 }
 
+export interface PayloadType {
+  ruleName: string;
+  description: string;
+  // status: string;
+  // publishing_status: string;
+  rule_config_id: string;
+  txtp: string;
+  version: string;
+  rule_type: string;
+}
+
 export class DatabaseService {
   private readonly dbClient: Pool;
 
@@ -1544,7 +1555,7 @@ export class DatabaseService {
 
   async cloneRule(
     ruleId: number,
-    newRuleName: string,
+    payload: PayloadType,
     createdBy: string,
     tenantId: string,
     ruleRequest: RuleRequest | undefined,
@@ -1562,24 +1573,32 @@ export class DatabaseService {
         )
         SELECT 
           $1 AS rule_name, 
-          description, 
+          $2 AS description, 
           tenant_id, 
           txtp, 
           txtp_version,
-          version, 
+          $3 AS version, 
           'STATUS_01_IN_PROGRESS' AS status, 
           'ACTIVE' AS publishing_status, 
-          $2 AS updated_by, 
-          rule_type, 
+          $5 AS updated_by, 
+          $4 AS rule_type, 
           rule_config_id, 
           NOW() AS created_at, 
           NOW() AS updated_at
         FROM trs_rules
-        WHERE id = $3 AND tenant_id = $4
+        WHERE id = $6 AND tenant_id = $7
         RETURNING id, rule_name, description, tenant_id, txtp, txtp_version, version, status, publishing_status, updated_by, rule_type, rule_config_id, created_at, updated_at
       `;
 
-      const ruleValues = [newRuleName, createdBy, ruleId, tenantId];
+      const ruleValues = [
+        payload.ruleName,
+        payload.description,
+        payload.version,
+        payload.rule_type,
+        createdBy,
+        ruleId,
+        tenantId,
+      ];
 
       const cloneRuleResult = await client.query(cloneRuleQuery, ruleValues);
 
@@ -1737,6 +1756,23 @@ export class DatabaseService {
     }
 
     return result.rows[0].configuration;
+  }
+
+  async getRuleRequestByRuleId(ruleId: string, tenantId: string): Promise<unknown> {
+    const query = `
+      SELECT rulerequest
+      FROM trs_rules
+      WHERE id = $1 AND tenant_id = $2
+    `;
+
+    const result = await this.dbClient.query(query, [ruleId, tenantId]);
+
+    // console.log('Rule Request Query Result:', result.rows);
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return result.rows[0].rulerequest;
   }
 
   async findAllTransactionTypes(tenantId: string): Promise<string[]> {

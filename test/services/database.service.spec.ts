@@ -1,4 +1,4 @@
-import { DatabaseService } from '../../src/services/database.service';
+import { DatabaseService, PayloadType } from '../../src/services/database.service';
 import { initializeDatabase, getPool } from '../../src/database/databaseFactory';
 import type { Pool, PoolClient } from 'pg';
 import { ConfigStatus } from '../../src/types/config.types';
@@ -2470,9 +2470,18 @@ describe('DatabaseService', () => {
         },
       };
 
+      const mockPayload: PayloadType = {
+        ruleName: 'New Rule Name',
+        description: 'Test rule description',
+        rule_config_id: 'test-rule-config',
+        txtp: 'iso20022.pacs.002.001.12',
+        version: '1.0.0',
+        rule_type: 'fraud_detection',
+      };
+
       const result = await databaseService.cloneRule(
         123,
-        'New Rule Name',
+        mockPayload,
         'testUser',
         'tenant1',
         mockRuleRequest,
@@ -2482,7 +2491,15 @@ describe('DatabaseService', () => {
       expect(mockClient.query).toHaveBeenCalledWith('BEGIN');
       expect(mockClient.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO trs_rules'),
-        ['New Rule Name', 'testUser', 123, 'tenant1'],
+        [
+          'New Rule Name',
+          'Test rule description',
+          '1.0.0',
+          'fraud_detection',
+          'testUser',
+          123,
+          'tenant1',
+        ],
       );
       expect(mockClient.query).toHaveBeenCalledWith('COMMIT');
     });
@@ -2497,8 +2514,17 @@ describe('DatabaseService', () => {
         }) // INSERT rule (returns empty - rule not found)
         .mockResolvedValueOnce({ rows: [], rowCount: 0 }); // ROLLBACK
 
+      const mockPayload: PayloadType = {
+        ruleName: 'Non-existent Rule',
+        description: 'Test rule description',
+        rule_config_id: 'test-rule-config',
+        txtp: 'iso20022.pacs.002.001.12',
+        version: '1.0.0',
+        rule_type: 'fraud_detection',
+      };
+
       await expect(
-        databaseService.cloneRule(999, 'Non-existent Rule', 'testUser', 'tenant1', undefined),
+        databaseService.cloneRule(999, mockPayload, 'testUser', 'tenant1', undefined),
       ).rejects.toThrow('Rule not found or could not be cloned');
     });
   });

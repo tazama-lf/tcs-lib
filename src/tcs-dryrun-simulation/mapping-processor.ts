@@ -1,6 +1,6 @@
 import type { iMappingResult } from 'src/interfaces/iMappingResult';
 import type { FieldMapping } from 'src/interfaces/schema.interfaces';
-import { getValueByPath } from '../services/utils';
+import { getValueByPath } from '../utils/path-utils';
 
 /**
  * Processes configured mappings to extract data cache and transaction relationship data

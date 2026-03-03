@@ -48,12 +48,7 @@ export default defineConfig([
       '@typescript-eslint/strict-boolean-expressions': 'off',
 
       // Add these rules to disable all 'any' related errors
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-call': 'off',
-      '@typescript-eslint/no-unsafe-return': 'off',
-      '@typescript-eslint/no-unsafe-argument': 'off',
-
+      
       '@stylistic/quotes': ['error', 'single'],
       'max-lines': ['warn', { max: 450 }],
       'complexity': ['warn', { max: 15 }],

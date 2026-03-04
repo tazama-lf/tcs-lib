@@ -1,7 +1,7 @@
 export interface JSONSchema {
   $schema?: string;
   $id?: string;
-  type: 'object' | 'array' | 'string' | 'number' | 'boolean' | 'null';
+  type: 'object' | 'array' | 'string' | 'number' | 'boolean' | 'integer' | 'null';
   title?: string;
   description?: string;
   properties?: Record<string, JSONSchemaProperty>;

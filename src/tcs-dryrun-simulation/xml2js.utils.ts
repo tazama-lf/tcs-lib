@@ -305,7 +305,21 @@ export function createSchemaAwareNumberProcessor(stringFields: string[]) {
 
 export function isXmlContentType(req: Request, loggerService?: LoggerService): boolean {
   try {
-    return req.headers['content-type'] === 'application/xml';
+    const contentType = req.headers['content-type'];
+    if (!contentType) {
+      return false;
+    }
+
+    // Normalize to lowercase and strip parameters (e.g., charset)
+    const normalizedType = contentType.toLowerCase().split(';')[0].trim();
+
+    // Accept: 'application/xml', 'text/xml', types ending with '+xml', or starting with 'application/xml'
+    return (
+      normalizedType === 'application/xml' ||
+      normalizedType === 'text/xml' ||
+      normalizedType.endsWith('+xml') ||
+      normalizedType.startsWith('application/xml')
+    );
   } catch (error) {
     if (loggerService) {
       loggerService.error(`Error in isXmlContentType: ${String(error)}`);

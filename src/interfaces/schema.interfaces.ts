@@ -71,7 +71,7 @@ export interface DestinationFieldExtension {
 
 export interface SourceSchema {
   schema: JSONSchema;
-  version: string;
+  version: number;
   lastUpdated: Date;
   createdBy: string;
   metadata?: {

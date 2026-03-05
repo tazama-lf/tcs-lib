@@ -1,0 +1,18 @@
+node_modules/
+dist/
+lib/
+.env
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.idea/
+.vscode/
+.DS_Store
+coverage/
+
+# Optional: ignore build output
+build/
+
+# Optional: ignore test output
+*.tsbuildinfo

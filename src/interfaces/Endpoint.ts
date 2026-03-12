@@ -17,6 +17,7 @@ export interface CreateConfigDto {
   mapping?: FieldMapping[];
   functions?: FunctionDefinition[];
   schema?: Record<string, unknown>;
+  related_transaction?: string;
 }
 export interface UpdateConfigDto {
   msgFam?: string;
@@ -29,6 +30,7 @@ export interface UpdateConfigDto {
   functions?: FunctionDefinition[];
   status?: ConfigStatus; // Allow status updates with proper enum type
   comments?: string; // Comments from approvers to editors (CHANGES_REQUESTED)
+  related_transaction?: string;
 }
 
 export interface MappingSource {

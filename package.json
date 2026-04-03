@@ -51,7 +51,7 @@
     "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
     "@jest/types": "^30.2.0",
     "@stylistic/eslint-plugin": "^5.6.1",
-    "@tazama-lf/frms-coe-lib": "7.0.0-rc.2",
+    "@tazama-lf/frms-coe-lib": "7.0.2-rc.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "eslint-config-love": "^134.0.0",

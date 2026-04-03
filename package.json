@@ -1,6 +1,6 @@
 {
   "name": "@tazama-lf/tcs-lib",
-  "version": "1.0.155",
+  "version": "1.0.156-rc.2",
   "description": "A TypeScript package containing interfaces and Data Transfer Objects (DTOs).",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -32,11 +32,12 @@
   },
   "private": false,
   "publishConfig": {
-    "access": "restricted"
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/my-types-package.git"
+    "url": "git+https://github.com/tazama-lf/tcs-lib.git"
   },
   "keywords": [
     "typescript",
@@ -50,7 +51,7 @@
     "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
     "@jest/types": "^30.2.0",
     "@stylistic/eslint-plugin": "^5.6.1",
-    "@tazama-lf/frms-coe-lib": "6.0.0-proto.0",
+    "@tazama-lf/frms-coe-lib": "7.0.0-rc.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "eslint-config-love": "^134.0.0",

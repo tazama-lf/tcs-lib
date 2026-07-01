@@ -16,7 +16,7 @@ export { ConfigStatus } from './types/config.types';
 export type * from './types/data-model.types';
 export type * from './types/data-model-handler.types';
 
-export * from './interfaces/Endpoint';
+export type * from './interfaces/Endpoint';
 
 export * from './template/email-templates';
 

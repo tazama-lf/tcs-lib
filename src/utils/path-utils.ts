@@ -5,6 +5,10 @@
  * @returns The value at the specified path, or undefined if not found
  */
 export function getValueByPath(obj: unknown, path: string): unknown {
+  if (obj === null || obj === undefined) {
+    throw new Error(`Property '${path}' not found`);
+  }
+
   const properties = path.split('.');
   let current: unknown = obj;
 

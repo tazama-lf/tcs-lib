@@ -22,7 +22,7 @@ export interface FieldMapping {
   type?: string;
 }
 
-export type TransformationType = 'NONE' | 'CONCAT' | 'SUM' | 'SPLIT';
+export type TransformationType = 'NONE' | 'CONCAT' | 'SUM' | 'SPLIT' | 'CONSTANT' | 'MATH';
 export type MappingStatus = 'ACTIVE' | 'INACTIVE' | 'DEPRECATED';
 export type ExtensionFieldStatus = 'DRAFT' | 'ACTIVE' | 'DEPRECATED';
 export type ExtensionFieldCategory = 'CUSTOM' | 'REGULATORY' | 'BUSINESS';
@@ -71,7 +71,7 @@ export interface DestinationFieldExtension {
 
 export interface SourceSchema {
   schema: JSONSchema;
-  version: string;
+  version: number;
   lastUpdated: Date;
   createdBy: string;
   metadata?: {

@@ -1,7 +1,12 @@
 import type { ContentType, TransactionType } from './core.interfaces';
 import type { JSONSchema } from './json-schema.interfaces';
 import type { FieldMapping } from './schema.interfaces';
-import type { FunctionDefinition, AllowedFunctionName } from '../types/config.types';
+import type {
+  FunctionDefinition,
+  AllowedFunctionName,
+  ConfigStatus,
+  Config,
+} from '../types/config.types';
 export interface CreateConfigDto {
   msgFam?: string;
   transactionType: TransactionType;
@@ -12,6 +17,7 @@ export interface CreateConfigDto {
   mapping?: FieldMapping[];
   functions?: FunctionDefinition[];
   schema?: Record<string, unknown>;
+  related_transaction?: string;
 }
 export interface UpdateConfigDto {
   msgFam?: string;
@@ -24,17 +30,7 @@ export interface UpdateConfigDto {
   functions?: FunctionDefinition[];
   status?: ConfigStatus; // Allow status updates with proper enum type
   comments?: string; // Comments from approvers to editors (CHANGES_REQUESTED)
-}
-
-export enum ConfigStatus {
-  IN_PROGRESS = 'STATUS_01_IN_PROGRESS',
-  ON_HOLD = 'STATUS_02_ON_HOLD',
-  UNDER_REVIEW = 'STATUS_03_UNDER_REVIEW',
-  APPROVED = 'STATUS_04_APPROVED',
-  REJECTED = 'STATUS_05_REJECTED',
-  EXPORTED = 'STATUS_06_EXPORTED',
-  READY_FOR_DEPLOYMENT = 'STATUS_07_READY_FOR_DEPLOYMENT',
-  DEPLOYED = 'STATUS_08_DEPLOYED',
+  related_transaction?: string;
 }
 
 export interface MappingSource {
@@ -42,25 +38,6 @@ export interface MappingSource {
 }
 export interface MappingDestination {
   field: string; // Field path in destination schema
-}
-export interface Config {
-  id: number;
-  msgFam: string; // Message family (pain.001, pacs.008, etc.)
-  transactionType: TransactionType;
-  endpointPath: string;
-  version: string;
-  contentType: ContentType;
-  schema: JSONSchema;
-  payload?: string | Record<string, unknown>; // JSONB payload field from database
-  mapping?: FieldMapping[];
-  functions?: FunctionDefinition[];
-  status?: ConfigStatus;
-  tenantId?: string;
-  createdBy?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  comments?: string;
-  publishing_status?: 'active' | 'inactive';
 }
 export interface AddMappingDto {
   source?: string[];

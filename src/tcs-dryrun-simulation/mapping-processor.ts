@@ -1,18 +1,21 @@
+import type { LoggerService } from '@tazama-lf/frms-coe-lib';
 import type { iMappingResult } from 'src/interfaces/iMappingResult';
 import type { FieldMapping } from 'src/interfaces/schema.interfaces';
-import { getValueByPath } from '../services/utils';
+import { getValueByPath } from '../utils/path-utils';
 
 /**
  * Processes configured mappings to extract data cache and transaction relationship data
  * @param payload The payload to extract data from
  * @param configuredMapping The mapping configuration
- * @param loggerCallback Optional logger callback function
+ * @param endpoint The endpoint identifier
+ * @param loggerService Optional logger service for error logging
  * @returns Object containing dataCache, transactionRelationship, and endToEndId
  */
 export function processMappings(
   payload: Record<string, unknown>,
   configuredMapping: FieldMapping[] | undefined,
   endpoint: string,
+  loggerService?: LoggerService,
 ): iMappingResult {
   // console.log("Starting mapping processing with payload...", JSON.stringify(payload, null, 2));
 
@@ -85,21 +88,33 @@ export function processMappings(
         if (type !== 'redis' && type !== 'transactionDetails') {
           // append to dynamic mapping object - destination is confirmed string at this point
           const destParts = destination.split('.');
-          const ObjectName: string = destParts[0]; // e.g., Toyota
-          const PropertyName: string = destParts[1]; // e.g., model
-          const nestedPropertyName: string = destParts[2]; // e.g., name (if any)
           const mappingSources = mapping.source ?? [];
-          // if (mapping.datasource === 'dataModel') {
-          dynamicMapping[ObjectName] ??= {};
-          if (nestedPropertyName) {
+          const sourceValue =
+            mappingSources.length > 0 ? getValueByPath(payload, mappingSources[0]) : undefined;
+
+          // Validate destParts.length and handle 1, 2, or >=3 parts
+          if (destParts.length === 1) {
+            // Single-part destination: assign directly as a wrapped object
+            const ObjectName = destParts[0];
+            dynamicMapping[ObjectName] ??= {};
+            dynamicMapping[ObjectName].value = sourceValue;
+          } else if (destParts.length === 2) {
+            // Two-part destination: ObjectName.PropertyName
+            const ObjectName = destParts[0];
+            const PropertyName = destParts[1];
+            dynamicMapping[ObjectName] ??= {};
+            dynamicMapping[ObjectName][PropertyName] = sourceValue;
+          } else if (destParts.length >= 3) {
+            // Three-or-more-part destination: ObjectName.PropertyName.nestedPropertyName
+            const ObjectName = destParts[0];
+            const PropertyName = destParts[1];
+            const nestedPropertyName = destParts[2];
+            dynamicMapping[ObjectName] ??= {};
             // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- Using ||= to handle falsy values
             dynamicMapping[ObjectName][PropertyName] ||= {};
             (dynamicMapping[ObjectName][PropertyName] as Record<string, unknown>)[
               nestedPropertyName
-            ] = mappingSources.length > 0 ? getValueByPath(payload, mappingSources[0]) : undefined;
-          } else {
-            dynamicMapping[ObjectName][PropertyName] =
-              mappingSources.length > 0 ? getValueByPath(payload, mappingSources[0]) : undefined;
+            ] = sourceValue;
           }
 
           continue;
@@ -161,6 +176,12 @@ export function processMappings(
         }
       }
     } catch (error) {
+      if (loggerService) {
+        loggerService.error(
+          `Error in processMappings for endpoint '${endpoint}': ${String(error)}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+      }
       return {
         dataCache,
         transactionRelationship,

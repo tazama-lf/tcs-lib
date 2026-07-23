@@ -1,6 +1,6 @@
 {
   "name": "@tazama-lf/tcs-lib",
-  "version": "1.0.157-rc.1",
+  "version": "1.0.157",
   "description": "A TypeScript package containing interfaces and Data Transfer Objects (DTOs).",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -48,7 +48,7 @@
   ],
   "license": "Apache-2.0",
   "dependencies": {
-    "@tazama-lf/frms-coe-lib": "8.2.0-rc.6",
+    "@tazama-lf/frms-coe-lib": "8.2.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "joi": "^18.0.1",

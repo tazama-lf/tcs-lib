@@ -1,0 +1,94 @@
+{
+  "name": "@tazama-lf/tcs-lib",
+  "version": "1.0.157",
+  "description": "A TypeScript package containing interfaces and Data Transfer Objects (DTOs).",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "type": "commonjs",
+  "exports": {
+    ".": {
+      "import": "./dist/src/index.js",
+      "require": "./dist/src/index.js",
+      "types": "./dist/src/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "nest build",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run build",
+    "publish:private": "npm publish --access restricted",
+    "prepare": "husky",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "fix": "npm run fix:prettier && npm run fix:eslint",
+    "fix:eslint": "eslint --fix \"**/*.ts\"",
+    "fix:prettier": "prettier --write \"**/*.ts\"",
+    "lint": "npm run lint:eslint && npm run lint:prettier",
+    "lint:eslint": "eslint \"src/**/*.ts\"",
+    "lint:eslint-unused": "eslint --report-unused-disable-directives \"src/**/*.ts\"",
+    "lint:eslint-no-inline": "eslint --no-inline-config \"src/**/*.ts\"",
+    "lint:prettier": "prettier --check \"src/**/*.ts\""
+  },
+  "private": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tazama-lf/tcs-lib.git"
+  },
+  "keywords": [
+    "typescript",
+    "interfaces",
+    "dtos",
+    "nestjs",
+    "validation"
+  ],
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@tazama-lf/frms-coe-lib": "8.2.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
+    "joi": "^18.0.1",
+    "multer": "^2.0.2",
+    "pg": "^8.16.3",
+    "reflect-metadata": "^0.1.13",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
+    "@jest/types": "^30.2.0",
+    "@nestjs/cli": "^11.0.14",
+    "@stylistic/eslint-plugin": "^5.6.1",
+    "@types/express": "^5.0.3",
+    "@types/jest": "^30.0.0",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^20.0.0",
+    "@types/pg": "^8.15.5",
+    "@types/xml2js": "^0.4.14",
+    "@typescript-eslint/eslint-plugin": "^8.46.0",
+    "@typescript-eslint/parser": "^8.46.0",
+    "eslint": "^9.39.1",
+    "eslint-config-love": "^134.0.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.2",
+    "husky": "^9.1.7",
+    "jest": "^30.2.0",
+    "rimraf": "^6.0.1",
+    "ts-jest": "^29.4.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0"
+  },
+  "overrides": {
+    "uuid": "^11.1.1",
+    "@opentelemetry/core": "^2.8.0"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}
